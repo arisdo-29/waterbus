@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 // Module: BE4 - Đặt vé & Thanh toán. Mọi URL của controller này bắt đầu bằng /booking
-// View đặt trong templates/booking/
+// View đặt trong templates/booking/ (giao diện: Khuyên)
 @Controller
 @RequestMapping("/booking")
 public class BookingController {

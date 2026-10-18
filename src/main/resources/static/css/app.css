@@ -1,2 +1,3 @@
-/* FILE CHUNG - CSS dùng cho toàn site. CSS riêng của module: tạo file css/<module>.css */
+/* BE1 (FE) sở hữu - màu, font, component dùng chung cho toàn site.
+   CSS riêng cho trang quản trị: css/admin.css (BE2). */
 body { min-height: 100vh; }

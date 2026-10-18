@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 // Module: BE1 - Tuyến & Bến. Mọi URL của controller này bắt đầu bằng /routes
-// View đặt trong templates/route/
+// View đặt trong templates/route/ (giao diện: Khuyên)
 @Controller
 @RequestMapping("/routes")
 public class RouteController {

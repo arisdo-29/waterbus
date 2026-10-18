@@ -53,6 +53,14 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
+        <!-- Tự nạp lại trang khi sửa HTML/CSS, không phải restart app (chỉ chạy lúc dev) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

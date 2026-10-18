@@ -70,6 +70,7 @@ Sau đó làm theo [docs/SETUP.md](docs/SETUP.md) để chạy được app.
 ## 4. Vòng làm việc mỗi ngày
 
 ```bash
+# 0) Chọn việc: vào tab Issues, lọc theo Milestone đang mở + tên mình, lấy issue trên cùng
 # 1) Bắt đầu việc mới: luôn đi từ develop mới nhất
 git switch develop
 git pull
@@ -86,20 +87,22 @@ git pull origin develop
 # 4) Đẩy nhánh lên và tạo Pull Request vào develop
 git push -u origin feature/be2-trip-search
 ```
-Trên GitHub bấm **Compare & pull request** → base: `develop` → điền template → **Create**.
+Trên GitHub bấm **Compare & pull request** → base: `develop` → điền template, ghi `Closes #<số issue>` → **Create**.
 1 bạn khác review → **Approve** → chủ PR bấm **Squash and merge** → xong, nhánh tự xoá.
 
 Trong IntelliJ: *Git → Branches → New Branch*, *Git → Pull*, *Commit (Ctrl+K)*, *Push (Ctrl+Shift+K)*.
 
 ## 5. Luật chống conflict
 
-1. **Chỉ sửa file thuộc module của mình** (bảng ở [AGENTS.md](AGENTS.md#3-chia-module-và-quyền-sửa-file)).
-   Mỗi module có Controller, Service, ServiceImpl, DTO, thư mục view riêng → 4 người gần như không
-   đụng cùng 1 file.
-2. **File chung chỉ Leader sửa**: `pom.xml`, `application.properties`, `templates/fragments/layout.html`,
-   `HomeController`, `entity/*`, `database/WaterbusDB_SQLServer.sql`, `.github/*`.
+1. **Chỉ sửa file mình sở hữu** (bảng ở [docs/MODULES.md](docs/MODULES.md)).
+   Backend chia theo module (Controller, Service, DTO riêng); giao diện chia theo từng file/thư mục,
+   chủ của từng trang ghi ở cột FE trong [docs/PAGES.md](docs/PAGES.md). Cần sửa trang của người khác
+   thì nhắn chủ file hoặc tạo Issue label `ui`.
+2. **FE và BE nối nhau qua [docs/PAGES.md](docs/PAGES.md)**: BE đưa đúng tên attribute, FE dùng đúng tên đó
+   và đặt `name` input đúng tên field. Hai bên làm song song trên 2 file khác nhau, không chờ nhau.
+3. **File chung chỉ Leader sửa**: `pom.xml`, `application.properties`, `HomeController`, `entity/*`,
+   `database/WaterbusDB_SQLServer.sql`, `.github/*`. `layout.html` do Khuyên (BE1) giữ.
    Cần đổi → nhắn nhóm → tạo PR riêng thật nhỏ `chore(shared): ...` → merge sớm → mọi người `git pull origin develop`.
-3. **Menu đã có sẵn link của cả 4 module** trong `layout.html`, URL prefix đã chia sẵn → không ai phải sửa layout.
 4. **Đổi database**: không sửa file script chính. Tạo file mới `database/changes/2026-10-20_be2_them-cot-x.sql`
    (tên file khác nhau nên không bao giờ conflict) + sửa entity trong cùng PR. Leader gộp vào script chính định kỳ.
 5. **Gọi module khác qua Service interface.** Các method ghi "HỢP ĐỒNG" đã có sẵn chữ ký

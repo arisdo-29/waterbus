@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 // Module: BE2 - Tàu, Ghế & Chuyến. Mọi URL của controller này bắt đầu bằng /trips
-// View đặt trong templates/trip/
+// View đặt trong templates/trip/ (giao diện: Trí)
 @Controller
 @RequestMapping("/trips")
 public class TripController {

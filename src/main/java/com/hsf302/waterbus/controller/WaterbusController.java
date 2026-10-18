@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 // Module: BE2 - Tàu, Ghế & Chuyến. Mọi URL của controller này bắt đầu bằng /admin/waterbuses
-// View đặt trong templates/waterbus/
+// View đặt trong templates/admin/waterbus/ (giao diện: BE2)
 @Controller
 @RequestMapping("/admin/waterbuses")
 public class WaterbusController {
@@ -20,6 +20,6 @@ public class WaterbusController {
     @GetMapping
     public String index() {
         // TODO BE2: lấy dữ liệu từ service, model.addAttribute(...), trả về view
-        return "waterbus/index";
+        return "admin/waterbus/index";
     }
 }

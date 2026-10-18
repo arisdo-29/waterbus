@@ -6,6 +6,7 @@
 - [ ] BE2 - Tàu, Ghế & Chuyến
 - [ ] BE3 - Tài khoản, Loại vé & Khuyến mãi
 - [ ] BE4 - Đặt vé & Thanh toán
+- [ ] Giao diện (chủ trang theo cột FE trong docs/PAGES.md)
 - [ ] File chung (pom.xml, application.properties, layout, entity, database) - đã báo nhóm
 
 ## Cách test
@@ -13,7 +14,8 @@
 
 ## Checklist
 - [ ] Đã `git pull origin develop` vào nhánh mình và chạy lại app không lỗi
-- [ ] Chỉ sửa file thuộc module của mình (hoặc đã hỏi chủ module)
+- [ ] Chỉ sửa file mình sở hữu (hoặc đã hỏi chủ file)
+- [ ] Tên attribute / field form khớp docs/PAGES.md (đổi thì đã sửa PAGES.md)
 - [ ] Không commit `application-local.properties`, `.idea/`, `target/`
 - [ ] Đổi database? Đã thêm file mới trong `database/changes/`
 - [ ] Commit và mô tả PR không chứa tên AI agent

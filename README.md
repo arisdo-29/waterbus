@@ -25,7 +25,8 @@ git config core.hooksPath .githooks
 |---|---|
 | [docs/SETUP.md](docs/SETUP.md) | Cài JDK, SQL Server, IntelliJ, chạy app lần đầu, lỗi thường gặp |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Tạo repo GitHub, nhánh, Pull Request, luật chống conflict |
-| [docs/MODULES.md](docs/MODULES.md) | Chia việc 4 BE, phụ thuộc giữa các module |
+| [docs/MODULES.md](docs/MODULES.md) | Chia việc 4 thành viên (BE1 kiêm FE, BE2 hỗ trợ UI), ai sở hữu file nào |
+| [docs/PAGES.md](docs/PAGES.md) | Hợp đồng từng trang: URL, view, attribute, field form giữa FE và BE |
 | [AGENTS.md](AGENTS.md) | Quy định cho AI agent (commit không kèm tên agent) |
 | [database/](database/) | Script SQL Server + thư mục `changes/` cho thay đổi schema |
 
@@ -49,7 +50,7 @@ waterbus/
 │   ├── application.properties              (chung, không chứa mật khẩu)
 │   ├── application-local.properties.example (mẫu cấu hình riêng mỗi máy)
 │   ├── static/css, static/js               (Bootstrap giống project mẫu)
-│   └── templates/<module>/, templates/fragments/layout.html
+│   └── templates/<trang>/ (BE1), templates/admin/ (BE2), templates/fragments/layout.html
 ├── src/test/               test khởi động app bằng H2
 ├── AGENTS.md  CLAUDE.md  CONTRIBUTING.md
 └── pom.xml  mvnw  mvnw.cmd

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  FILE CHUNG - Leader phụ trách. Mọi trang đều dùng lại các mảnh (fragment) ở đây
+  FILE CHUNG - BE1 (phụ trách FE) sở hữu. Mọi trang đều dùng lại các mảnh (fragment) ở đây
   thay vì tự chép <head>/navbar -> sửa giao diện chung chỉ phải sửa 1 chỗ.
-  Link menu của cả 4 module đã có sẵn, các bạn KHÔNG cần sửa file này khi làm module.
+  Link menu của cả 4 module đã có sẵn. Cần thêm link/fragment -> nhắn BE1.
 -->
 <html xmlns:th="http://www.thymeleaf.org">
 
@@ -11,7 +11,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${title} + ' | Saigon Waterbus'">Saigon Waterbus</title>
     <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">   <!-- BE1: giao diện khách hàng -->
+    <link rel="stylesheet" th:href="@{/css/admin.css}"> <!-- BE2: giao diện trang quản trị -->
 </head>
 
 <body>

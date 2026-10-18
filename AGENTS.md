@@ -65,17 +65,36 @@ Luồng chuẩn (xem ví dụ đầy đủ ở module Station):
 
 ## 3. Chia module và quyền sửa file
 
-| Module | Phụ trách | Entity / Service / Controller | URL prefix | Thư mục view |
-|---|---|---|---|---|
-| BE1 Tuyến & Bến | BE1 | Station, Route, RouteStation | `/stations`, `/routes`, `/admin/stations`, `/admin/routes` | `station/`, `route/` |
-| BE2 Tàu, Ghế & Chuyến | BE2 | Waterbus, Seat, Trip | `/trips`, `/admin/waterbuses`, `/admin/trips` | `trip/`, `waterbus/` |
-| BE3 Tài khoản, Loại vé & KM | BE3 | Account, TicketType, Promotion | `/auth`, `/account`, `/admin/ticket-types`, `/admin/promotions` | `auth/`, `tickettype/`, `promotion/` |
-| BE4 Đặt vé & Thanh toán | BE4 | Booking, Ticket, Payment | `/booking`, `/payment`, `/my-bookings` | `booking/`, `payment/` |
+**Backend** (Controller, Service, ServiceImpl, DTO, Repository của module):
+
+| Module | Phụ trách | Entity / Service / Controller | URL prefix |
+|---|---|---|---|
+| BE1 Tuyến & Bến | BE1 | Station, Route, RouteStation | `/stations`, `/routes`, `/admin/stations`, `/admin/routes` |
+| BE2 Tàu, Ghế & Chuyến | BE2 | Waterbus, Seat, Trip | `/trips`, `/admin/waterbuses`, `/admin/trips` |
+| BE3 Tài khoản, Loại vé & KM | BE3 | Account, TicketType, Promotion | `/auth`, `/account`, `/admin/ticket-types`, `/admin/promotions` |
+| BE4 Đặt vé & Thanh toán | BE4 | Booking, Ticket, Payment | `/booking`, `/payment`, `/my-bookings` |
+
+**Giao diện** (sở hữu theo thư mục, KHÔNG theo module backend):
+
+| File | Chủ |
+|---|---|
+| `templates/fragments/layout.html`, `static/css/app.css`, `static/js/**`, `templates/index.html`, `templates/booking/**`, `templates/payment/**`, `templates/station/**`, `templates/route/**` | BE1 (FE chính) |
+| `templates/trip/**`, `templates/admin/**` (trừ 2 thư mục của BE3), `static/css/admin.css` | BE2 (hỗ trợ UI) |
+| `templates/auth/**`, `templates/admin/promotion/**`, `templates/admin/tickettype/**` | BE3 |
+
+Controller và view của cùng 1 trang thuộc 2 người khác nhau; hai bên nối với nhau qua
+**docs/PAGES.md** (URL, tên view, tên model attribute, tên field form).
 
 Quy tắc cho agent:
 - Chỉ sửa file thuộc module của người đang dùng agent. Cần sửa file module khác -> **dừng lại, hỏi người dùng**.
+- Chỉ sửa template mà người dùng sở hữu theo bảng trên (cột FE trong docs/PAGES.md). Cần đổi template của
+  người khác -> chỉ đề xuất cho người dùng (họ sẽ nhắn chủ file / tạo Issue label `ui`).
+  Đang làm giao diện cho trang của module khác -> **không sửa Controller/Service** của module đó.
+- Hạn demo: Thứ 5 22/10 17:00, đóng code 12:00 cùng ngày. Ưu tiên luồng chính (docs/MODULES.md, mục KẾ HOẠCH);
+  không tự thêm chức năng ngoài phạm vi demo, không refactor lớn.
+- Đổi tên attribute/field so với docs/PAGES.md -> phải sửa luôn PAGES.md trong cùng commit và báo người dùng.
 - **File chung** (chỉ sửa khi người dùng yêu cầu rõ ràng): `pom.xml`, `application.properties`,
-  `templates/fragments/layout.html`, `HomeController`, `entity/*`, `database/WaterbusDB_SQLServer.sql`,
+  `HomeController`, `entity/*`, `database/WaterbusDB_SQLServer.sql`,
   `.github/*`, `.githooks/*`, `AGENTS.md`, `CLAUDE.md`.
 - Method trong service có ghi chú "HỢP ĐỒNG" là module khác đang gọi: không đổi tên/tham số/kiểu trả về.
   Được thêm method mới.
@@ -91,6 +110,8 @@ Quy tắc cho agent:
 - Tiền: `BigDecimal`. Thời gian: `LocalDateTime`.
 - Mật khẩu: `BCryptPasswordEncoder` (đã có `spring-security-crypto`), không lưu mật khẩu thô.
 - View: mọi trang dùng `th:replace="~{fragments/layout :: head('Tiêu đề')}"`, `navbar`, `scripts`.
+  Trang admin đặt trong `templates/admin/<chuc-nang>/list.html` + `form.html`.
+  Dùng class Bootstrap + biến trong `app.css`; không viết `style="..."` inline, không chép CSS vào từng trang.
 - Không format lại toàn bộ file có sẵn (gây conflict); chỉ format phần mình sửa.
 
 ## 5. Database

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 // Module: BE3 - Tài khoản, Loại vé & Khuyến mãi. Mọi URL của controller này bắt đầu bằng /auth
-// View đặt trong templates/auth/
+// View đặt trong templates/auth/ (giao diện: BE1)
 @Controller
 @RequestMapping("/auth")
 public class AuthController {

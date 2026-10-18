@@ -6,38 +6,38 @@
 # *                                   @leader-username
 # /pom.xml                            @leader-username
 # /src/main/resources/application.properties  @leader-username
-# /src/main/resources/templates/fragments/    @leader-username
 # /src/main/java/com/hsf302/waterbus/entity/  @leader-username
 # /database/                          @leader-username
 #
-# --- BE1: Tuyến & Bến ---
-# **/*Station*                        @be1-username
-# **/*Route*                          @be1-username
-# /src/main/resources/templates/station/      @be1-username
-# /src/main/resources/templates/route/        @be1-username
+# --- BE1 Khuyên: Tuyến & Bến ---
+# **/*Station*                        @<github-cua-Khuyen>
+# **/*Route*                          @<github-cua-Khuyen>
 #
-# --- BE2: Tàu, Ghế & Chuyến ---
-# **/*Trip*                           @be2-username
-# **/*Seat*                           @be2-username
-# **/Waterbus.java                    @be2-username
-# **/WaterbusRepository.java          @be2-username
-# **/WaterbusService*.java            @be2-username
-# **/WaterbusController.java          @be2-username
-# /src/main/resources/templates/trip/         @be2-username
-# /src/main/resources/templates/waterbus/     @be2-username
+# --- BE2 Trí: Tàu, Ghế & Chuyến ---
+# **/*Trip*                           @<github-cua-Tri>
+# **/*Seat*                           @<github-cua-Tri>
+# **/Waterbus.java                    @<github-cua-Tri>
+# **/WaterbusRepository.java          @<github-cua-Tri>
+# **/WaterbusService*.java            @<github-cua-Tri>
+# **/WaterbusController.java          @<github-cua-Tri>
 #
-# --- BE3: Tài khoản, Loại vé & Khuyến mãi ---
-# **/*Account*                        @be3-username
-# **/*Auth*                           @be3-username
-# **/*TicketType*                     @be3-username
-# **/*Promotion*                      @be3-username
-# /src/main/resources/templates/auth/         @be3-username
-# /src/main/resources/templates/tickettype/   @be3-username
-# /src/main/resources/templates/promotion/    @be3-username
+# --- BE3 Tân: Tài khoản, Loại vé & Khuyến mãi ---
+# **/*Account*                        @<github-cua-Tan>
+# **/*Auth*                           @<github-cua-Tan>
+# **/*TicketType*                     @<github-cua-Tan>
+# **/*Promotion*                      @<github-cua-Tan>
 #
-# --- BE4: Đặt vé & Thanh toán ---
-# **/*Booking*                        @be4-username
-# **/*Payment*                        @be4-username
-# /src/main/java/com/hsf302/waterbus/entity/Ticket.java  @be4-username
-# /src/main/resources/templates/booking/      @be4-username
-# /src/main/resources/templates/payment/      @be4-username
+# --- BE4 Trâm: Đặt vé & Thanh toán ---
+# **/*Booking*                        @<github-cua-Tram>
+# **/*Payment*                        @<github-cua-Tram>
+# /src/main/java/com/hsf302/waterbus/entity/Ticket.java  @<github-cua-Tram>
+#
+# --- Giao diện (đặt CUỐI file: trong CODEOWNERS dòng sau ghi đè dòng trước) ---
+# /src/main/resources/templates/              @<github-cua-Khuyen>
+# /src/main/resources/static/                 @<github-cua-Khuyen>
+# /src/main/resources/templates/trip/         @<github-cua-Tri>
+# /src/main/resources/templates/admin/        @<github-cua-Tri>
+# /src/main/resources/static/css/admin.css    @<github-cua-Tri>
+# /src/main/resources/templates/auth/         @<github-cua-Tan>
+# /src/main/resources/templates/admin/promotion/   @<github-cua-Tan>
+# /src/main/resources/templates/admin/tickettype/  @<github-cua-Tan>

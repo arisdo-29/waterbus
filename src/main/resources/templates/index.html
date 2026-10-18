@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Trang chủ')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div class="container mt-4">
+    <h1>Saigon Waterbus</h1>
+    <p class="lead">Đặt vé buýt đường sông - HSF302.</p>
+    <a class="btn btn-primary" th:href="@{/trips}">Tìm chuyến</a>
+    <a class="btn btn-outline-secondary" th:href="@{/stations}">Xem các bến (ví dụ mẫu)</a>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

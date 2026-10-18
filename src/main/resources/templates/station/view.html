@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chi tiết bến')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div class="container mt-4">
+    <h1 th:text="${station.name}">Bạch Đằng</h1>
+    <hr>
+    <dl class="row">
+        <dt class="col-sm-2">Mã bến</dt>
+        <dd class="col-sm-10" th:text="${station.code}">BD</dd>
+        <dt class="col-sm-2">Địa chỉ</dt>
+        <dd class="col-sm-10" th:text="${station.address}">Quận 1</dd>
+    </dl>
+    <a class="btn btn-secondary" th:href="@{/stations}">Quay lại</a>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

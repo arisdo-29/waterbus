@@ -1,0 +1,65 @@
+# Chạy tự động trên GitHub cho mọi Pull Request vào develop/main và mọi push lên 2 nhánh đó.
+# Hai "check" này được đặt làm BẮT BUỘC trong branch protection (xem CONTRIBUTING.md):
+#   - build          : code phải compile + test khởi động app (H2) phải pass
+#   - no-agent-name  : commit / tiêu đề / mô tả PR không được chứa tên AI agent
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build + test
+        run: |
+          chmod +x mvnw
+          ./mvnw -B verify
+
+  no-agent-name:
+    name: no-agent-name
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages and authors
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE" ] || echo "$BASE" | grep -Eq '^0+$'; then
+            COMMITS=$(git rev-list --max-count=1 "$HEAD")
+          else
+            COMMITS=$(git rev-list "$BASE..$HEAD")
+          fi
+          status=0
+          for c in $COMMITS; do
+            git log -1 --format=%B "$c" > /tmp/msg.txt
+            ident="$(git log -1 --format='%an <%ae> %cn <%ce>' "$c")"
+            if ! CHECK_IDENT="$ident" sh .githooks/commit-msg /tmp/msg.txt; then
+              echo "::error::Commit $(git log -1 --format='%h %s' "$c") vi phạm quy định tên agent"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Check PR title and description
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > /tmp/pr.txt
+          CHECK_IDENT="-" sh .githooks/commit-msg /tmp/pr.txt

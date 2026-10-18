@@ -1,0 +1,12 @@
+# Copy file này thành "application-local.properties" (cùng thư mục) rồi sửa theo máy bạn.
+# File application-local.properties đã nằm trong .gitignore -> không bao giờ bị đẩy lên GitHub.
+
+spring.datasource.username=sa
+spring.datasource.password=mat_khau_sa_cua_ban
+
+# Nếu SQL Server của bạn dùng instance tên (VD: SQLEXPRESS) hoặc port khác, sửa URL:
+# spring.datasource.url=jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=WaterbusDB;encrypt=true;trustServerCertificate=true
+# spring.datasource.url=jdbc:sqlserver://localhost:1434;databaseName=WaterbusDB;encrypt=true;trustServerCertificate=true
+
+# Muốn đổi port web khi máy đang bận 8080:
+# server.port=8081

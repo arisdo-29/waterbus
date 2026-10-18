@@ -1,0 +1,20 @@
+# Thống nhất xuống dòng LF trong repo cho mọi máy (Windows/macOS).
+# Không có file này, máy Windows (CRLF) và macOS (LF) sẽ làm Git tưởng
+# cả file bị sửa -> conflict "toàn bộ file" dù chỉ đổi 1 dòng.
+* text=auto eol=lf
+
+/mvnw text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+.githooks/* text eol=lf
+*.sh text eol=lf
+
+# File nhị phân
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

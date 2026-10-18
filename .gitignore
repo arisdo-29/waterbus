@@ -1,0 +1,48 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Cấu hình riêng từng máy (mật khẩu DB...) - KHÔNG BAO GIỜ commit ###
+application-local.properties
+*.local.properties
+.env
+
+### Claude Code: chỉ commit .claude/settings.json chung, file local là của từng người ###
+.claude/settings.local.json
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### OS ###
+.DS_Store
+__MACOSX/
+Thumbs.db
+desktop.ini

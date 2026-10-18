@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Danh sách bến')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div class="container mt-4">
+    <h1>Danh sách bến</h1>
+    <hr>
+    <table class="table table-bordered">
+        <thead class="table-secondary">
+        <tr>
+            <th>Mã</th>
+            <th>Tên bến</th>
+            <th>Địa chỉ</th>
+            <th>Trạng thái</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="s : ${stations}">
+            <td th:text="${s.code}">BD</td>
+            <td th:text="${s.name}">Bạch Đằng</td>
+            <td th:text="${s.address}">Quận 1</td>
+            <td th:text="${s.isActive} ? 'Hoạt động' : 'Tạm ngưng'">Hoạt động</td>
+            <td><a th:href="@{/stations/{id}(id=${s.id})}">View</a></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(stations)}">
+            <td colspan="5" class="text-center text-muted">Chưa có dữ liệu - đã chạy script database chưa?</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

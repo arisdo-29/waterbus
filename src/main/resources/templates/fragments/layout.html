@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!--
+  FILE CHUNG - Leader phụ trách. Mọi trang đều dùng lại các mảnh (fragment) ở đây
+  thay vì tự chép <head>/navbar -> sửa giao diện chung chỉ phải sửa 1 chỗ.
+  Link menu của cả 4 module đã có sẵn, các bạn KHÔNG cần sửa file này khi làm module.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | Saigon Waterbus'">Saigon Waterbus</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+
+<body>
+<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}">Saigon Waterbus</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/trips}">Tìm chuyến</a></li>       <!-- BE2 -->
+                <li class="nav-item"><a class="nav-link" th:href="@{/routes}">Tuyến</a></li>           <!-- BE1 -->
+                <li class="nav-item"><a class="nav-link" th:href="@{/stations}">Bến</a></li>           <!-- BE1 -->
+                <li class="nav-item"><a class="nav-link" th:href="@{/booking}">Đặt vé</a></li>         <!-- BE4 -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Quản trị</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" th:href="@{/admin/waterbuses}">Tàu</a></li>       <!-- BE2 -->
+                        <li><a class="dropdown-item" th:href="@{/admin/ticket-types}">Loại vé</a></li> <!-- BE3 -->
+                        <li><a class="dropdown-item" th:href="@{/admin/promotions}">Khuyến mãi</a></li><!-- BE3 -->
+                    </ul>
+                </li>
+            </ul>
+            <a class="btn btn-outline-light btn-sm" th:href="@{/auth}">Đăng nhập</a>                  <!-- BE3 -->
+        </div>
+    </div>
+</nav>
+
+<th:block th:fragment="scripts">
+    <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</th:block>
+</body>
+</html>

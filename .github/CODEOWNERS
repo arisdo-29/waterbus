@@ -1,0 +1,43 @@
+# CODEOWNERS: GitHub tự gắn người review theo file bị sửa.
+# Thay @username bằng tài khoản GitHub thật của từng bạn rồi BỎ dấu # ở đầu dòng.
+# (Để nguyên dấu # nếu chưa điền, vì username sai sẽ làm GitHub báo lỗi file này.)
+#
+# --- File chung: Leader ---
+# *                                   @leader-username
+# /pom.xml                            @leader-username
+# /src/main/resources/application.properties  @leader-username
+# /src/main/resources/templates/fragments/    @leader-username
+# /src/main/java/com/hsf302/waterbus/entity/  @leader-username
+# /database/                          @leader-username
+#
+# --- BE1: Tuyến & Bến ---
+# **/*Station*                        @be1-username
+# **/*Route*                          @be1-username
+# /src/main/resources/templates/station/      @be1-username
+# /src/main/resources/templates/route/        @be1-username
+#
+# --- BE2: Tàu, Ghế & Chuyến ---
+# **/*Trip*                           @be2-username
+# **/*Seat*                           @be2-username
+# **/Waterbus.java                    @be2-username
+# **/WaterbusRepository.java          @be2-username
+# **/WaterbusService*.java            @be2-username
+# **/WaterbusController.java          @be2-username
+# /src/main/resources/templates/trip/         @be2-username
+# /src/main/resources/templates/waterbus/     @be2-username
+#
+# --- BE3: Tài khoản, Loại vé & Khuyến mãi ---
+# **/*Account*                        @be3-username
+# **/*Auth*                           @be3-username
+# **/*TicketType*                     @be3-username
+# **/*Promotion*                      @be3-username
+# /src/main/resources/templates/auth/         @be3-username
+# /src/main/resources/templates/tickettype/   @be3-username
+# /src/main/resources/templates/promotion/    @be3-username
+#
+# --- BE4: Đặt vé & Thanh toán ---
+# **/*Booking*                        @be4-username
+# **/*Payment*                        @be4-username
+# /src/main/java/com/hsf302/waterbus/entity/Ticket.java  @be4-username
+# /src/main/resources/templates/booking/      @be4-username
+# /src/main/resources/templates/payment/      @be4-username

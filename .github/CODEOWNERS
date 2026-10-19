@@ -1,43 +1,42 @@
 # CODEOWNERS: GitHub tự gắn người review theo file bị sửa.
-# Thay @username bằng tài khoản GitHub thật của từng bạn rồi BỎ dấu # ở đầu dòng.
-# (Để nguyên dấu # nếu chưa điền, vì username sai sẽ làm GitHub báo lỗi file này.)
+# Username đã điền theo từng thành viên. Đổi người phụ trách thì sửa username ở dòng tương ứng.
 #
 # --- File chung: Leader ---
-# *                                   @leader-username
-# /pom.xml                            @leader-username
-# /src/main/resources/application.properties  @leader-username
-# /src/main/java/com/hsf302/waterbus/entity/  @leader-username
-# /database/                          @leader-username
+*                                   @arisdo-29
+/pom.xml                            @arisdo-29
+/src/main/resources/application.properties  @arisdo-29
+/src/main/java/com/hsf302/waterbus/entity/  @arisdo-29
+/database/                          @arisdo-29
 #
 # --- BE1 Khuyên: Tuyến & Bến ---
-# **/*Station*                        @<github-cua-Khuyen>
-# **/*Route*                          @<github-cua-Khuyen>
+**/*Station*                        @arisdo-29
+**/*Route*                          @arisdo-29
 #
 # --- BE2 Trí: Tàu, Ghế & Chuyến ---
-# **/*Trip*                           @<github-cua-Tri>
-# **/*Seat*                           @<github-cua-Tri>
-# **/Waterbus.java                    @<github-cua-Tri>
-# **/WaterbusRepository.java          @<github-cua-Tri>
-# **/WaterbusService*.java            @<github-cua-Tri>
-# **/WaterbusController.java          @<github-cua-Tri>
+**/*Trip*                           @Nguyentri2531
+**/*Seat*                           @Nguyentri2531
+**/Waterbus.java                    @Nguyentri2531
+**/WaterbusRepository.java          @Nguyentri2531
+**/WaterbusService*.java            @Nguyentri2531
+**/WaterbusController.java          @Nguyentri2531
 #
 # --- BE3 Tân: Tài khoản, Loại vé & Khuyến mãi ---
-# **/*Account*                        @<github-cua-Tan>
-# **/*Auth*                           @<github-cua-Tan>
-# **/*TicketType*                     @<github-cua-Tan>
-# **/*Promotion*                      @<github-cua-Tan>
+**/*Account*                        @dwargon73-sketch
+**/*Auth*                           @dwargon73-sketch
+**/*TicketType*                     @dwargon73-sketch
+**/*Promotion*                      @dwargon73-sketch
 #
 # --- BE4 Trâm: Đặt vé & Thanh toán ---
-# **/*Booking*                        @<github-cua-Tram>
-# **/*Payment*                        @<github-cua-Tram>
-# /src/main/java/com/hsf302/waterbus/entity/Ticket.java  @<github-cua-Tram>
+**/*Booking*                        @kopslngbtram2110
+**/*Payment*                        @kopslngbtram2110
+/src/main/java/com/hsf302/waterbus/entity/Ticket.java  @kopslngbtram2110
 #
 # --- Giao diện (đặt CUỐI file: trong CODEOWNERS dòng sau ghi đè dòng trước) ---
-# /src/main/resources/templates/              @<github-cua-Khuyen>
-# /src/main/resources/static/                 @<github-cua-Khuyen>
-# /src/main/resources/templates/trip/         @<github-cua-Tri>
-# /src/main/resources/templates/admin/        @<github-cua-Tri>
-# /src/main/resources/static/css/admin.css    @<github-cua-Tri>
-# /src/main/resources/templates/auth/         @<github-cua-Tan>
-# /src/main/resources/templates/admin/promotion/   @<github-cua-Tan>
-# /src/main/resources/templates/admin/tickettype/  @<github-cua-Tan>
+/src/main/resources/templates/              @arisdo-29
+/src/main/resources/static/                 @arisdo-29
+/src/main/resources/templates/trip/         @Nguyentri2531
+/src/main/resources/templates/admin/        @Nguyentri2531
+/src/main/resources/static/css/admin.css    @Nguyentri2531
+/src/main/resources/templates/auth/         @dwargon73-sketch
+/src/main/resources/templates/admin/promotion/   @dwargon73-sketch
+/src/main/resources/templates/admin/tickettype/  @dwargon73-sketch

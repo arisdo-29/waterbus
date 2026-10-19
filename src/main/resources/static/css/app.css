@@ -1,3 +1,252 @@
-/* BE1 (FE) sở hữu - màu, font, component dùng chung cho toàn site.
-   CSS riêng cho trang quản trị: css/admin.css (BE2). */
-body { min-height: 100vh; }
+:root {
+    --wb-sky-50: #EEF8FD;
+    --wb-sky-100: #D9F0FB;
+    --wb-sky-300: #8FD3F2;
+    --wb-sky-500: #2EA8DF;
+    --wb-blue-700: #0D6A99;
+    --wb-navy: #0B3550;
+    --wb-yellow: #FFC629;
+    --wb-yellow-600: #E8AE00;
+    --wb-ink: #1D2B36;
+    --wb-muted: #5D6E7C;
+    --wb-line: #DCE6EE;
+    --wb-bg: #F6FAFC;
+    --wb-success: #1F9D63;
+    --wb-danger: #D64545;
+    --bs-primary: var(--wb-blue-700);
+    --bs-primary-rgb: 13, 106, 153;
+    --bs-body-font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    --bs-body-color: var(--wb-ink);
+    --bs-body-bg: var(--wb-bg);
+    --bs-border-radius: 12px;
+    --bs-link-color: var(--wb-blue-700);
+    --bs-link-hover-color: var(--wb-navy);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { min-width: 320px; background: var(--wb-bg); color: var(--wb-ink); font-family: var(--bs-body-font-family); font-size: 16px; line-height: 1.6; }
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3 { line-height: 1.2; font-weight: 700; color: var(--wb-navy); }
+a { transition: color .2s ease, background-color .2s ease, border-color .2s ease, transform .2s ease; }
+.btn { min-height: 44px; border-radius: 12px; font-weight: 600; padding: 10px 18px; }
+.btn-primary { --bs-btn-bg: var(--wb-blue-700); --bs-btn-border-color: var(--wb-blue-700); --bs-btn-hover-bg: var(--wb-navy); --bs-btn-hover-border-color: var(--wb-navy); --bs-btn-color: #fff; }
+.btn-wb-accent { background: var(--wb-yellow); border-color: var(--wb-yellow); color: var(--wb-ink); font-weight: 700; box-shadow: 0 5px 12px rgba(232, 174, 0, .2); }
+.btn-wb-accent:hover, .btn-wb-accent:focus-visible { background: var(--wb-yellow-600); border-color: var(--wb-yellow-600); color: var(--wb-ink); transform: translateY(-2px); }
+.btn-wb-outline { border: 1px solid var(--wb-blue-700); color: var(--wb-blue-700); }
+.btn-wb-outline:hover, .btn-wb-outline:focus-visible { background: var(--wb-blue-700); color: #fff; }
+.wb-navbar { min-height: 80px; background: #fff; border-bottom: 1px solid var(--wb-line); position: relative; z-index: 10; }
+.wb-brand { display: inline-flex; align-items: center; }
+.wb-brand img { width: 210px; height: auto; display: block; }
+.wb-nav-links { gap: 6px; }
+.wb-nav-links .nav-link { color: var(--wb-muted); border-radius: 8px; padding: 10px 14px !important; font-weight: 600; }
+.wb-nav-links .nav-link:hover, .wb-nav-links .nav-link.active { color: var(--wb-blue-700); background: var(--wb-sky-50); }
+.wb-account-actions { white-space: nowrap; }
+.wb-login-link { color: var(--wb-blue-700); font-weight: 600; text-decoration: none; }
+.wb-account-button { color: var(--wb-navy); font-weight: 600; }
+.wb-navbar-toggler { min-width: 44px; min-height: 44px; border: 1px solid var(--wb-line); color: var(--wb-blue-700); font-size: 24px; }
+.wb-dropdown-menu { border-color: var(--wb-line); box-shadow: 0 12px 30px rgba(11, 53, 80, .12); padding: 8px; }
+.wb-dropdown-menu .dropdown-item { min-height: 42px; border-radius: 8px; padding: 8px 12px; }
+.wb-alerts { padding-top: 16px; }
+.wb-alerts:empty { display: none; }
+.wb-main { overflow: hidden; }
+.wb-hero { position: relative; min-height: 520px; overflow: hidden; background: linear-gradient(135deg, var(--wb-sky-100) 0%, #B8E5F7 54%, var(--wb-sky-50) 100%); }
+.wb-hero::before { content: ''; position: absolute; inset: 0; opacity: .35; background: radial-gradient(circle at 78% 26%, #fff 0 4px, transparent 5px), radial-gradient(circle at 83% 28%, #fff 0 2px, transparent 3px), linear-gradient(160deg, transparent 55%, rgba(255,255,255,.4) 55.2%, transparent 56%); background-size: 210px 160px, 170px 130px, auto; }
+.wb-hero-content { position: relative; z-index: 1; padding-top: 102px; padding-bottom: 180px; }
+.wb-eyebrow { display: inline-block; margin-bottom: 12px; color: var(--wb-blue-700); font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.wb-eyebrow-light { color: var(--wb-blue-700); }
+.wb-hero h1 { max-width: 700px; font-size: clamp(2.4rem, 5vw, 4.6rem); letter-spacing: -.04em; margin-bottom: 22px; }
+.wb-hero h1 span { color: var(--wb-blue-700); }
+.wb-hero p { max-width: 570px; color: var(--wb-muted); font-size: 1.15rem; margin-bottom: 30px; }
+.wb-hero-waves { position: absolute; bottom: -1px; left: 0; width: 100%; height: 170px; }
+.wb-booking-wrap { position: relative; z-index: 2; margin-top: -82px; }
+.wb-card { background: #fff; border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 12px 30px rgba(11, 53, 80, .08); }
+.wb-search-card { padding: 28px; }
+.wb-search-heading { display: flex; justify-content: space-between; align-items: start; margin-bottom: 18px; }
+.wb-search-heading h2 { font-size: 1.45rem; margin-bottom: 0; }
+.wb-search-heading > i { color: var(--wb-sky-500); font-size: 30px; }
+label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+.form-select, .form-control { min-height: 48px; border-color: var(--wb-line); color: var(--wb-ink); }
+.form-select:focus, .form-control:focus { border-color: var(--wb-sky-500); box-shadow: 0 0 0 3px rgba(46, 168, 223, .16); }
+.wb-swap-col { display: flex; justify-content: center; padding-bottom: 2px; }
+.wb-swap-button { width: 44px; height: 44px; border: 1px solid var(--wb-sky-300); border-radius: 50%; background: var(--wb-sky-50); color: var(--wb-blue-700); transition: transform .2s ease, background .2s ease; }
+.wb-swap-button:hover, .wb-swap-button:focus-visible { background: var(--wb-sky-100); transform: rotate(180deg); }
+.wb-form-error { min-height: 0; color: var(--wb-danger); font-size: 14px; margin-top: 10px; }
+.wb-form-error.is-visible { min-height: 22px; }
+.wb-section { padding-top: 88px; }
+.wb-section-heading { margin-bottom: 30px; }
+.wb-section-title { font-size: clamp(1.7rem, 3vw, 2.4rem); margin-bottom: 0; }
+.wb-info-card { height: 100%; padding: 26px; transition: transform .2s ease, box-shadow .2s ease; }
+.wb-info-card:hover { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(11, 53, 80, .12); }
+.wb-icon { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; margin-bottom: 22px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-size: 23px; }
+.wb-info-card h3 { font-size: 1.15rem; margin-bottom: 10px; }
+.wb-info-card p { color: var(--wb-muted); font-size: 14px; margin-bottom: 0; }
+.wb-stations-section { background: #fff; margin-top: 88px; padding-bottom: 84px; }
+.wb-stations-scroll { position: relative; overflow-x: auto; padding: 24px 12px 8px; }
+.wb-stations-list { position: relative; display: flex; justify-content: space-between; min-width: 760px; gap: 20px; }
+.wb-stations-line { position: absolute; top: 47px; left: 34px; right: 34px; height: 4px; background: var(--wb-sky-300); }
+.wb-station { position: relative; z-index: 1; display: flex; flex: 1; min-width: 100px; flex-direction: column; align-items: center; text-align: center; }
+.wb-station-dot { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 16px; border: 4px solid #fff; border-radius: 50%; background: var(--wb-yellow); color: var(--wb-ink); font-weight: 700; box-shadow: 0 0 0 2px var(--wb-sky-500); }
+.wb-station strong { color: var(--wb-navy); font-size: 14px; }
+.wb-station small { color: var(--wb-muted); font-size: 14px; }
+.wb-stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.wb-step { position: relative; display: flex; align-items: center; gap: 12px; color: var(--wb-navy); }
+.wb-step:not(:last-child)::after { content: ''; position: absolute; top: 20px; left: 42px; width: calc(100% - 18px); height: 2px; background: var(--wb-sky-100); z-index: -1; }
+.wb-step span { display: grid; place-items: center; flex: 0 0 40px; height: 40px; border-radius: 50%; background: var(--wb-blue-700); color: #fff; font-weight: 700; box-shadow: 0 0 0 7px var(--wb-bg); }
+.wb-step strong { font-size: 14px; line-height: 1.35; }
+.wb-notice-section { padding-bottom: 96px; }
+.wb-notice { display: flex; gap: 22px; padding: 30px; border: 1px solid #F0D684; border-radius: 16px; background: #FFF9E8; }
+.wb-notice-icon { color: var(--wb-yellow-600); font-size: 28px; }
+.wb-notice h2 { font-size: 1.25rem; margin-bottom: 14px; }
+.wb-notice ul { color: var(--wb-muted); margin-bottom: 0; padding-left: 20px; }
+.wb-notice li + li { margin-top: 8px; }
+.wb-footer { background: var(--wb-navy); color: #D9EAF3; padding: 58px 0 24px; }
+.wb-brand-footer img { width: 210px; filter: brightness(0) invert(1); opacity: .95; }
+.wb-footer-copy { max-width: 360px; margin: 20px 0 0; color: #BFD5E1; }
+.wb-footer-heading { color: #fff; font-size: 1rem; margin-bottom: 16px; }
+.wb-footer a { display: block; width: fit-content; color: #D9EAF3; text-decoration: none; margin-bottom: 8px; }
+.wb-footer a:hover { color: var(--wb-yellow); }
+.wb-footer p { color: #BFD5E1; font-size: 14px; }
+.wb-hotline { color: var(--wb-yellow) !important; font-weight: 700; }
+.wb-footer-bottom { border-top: 1px solid rgba(217, 240, 251, .2); color: #9FBDCC; font-size: 14px; margin-top: 42px; padding-top: 20px; }
+.wb-badge-warning { background: #FFF1BD; color: #795B00; }.wb-badge-success { background: #D9F5E7; color: #126B43; }.wb-badge-muted { background: #E8EEF2; color: #536572; }.wb-badge-danger { background: #FBE0E0; color: #963232; }.wb-badge-info { background: #D9F0FB; color: #0D6A99; }.wb-badge-sky { background: #E6F7FD; color: #167AA6; }
+.wb-preview-index { background: linear-gradient(135deg, var(--wb-sky-50), #fff); min-height: 100vh; }.wb-preview-list { display: grid; gap: 10px; }.wb-preview-shell { max-width: 640px; margin: 8vh auto 0; padding: 42px; border: 1px solid var(--wb-line); border-radius: 20px; background: #fff; box-shadow: 0 18px 50px rgba(11, 53, 80, .1); }.wb-lead { color: var(--wb-muted); }.wb-preview-link { display: flex; justify-content: space-between; align-items: center; min-height: 54px; padding: 12px 16px; border: 1px solid var(--wb-line); border-radius: 12px; color: var(--wb-blue-700); font-weight: 600; text-decoration: none; }.wb-preview-link:hover { border-color: var(--wb-sky-500); background: var(--wb-sky-50); transform: translateX(4px); }.wb-preview-note { margin: 24px 0 0; color: var(--wb-muted); font-size: 14px; }
+@media (max-width: 991.98px) { .wb-navbar { min-height: 72px; }.wb-nav-links { margin-top: 14px; gap: 2px; }.wb-account-actions { padding: 14px 0 10px; border-top: 1px solid var(--wb-line); margin-top: 12px; }.wb-mobile-booking { margin-top: 8px; }.wb-hero { min-height: 500px; }.wb-hero-content { padding-top: 76px; }.wb-search-card { padding: 22px; }.wb-swap-col { position: absolute; right: 34px; margin-top: 28px; }.wb-stepper { gap: 12px; } }
+@media (max-width: 767.98px) { .wb-hero h1 { font-size: 2.45rem; }.wb-hero p { font-size: 1rem; }.wb-booking-wrap { margin-top: -65px; }.wb-section { padding-top: 64px; }.wb-stations-section { margin-top: 64px; padding-bottom: 60px; }.wb-stepper { grid-template-columns: 1fr 1fr; row-gap: 24px; }.wb-step:not(:last-child)::after { display: none; }.wb-notice-section { padding-bottom: 64px; }.wb-notice { align-items: flex-start; padding: 22px; gap: 14px; }.wb-preview-shell { margin-top: 24px; padding: 26px; } }
+@media (max-width: 575.98px) { .wb-brand img, .wb-brand-footer img { width: 182px; }.wb-hero-content { padding-top: 60px; padding-bottom: 160px; }.wb-search-card { padding: 18px; }.wb-swap-col { position: static; margin-top: -4px; }.wb-swap-button { transform: rotate(90deg); }.wb-swap-button:hover, .wb-swap-button:focus-visible { transform: rotate(270deg); }.wb-stations-scroll { margin-inline: -12px; }.wb-stepper { grid-template-columns: 1fr; }.wb-notice { flex-direction: column; } }
+
+.wb-page-main { padding-bottom: 88px; }
+.wb-page-heading { padding-top: 64px; }
+.wb-page-heading h1 { font-size: clamp(2rem, 4vw, 3.3rem); margin-bottom: 12px; }
+.wb-page-heading p { color: var(--wb-muted); margin-bottom: 0; }
+.wb-section-top { margin-top: 32px; }
+.wb-compact-search { padding: 22px; }
+.wb-compact-search .wb-swap-col { padding-bottom: 2px; }
+.wb-results-section { padding-bottom: 12px; }
+.wb-results-summary { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.wb-results-summary h2 { font-size: clamp(1.35rem, 2vw, 1.8rem); margin-bottom: 0; }
+.wb-results-summary p { color: var(--wb-muted); font-size: 14px; margin: 0 0 4px; }
+.wb-summary-divider { margin: 0 10px; color: var(--wb-line); }
+.wb-trip-list { display: grid; gap: 16px; }
+.wb-trip-card { display: grid; grid-template-columns: minmax(290px, 1.3fr) minmax(240px, 1fr) auto; gap: 24px; align-items: center; padding: 24px; }
+.wb-trip-times { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; }
+.wb-trip-time { display: block; color: var(--wb-navy); font-size: 1.55rem; font-weight: 700; line-height: 1; }
+.wb-trip-times small, .wb-trip-route-line small { display: block; color: var(--wb-muted); font-size: 14px; margin-top: 6px; }
+.wb-trip-route-line { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 100px; color: var(--wb-blue-700); }
+.wb-trip-route-line span { width: 100%; height: 2px; margin: 7px 0 0; background: var(--wb-sky-300); }
+.wb-trip-route-line i { position: absolute; top: -10px; padding: 0 6px; background: #fff; font-size: 18px; }
+.wb-trip-route-line small { text-align: center; font-size: 12px; }
+.wb-trip-details { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
+.wb-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 10px; border-radius: 999px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-size: 14px; font-weight: 600; }
+.wb-trip-duration, .wb-trip-code { color: var(--wb-muted); font-size: 14px; }
+.wb-trip-code strong { color: var(--wb-navy); font-weight: 600; }
+.wb-trip-action { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.wb-seats-left { color: var(--wb-success); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.wb-seats-left.is-low { color: var(--wb-yellow-600); }.wb-seats-left.is-sold-out { color: var(--wb-muted); }
+.wb-trip-action .disabled { pointer-events: none; opacity: .5; }
+.wb-empty-state { padding: 54px 24px; text-align: center; }.wb-empty-icon { display: block; color: var(--wb-sky-500); font-size: 42px; margin-bottom: 18px; }.wb-empty-state h2 { font-size: 1.45rem; }.wb-empty-state p { color: var(--wb-muted); margin-bottom: 22px; }
+.wb-stepper-booking { padding: 22px 0; }.wb-stepper-booking .wb-step span { background: #fff; border: 2px solid var(--wb-line); color: var(--wb-muted); box-shadow: 0 0 0 7px var(--wb-bg); }.wb-stepper-booking .wb-step.is-done span { background: var(--wb-blue-700); border-color: var(--wb-blue-700); color: #fff; }.wb-stepper-booking .wb-step.is-current span { background: var(--wb-yellow); border-color: var(--wb-yellow-600); color: var(--wb-ink); }.wb-stepper-booking .wb-step strong { color: var(--wb-muted); }.wb-stepper-booking .wb-step.is-current strong, .wb-stepper-booking .wb-step.is-done strong { color: var(--wb-navy); }
+.wb-seat-card, .wb-booking-summary, .wb-form-card, .wb-payment-card, .wb-payment-method, .wb-detail-card { padding: 28px; }
+.wb-seat-card { overflow: hidden; }.wb-trip-mini-summary, .wb-summary-header, .wb-payment-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }.wb-trip-mini-summary h2, .wb-summary-header h2, .wb-payment-card-heading h2, .wb-form-card h2, .wb-detail-card h2, .wb-payment-method h2 { font-size: 1.35rem; margin-bottom: 0; }.wb-trip-mini-summary strong { color: var(--wb-navy); font-size: 1.1rem; }.wb-trip-mini-summary small { display: block; color: var(--wb-muted); margin-top: 5px; }.wb-summary-header > i { color: var(--wb-sky-500); font-size: 30px; }.wb-trip-mini-summary .wb-trip-code { display: block; margin-bottom: 5px; }
+.wb-seat-legend { display: flex; flex-wrap: wrap; gap: 12px 22px; border-top: 1px solid var(--wb-line); border-bottom: 1px solid var(--wb-line); color: var(--wb-muted); font-size: 14px; margin: 24px 0; padding: 14px 0; }.wb-seat-legend span { display: inline-flex; align-items: center; gap: 8px; }.wb-legend-seat { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--wb-sky-300); border-radius: 5px; background: #fff; }.wb-legend-seat.is-selected { border-color: var(--wb-yellow-600); background: var(--wb-yellow); }.wb-legend-seat.is-sold { border-color: #CBD5DB; background: #E8EEF2; }
+.wb-seat-vessel { max-width: 450px; margin: 0 auto; padding: 22px 24px 26px; border: 2px solid var(--wb-sky-300); border-radius: 48px 48px 24px 24px; background: linear-gradient(180deg, var(--wb-sky-50), #fff); }.wb-vessel-label { color: var(--wb-blue-700); font-size: 14px; font-weight: 700; text-align: center; }.wb-vessel-front { margin-bottom: 18px; }.wb-vessel-rear { margin-top: 20px; color: var(--wb-muted); }.wb-seat-grid { display: grid; grid-template-columns: repeat(7, minmax(34px, 1fr)); gap: 10px 8px; }.wb-seat-slot { min-width: 0; }.wb-seat-slot.wb-seat-col-1 { grid-column: 1; }.wb-seat-slot.wb-seat-col-2 { grid-column: 2; }.wb-seat-slot.wb-seat-col-3 { grid-column: 3; }.wb-seat-slot.wb-seat-col-4 { grid-column: 5; }.wb-seat-slot.wb-seat-col-5 { grid-column: 6; }.wb-seat-slot.wb-seat-col-6 { grid-column: 7; }.wb-seat { position: relative; display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 2px solid var(--wb-sky-300); border-radius: 8px; background: #fff; color: var(--wb-blue-700); cursor: pointer; font-size: 14px; font-weight: 600; transition: background .2s ease, border-color .2s ease, transform .2s ease; }.wb-seat:hover { border-color: var(--wb-blue-700); transform: translateY(-2px); }.btn-check:checked + .wb-seat { border-color: var(--wb-yellow-600); background: var(--wb-yellow); color: var(--wb-ink); }.btn-check:checked + .wb-seat::after { content: '✓'; position: absolute; top: -8px; right: -7px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--wb-success); color: #fff; font-size: 11px; }.btn-check:disabled + .wb-seat { border-color: #CBD5DB; background: #E8EEF2; color: #9AAAB4; cursor: not-allowed; opacity: .85; }.btn-check:disabled + .wb-seat:hover { transform: none; }.wb-seat-message { min-height: 24px; color: var(--wb-danger); font-size: 14px; margin: 16px 0 0; }
+.wb-booking-summary { position: sticky; top: 24px; }.wb-summary-route { display: grid; gap: 4px; border-radius: 12px; background: var(--wb-sky-50); margin-top: 22px; padding: 16px; }.wb-summary-route strong { color: var(--wb-navy); }.wb-summary-route span, .wb-summary-route small { color: var(--wb-muted); }.wb-summary-date { color: var(--wb-muted); font-size: 14px; margin: 14px 0 22px; }.wb-ticket-types { border: 0; margin: 0; padding: 0; }.wb-ticket-types legend { color: var(--wb-navy); font-size: 14px; font-weight: 700; margin-bottom: 10px; }.wb-ticket-option + .wb-ticket-option { margin-top: 8px; }.wb-ticket-option label { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 60px; border: 1px solid var(--wb-line); border-radius: 12px; cursor: pointer; margin: 0; padding: 12px; }.wb-ticket-option label:hover { border-color: var(--wb-sky-500); }.wb-ticket-option .btn-check:checked + label { border-color: var(--wb-blue-700); background: var(--wb-sky-50); }.wb-ticket-option label span { display: grid; gap: 2px; }.wb-ticket-option label strong { color: var(--wb-navy); font-size: 14px; }.wb-ticket-option label small, .wb-ticket-option label em { color: var(--wb-muted); font-size: 13px; font-style: normal; font-weight: 400; }.wb-ticket-option label em { color: var(--wb-yellow-600); }.wb-ticket-option label b { color: var(--wb-blue-700); font-size: 14px; white-space: nowrap; }.wb-selected-seats { border-top: 1px solid var(--wb-line); margin-top: 22px; padding-top: 18px; }.wb-selected-seats h3 { font-size: 14px; margin-bottom: 10px; }.wb-seat-chips { display: flex; flex-wrap: wrap; gap: 8px; }.wb-muted-text { color: var(--wb-muted); font-size: 14px; }.wb-summary-total { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--wb-line); color: var(--wb-muted); margin: 22px 0 18px; padding-top: 18px; }.wb-summary-total strong { color: var(--wb-navy); font-size: 1.2rem; }
+.wb-form-card h2 { margin-bottom: 24px; }.wb-form-card > .wb-eyebrow { margin-bottom: 8px; }.form-text { color: var(--wb-muted); font-size: 14px; }.wb-terms-check { padding-left: 28px; }.wb-terms-check .form-check-input { width: 20px; height: 20px; margin-left: -28px; margin-top: 4px; }.wb-terms-check .form-check-label { font-weight: 400; }.wb-summary-row { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--wb-line); color: var(--wb-muted); font-size: 14px; padding: 14px 0; }.wb-summary-row strong { color: var(--wb-navy); text-align: right; }.wb-summary-actions { display: grid; gap: 10px; }.wb-summary-actions .btn { width: 100%; }
+.wb-countdown { display: flex; align-items: center; justify-content: center; gap: 14px; border-color: #F0D684; background: #FFF9E8; color: var(--wb-ink); margin-bottom: 24px; padding: 18px 24px; }.wb-countdown > i { color: var(--wb-yellow-600); font-size: 26px; }.wb-countdown strong, .wb-countdown small { display: block; }.wb-countdown strong { color: var(--wb-navy); }.wb-countdown strong span { color: var(--wb-yellow-600); font-variant-numeric: tabular-nums; }.wb-countdown small { color: var(--wb-muted); font-size: 14px; }.wb-countdown.is-expired { border-color: #F2C5C5; background: #FFF0F0; }.wb-countdown.is-expired > i, .wb-countdown.is-expired strong span { color: var(--wb-danger); }.wb-payment-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr); gap: 24px; align-items: start; }.wb-payment-card-heading h2 { margin-top: 6px; }.wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; }.wb-payment-route { margin: 24px 0; }.wb-ticket-table { margin-bottom: 0; vertical-align: middle; }.wb-ticket-table th { color: var(--wb-muted); font-size: 14px; font-weight: 600; }.wb-ticket-table td { border-color: var(--wb-line); color: var(--wb-ink); font-size: 14px; }.wb-payment-total { border-top: 1px solid var(--wb-line); margin-top: 16px; padding-top: 16px; }.wb-payment-total > div { display: flex; justify-content: space-between; color: var(--wb-muted); font-size: 14px; padding: 5px 0; }.wb-payment-total strong { color: var(--wb-navy); }.wb-discount-row strong { color: var(--wb-success); }.wb-grand-total { border-top: 1px solid var(--wb-line); font-size: 16px !important; margin-top: 8px; padding-top: 14px !important; }.wb-grand-total strong { font-size: 1.35rem; }.wb-payment-method h2 { margin: 5px 0 18px; }.wb-method-option { display: flex; align-items: center; gap: 12px; min-height: 76px; border: 1px solid var(--wb-blue-700); border-radius: 12px; background: var(--wb-sky-50); cursor: pointer; margin-bottom: 18px; padding: 14px; }.wb-method-option > input { accent-color: var(--wb-blue-700); width: 18px; height: 18px; }.wb-method-option > span { display: grid; flex: 1; }.wb-method-option strong { color: var(--wb-navy); font-size: 14px; }.wb-method-option small { color: var(--wb-muted); font-size: 13px; font-weight: 400; }.wb-method-option > span > i { float: left; color: var(--wb-blue-700); font-size: 22px; margin-right: 10px; }.wb-method-check { color: var(--wb-success); }.wb-payment-expired { display: none; color: var(--wb-danger); font-size: 14px; margin-bottom: 14px; }.wb-payment-expired.is-visible { display: block; }.wb-return-home { display: block; color: var(--wb-blue-700); font-size: 14px; text-align: center; text-decoration: none; margin-top: 16px; }
+.wb-booking-status { display: flex; align-items: center; gap: 18px; border: 1px solid #B9E8CF; border-radius: 16px; background: #EEFBF4; padding: 28px; }.wb-booking-status > div { display: flex; align-items: center; gap: 18px; flex: 1; }.wb-booking-status > div > i { color: var(--wb-success); font-size: 40px; }.wb-booking-status h2 { font-size: 1.4rem; margin-bottom: 5px; }.wb-booking-status p { color: var(--wb-muted); margin: 0; }.wb-status-pending { border-color: #F0D684; background: #FFF9E8; }.wb-status-pending > i { color: var(--wb-yellow-600) !important; }.wb-status-muted { border-color: var(--wb-line); background: #F0F4F6; }.wb-status-muted > i { color: var(--wb-muted) !important; }.wb-booking-code-box { display: flex; align-items: center; gap: 16px; padding: 20px 24px; }.wb-booking-code-box > span { color: var(--wb-muted); }.wb-booking-code-box > strong { color: var(--wb-navy); font-size: 1.4rem; }.wb-booking-code-box button { margin-left: auto; }
+.wb-ticket-list { display: grid; gap: 18px; }.wb-printed-ticket { display: grid; grid-template-columns: 1fr 250px; overflow: hidden; padding: 0; }.wb-printed-ticket-main { position: relative; padding: 28px 32px; }.wb-printed-ticket-main::after { content: ''; position: absolute; top: 18px; right: 0; bottom: 18px; border-right: 2px dashed var(--wb-line); }.wb-ticket-code-label, .wb-printed-ticket-side span, .wb-printed-route small { color: var(--wb-muted); font-size: 13px; }.wb-ticket-code { display: block; color: var(--wb-blue-700); font-size: 1.7rem; margin: 6px 0 28px; }.wb-printed-route { display: flex; align-items: center; gap: 28px; }.wb-printed-route > div { display: grid; gap: 3px; }.wb-printed-route > div strong { color: var(--wb-navy); }.wb-printed-route > i { color: var(--wb-sky-500); font-size: 22px; }.wb-printed-ticket-side { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: center; background: var(--wb-sky-50); padding: 28px 24px; }.wb-printed-ticket-side > div { display: grid; gap: 3px; }.wb-printed-ticket-side strong { color: var(--wb-navy); }.wb-printed-ticket-side > .badge { grid-column: 1 / -1; width: fit-content; }.wb-detail-card h2 { margin: 5px 0 24px; }.wb-contact-list { margin: 0; }.wb-contact-list > div { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--wb-line); padding: 12px 0; }.wb-contact-list > div:last-child { border-bottom: 0; }.wb-contact-list dt { color: var(--wb-muted); font-size: 14px; font-weight: 400; }.wb-contact-list dd { color: var(--wb-navy); font-weight: 600; margin: 0; text-align: right; }.wb-detail-total { color: var(--wb-blue-700); font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }.wb-ticket-actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; }.wb-ticket-actions p { color: var(--wb-muted); margin: 0; }
+@media (max-width: 991.98px) { .wb-trip-card { grid-template-columns: 1fr 1fr; }.wb-trip-action { align-items: flex-start; }.wb-payment-layout { grid-template-columns: 1fr; }.wb-booking-summary { position: static; } }
+@media (max-width: 767.98px) { .wb-page-heading { padding-top: 42px; }.wb-results-summary { display: block; }.wb-results-summary p { margin-top: 12px; }.wb-trip-card { grid-template-columns: 1fr; gap: 18px; }.wb-trip-action { flex-direction: row; align-items: center; justify-content: space-between; }.wb-trip-times { gap: 10px; }.wb-trip-route-line { min-width: 80px; }.wb-stepper-booking { padding: 8px 0; }.wb-stepper-booking .wb-step strong { font-size: 13px; }.wb-seat-card, .wb-booking-summary, .wb-form-card, .wb-payment-card, .wb-payment-method, .wb-detail-card { padding: 22px; }.wb-printed-ticket { grid-template-columns: 1fr; }.wb-printed-ticket-main::after { top: auto; right: 18px; bottom: 0; left: 18px; border-right: 0; border-bottom: 2px dashed var(--wb-line); }.wb-printed-ticket-side { padding: 22px; }.wb-booking-status { align-items: flex-start; flex-wrap: wrap; padding: 22px; }.wb-booking-status > div { flex-basis: 100%; }.wb-booking-code-box { flex-wrap: wrap; }.wb-booking-code-box button { margin-left: 0; }.wb-ticket-actions { align-items: stretch; flex-direction: column; }.wb-ticket-actions .btn { width: 100%; } }
+@media (max-width: 575.98px) { .wb-seat-vessel { padding-inline: 10px; }.wb-seat-grid { gap: 8px 5px; }.wb-seat { min-width: 40px; min-height: 44px; font-size: 13px; }.wb-trip-mini-summary, .wb-summary-header, .wb-payment-card-heading { flex-direction: column; }.wb-trip-mini-summary .text-lg-end { text-align: left !important; }.wb-countdown { align-items: flex-start; justify-content: flex-start; padding: 16px; }.wb-printed-ticket-main { padding: 22px; }.wb-printed-route { gap: 14px; }.wb-contact-list > div { display: block; }.wb-contact-list dd { text-align: left; margin-top: 4px; } }
+@media print { body { background: #fff; }.wb-navbar, .wb-alerts, .wb-footer, .wb-page-heading, .wb-ticket-actions, .wb-booking-status, .wb-booking-code-box button { display: none !important; }.wb-page-main { padding: 0; }.wb-section-top { margin-top: 20px; }.wb-printed-ticket, .wb-detail-card { box-shadow: none; break-inside: avoid; }.wb-printed-ticket { border-color: #9AAAB4; } }
+
+/* Supporting customer pages share the booking design system. */
+.wb-route-list { display: grid; gap: 24px; }
+.wb-route-card { min-width: 0; padding: 28px; }
+.wb-route-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.wb-route-head h2 { font-size: 1.4rem; margin: 12px 0; }
+.wb-route-head .btn { flex-shrink: 0; }
+.wb-route-code { letter-spacing: .04em; }
+.wb-route-desc { color: var(--wb-muted); margin-bottom: 24px; }
+.wb-route-stops { position: relative; overflow-x: auto; padding: 8px 0 16px; }
+.wb-route-stops-line { position: absolute; top: 30px; inset-inline: 0; height: 4px; background: var(--wb-sky-100); }
+.wb-route-stops-list { position: relative; display: flex; justify-content: space-around; width: max-content; min-width: 100%; list-style: none; margin: 0; padding: 0; }
+.wb-route-stop { position: relative; display: flex; flex: 1 0 130px; flex-direction: column; align-items: center; gap: 14px; padding: 0 12px; text-align: center; }
+.wb-route-stop::before { content: ''; position: absolute; z-index: 0; top: 22px; left: 0; width: 100%; height: 4px; background: var(--wb-sky-100); }
+.wb-route-stop-dot { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border: 4px solid #fff; border-radius: 50%; background: var(--wb-yellow); color: var(--wb-navy); font-weight: 700; box-shadow: 0 0 0 2px var(--wb-sky-300); }
+.wb-route-stop strong { max-width: 150px; color: var(--wb-navy); font-size: 14px; }
+
+/* The Bootstrap columns inside the station grid provide its 1/2/3 layout. */
+.wb-station-grid { align-items: stretch; }
+.wb-station-grid > div { min-width: 0; }
+.wb-station-card { display: flex; height: 100%; flex-wrap: wrap; align-items: flex-start; gap: 16px; padding: 24px; text-decoration: none; transition: border-color .2s ease, box-shadow .2s ease; }
+.wb-station-card:hover, .wb-station-card:focus-visible { border-color: var(--wb-sky-500); box-shadow: 0 16px 30px rgba(11, 53, 80, .12); }
+.wb-station-card-icon { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 12px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-size: 24px; }
+.wb-station-card-body { display: grid; flex: 1; min-width: 0; gap: 6px; overflow-wrap: anywhere; }
+.wb-station-card-body strong { color: var(--wb-navy); font-size: 1.1rem; }
+.wb-station-card-body small { color: var(--wb-muted); font-size: 14px; }
+.wb-station-card-status { flex-basis: 100%; }
+.wb-station-filter { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px; }
+.wb-station-filter-input { position: relative; flex: 1; max-width: 560px; }
+.wb-station-filter-input > i { position: absolute; top: 50%; left: 16px; transform: translateY(-50%); color: var(--wb-muted); pointer-events: none; }
+.wb-station-filter-input .form-control { padding-left: 44px; }
+.wb-station-filter-count { color: var(--wb-muted); font-size: 14px; margin: 0; }
+.wb-station-empty-filter { padding: 24px; text-align: center; }
+.wb-station-illustration { background: linear-gradient(145deg, #fff, var(--wb-sky-50)); }
+.wb-station-illustration-icon { display: block; color: var(--wb-sky-500); font-size: 100px; line-height: 1.4; text-align: center; margin: 20px 0; }
+
+.wb-booking-table-wrap { overflow-x: auto; border-radius: 16px; }
+.wb-booking-table-card { overflow: hidden; }
+.wb-booking-table { min-width: 680px; margin: 0; --bs-table-bg: transparent; --bs-table-color: var(--wb-ink); --bs-table-border-color: var(--wb-line); }
+.wb-booking-table th { padding: 18px 20px; background: var(--wb-sky-50); color: var(--wb-navy); font-size: 14px; white-space: nowrap; }
+.wb-booking-table td { padding: 18px 20px; font-size: 14px; }
+.wb-booking-table tbody tr:last-child td { border-bottom: 0; }
+.wb-booking-cards { display: grid; gap: 16px; }
+.wb-booking-card { padding: 22px; }
+.wb-booking-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.wb-booking-card-meta { margin: 18px 0; }
+.wb-booking-card-meta > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 0; }
+.wb-booking-card-meta dt { color: var(--wb-muted); font-size: 14px; font-weight: 400; }
+.wb-booking-card-meta dd { color: var(--wb-navy); font-weight: 600; margin: 0; }
+
+.wb-auth-page { padding-top: 64px; }
+.wb-auth-shell { max-width: 480px; margin-inline: auto; }
+.wb-auth-head { text-align: center; margin-bottom: 28px; }
+.wb-auth-head h1 { font-size: clamp(2rem, 4vw, 2.8rem); }
+.wb-auth-head p { color: var(--wb-muted); margin-bottom: 0; }
+.wb-auth-foot { color: var(--wb-muted); font-size: 14px; text-align: center; margin: 24px 0 0; }
+.wb-auth-foot a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.wb-form-row { margin-bottom: 20px; }
+.wb-password-field { position: relative; }
+.wb-password-field .form-control { padding-right: 56px; }
+.wb-password-toggle { position: absolute; top: 2px; right: 2px; display: grid; place-items: center; width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--wb-blue-700); }
+.wb-password-toggle:hover { background: var(--wb-sky-50); }
+.wb-password-toggle:focus-visible { outline: 2px solid var(--wb-blue-700); outline-offset: 2px; }
+.wb-required { color: var(--wb-danger); }
+
+.wb-error-page { display: grid; align-items: center; min-height: 65vh; padding-top: 56px; }
+.wb-error-shell { max-width: 640px; margin-inline: auto; text-align: center; }
+.wb-error-shell h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); }
+.wb-error-shell > p { color: var(--wb-muted); margin: 20px 0 28px; }
+.wb-error-illustration { display: block; width: min(220px, 60vw); height: auto; margin: 0 auto 28px; }
+.wb-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.wb-status-paid { border-color: #B9E8CF; background: #EEFBF4; }
+/* wb-seat-form and wb-ticket-page are semantic hooks; children carry layout. */
+
+@media (min-width: 768px) {
+    .wb-booking-table-wrap.d-none { display: block !important; }
+    .wb-booking-cards { display: none !important; }
+}
+@media (max-width: 767.98px) {
+    .wb-booking-table-wrap { display: none !important; }
+    .wb-route-card { padding: 22px; }
+    .wb-route-head { flex-direction: column; gap: 12px; margin-bottom: 18px; }
+    .wb-station-filter { align-items: stretch; flex-direction: column; gap: 12px; padding: 18px; }
+    .wb-station-filter-input { max-width: none; }
+    .wb-auth-page { padding-top: 40px; }
+    .wb-error-page { padding-top: 40px; }
+}
+@media (max-width: 575.98px) {
+    .wb-error-actions { flex-direction: column; }
+    .wb-error-actions .btn { width: 100%; }
+}

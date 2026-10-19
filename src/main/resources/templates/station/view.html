@@ -1,19 +1,53 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Chi tiết bến')}"></head>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chi tiết bến tàu')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+
+</head>
 <body>
-<nav th:replace="~{fragments/layout :: navbar}"></nav>
-<div class="container mt-4">
-    <h1 th:text="${station.name}">Bạch Đằng</h1>
-    <hr>
-    <dl class="row">
-        <dt class="col-sm-2">Mã bến</dt>
-        <dd class="col-sm-10" th:text="${station.code}">BD</dd>
-        <dt class="col-sm-2">Địa chỉ</dt>
-        <dd class="col-sm-10" th:text="${station.address}">Quận 1</dd>
-    </dl>
-    <a class="btn btn-secondary" th:href="@{/stations}">Quay lại</a>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <main class="wb-main wb-page-main">
+        <section class="container wb-page-heading">
+            <span class="wb-eyebrow">Bến tàu</span>
+            <h1 th:text="${station.name}">Bạch Đằng</h1>
+            <p>Xem thông tin chi tiết và vị trí của bến tàu.</p>
+        </section>
+        <section class="container wb-section-top">
+            <div class="row g-4">
+                <div class="col-12 col-lg-7">
+                    <div class="wb-card wb-detail-card">
+                        <span class="wb-eyebrow">Thông tin bến</span>
+                        <h2>Chi tiết bến tàu</h2>
+                        <dl class="wb-contact-list">
+                            <div><dt>Mã bến</dt><dd class="wb-mono" th:text="${station.code}">BD</dd></div>
+                            <div><dt>Tên bến</dt><dd th:text="${station.name}">Bạch Đằng</dd></div>
+                            <div><dt>Địa chỉ</dt><dd th:text="${station.address}">Bến Bạch Đằng, Quận 1, TP.HCM</dd></div>
+                            <div><dt>Trạng thái</dt><dd><span th:if="${station.isActive}" class="badge rounded-pill wb-badge-success">Hoạt động</span><span th:unless="${station.isActive}" class="badge rounded-pill wb-badge-muted">Tạm ngưng</span></dd></div>
+                        </dl>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-5">
+                    <div class="wb-card wb-detail-card wb-station-illustration">
+                        <span class="wb-eyebrow">Điểm lên tàu</span>
+                        <h2>Đón tàu tại bến</h2>
+                        <p class="wb-muted-text">Có mặt tại bến trước 15 phút so với giờ chạy để làm thủ tục lên tàu.</p>
+                        <i class="bi bi-water wb-station-illustration-icon" aria-hidden="true"></i>
+                        <div class="wb-summary-actions">
+                            <a class="btn btn-wb-accent" href="/templates/index.html#tim-chuyen" th:href="@{/#tim-chuyen}">Tìm chuyến từ bến này <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a>
+                            <a class="btn btn-wb-outline" href="/templates/station/list.html" th:href="@{/stations}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại danh sách bến</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"><script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script></th:block>
 </body>
 </html>

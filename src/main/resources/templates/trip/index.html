@@ -1,15 +1,52 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Tìm chuyến')}"></head>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tìm chuyến')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+</head>
 <body>
-<nav th:replace="~{fragments/layout :: navbar}"></nav>
-<div class="container mt-4">
-    <h1>Tìm chuyến</h1>
-    <hr>
-    <div class="alert alert-secondary">
-        Trang mẫu của module <b>BE2 - Tàu, Ghế & Chuyến</b> (URL: <code>/trips</code>). Thay nội dung này khi làm chức năng.
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <main id="top" class="wb-main wb-page-main">
+        <section class="container wb-page-heading">
+            <span class="wb-eyebrow">Lịch chạy theo ngày</span>
+            <h1>Tìm chuyến phù hợp</h1>
+            <p>Chọn bến và ngày đi để xem những chuyến tàu đang mở bán.</p>
+        </section>
+        <section class="container">
+            <div class="wb-card wb-compact-search">
+                <form action="/templates/trip/index.html" method="get" th:action="@{/trips}" data-trip-search>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3"><label for="fromStationId">Nơi đi</label><select class="form-select" id="fromStationId" name="fromStationId" required><option value="">Chọn bến</option><option th:each="s : ${stations}" th:value="${s?.id}" th:selected="${s?.id == fromStationId}" th:text="${s?.name}">Bạch Đằng</option><option th:remove="all">Bình An</option><option th:remove="all">Thanh Đa</option><option th:remove="all">Hiệp Bình Chánh</option><option th:remove="all">Linh Đông</option></select></div>
+                        <div class="col-12 col-md-auto wb-swap-col"><button class="wb-swap-button" type="button" data-swap-stations aria-label="Đổi chiều nơi đi và nơi đến"><i class="bi bi-arrow-down-up" aria-hidden="true"></i></button></div>
+                        <div class="col-12 col-md-3"><label for="toStationId">Nơi đến</label><select class="form-select" id="toStationId" name="toStationId" required><option value="">Chọn bến</option><option th:each="s : ${stations}" th:value="${s?.id}" th:selected="${s?.id == toStationId}" th:text="${s?.name}">Thanh Đa</option><option th:remove="all">Bạch Đằng</option><option th:remove="all">Bình An</option><option th:remove="all">Hiệp Bình Chánh</option><option th:remove="all">Linh Đông</option></select></div>
+                        <div class="col-12 col-md-2"><label for="date">Ngày đi</label><input class="form-control" id="date" name="date" type="date" required value="2026-10-20" th:value="${date}"></div>
+                        <div class="col-12 col-md"><button class="btn btn-wb-accent w-100" type="submit" th:disabled="${#lists.isEmpty(stations)}">Tìm chuyến <i class="bi bi-search ms-2" aria-hidden="true"></i></button></div>
+                    </div>
+                    <div class="wb-form-error" data-search-error role="alert"></div>
+                </form>
+            </div>
+        </section>
+        <section class="container wb-section wb-results-section">
+            <div class="wb-results-summary"><div><span class="wb-eyebrow">Kết quả tìm kiếm</span><h2><span th:each="s : ${stations}" th:if="${s?.id == fromStationId}" th:text="${s?.name}">Bạch Đằng</span> <span aria-hidden="true">→</span> <span th:each="s : ${stations}" th:if="${s?.id == toStationId}" th:text="${s?.name}">Thanh Đa</span></h2></div><p><i class="bi bi-calendar3 me-2" aria-hidden="true"></i><span th:text="${#temporals.format(date, 'dd/MM/yyyy')}">20/10/2026</span><span class="wb-summary-divider">|</span>Giá vé thường 15.000 đ/lượt</p></div>
+            <div th:if="${trips == null}" class="wb-empty-state wb-card"><i class="bi bi-search wb-empty-icon" aria-hidden="true"></i><h2>Chọn thông tin để xem chuyến</h2><p>Chọn nơi đi, nơi đến và ngày để xem chuyến.</p><a class="btn btn-wb-accent" href="#top">Chọn lại thông tin</a></div>
+            <div th:if="${trips != null and #lists.isEmpty(trips)}" class="wb-empty-state wb-card"><i class="bi bi-calendar-x wb-empty-icon" aria-hidden="true"></i><h2>Không có chuyến phù hợp</h2><p>Bạn có thể thử đổi ngày đi hoặc chọn một cặp bến khác.</p><a class="btn btn-wb-outline" href="#top">Đổi tìm kiếm</a></div>
+            <div th:if="${trips != null and not #lists.isEmpty(trips)}" class="wb-trip-list">
+                <article class="wb-trip-card wb-card" th:each="trip : ${trips}">
+                    <div class="wb-trip-times"><div><span class="wb-trip-time" th:text="${#temporals.format(trip?.departureTime, 'HH:mm')}">07:00</span><small>Khởi hành</small></div><div class="wb-trip-route-line"><i class="bi bi-water" aria-hidden="true"></i><span></span><small th:text="${trip?.routeName}">Bạch Đằng - Linh Đông</small></div><div class="text-end"><span class="wb-trip-time" th:text="${#temporals.format(trip?.arrivalTime, 'HH:mm')}">07:25</span><small>Đến nơi</small></div></div>
+                    <div class="wb-trip-details"><span class="wb-chip" th:text="${trip?.routeName}">Tuyến số 1</span><span class="wb-trip-code">Mã chuyến: <strong th:text="${trip?.tripCode}">20261020-R1-0700</strong></span></div>
+                    <div class="wb-trip-action"><span class="wb-seats-left" th:classappend="${trip?.availableSeats == 0 ? 'is-sold-out' : (trip?.availableSeats < 10 ? 'is-low' : '')}" th:text="${trip?.availableSeats == 0 ? 'Hết chỗ' : 'Còn ' + trip?.availableSeats + ' ghế trống'}">Còn 8 ghế trống</span><a class="btn btn-wb-accent" href="/templates/trip/seats.html" th:href="@{/trips/{id}/seats(id=${trip?.id}, fromStationId=${fromStationId}, toStationId=${toStationId})}" th:classappend="${trip?.availableSeats == 0 ? 'disabled' : ''}">Chọn ghế <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a></div>
+                </article>
+                <article class="wb-trip-card wb-card" th:remove="all"><div class="wb-trip-times"><div><span class="wb-trip-time">10:30</span><small>Khởi hành</small></div><div class="wb-trip-route-line"><i class="bi bi-water" aria-hidden="true"></i><span></span><small>Bạch Đằng - Linh Đông</small></div><div class="text-end"><span class="wb-trip-time">10:55</span><small>Đến nơi</small></div></div><div class="wb-trip-details"><span class="wb-chip">Tuyến số 1</span><span class="wb-trip-duration"><i class="bi bi-clock me-1" aria-hidden="true"></i>25 phút</span><span class="wb-trip-code">Mã chuyến: <strong>20261020-R1-1030</strong></span></div><div class="wb-trip-action"><span class="wb-seats-left is-low">Còn 8 ghế trống</span><a class="btn btn-wb-accent" href="/templates/trip/seats.html">Chọn ghế <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a></div></article>
+                <article class="wb-trip-card wb-card" th:remove="all"><div class="wb-trip-times"><div><span class="wb-trip-time">14:00</span><small>Khởi hành</small></div><div class="wb-trip-route-line"><i class="bi bi-water" aria-hidden="true"></i><span></span><small>Bạch Đằng - Linh Đông</small></div><div class="text-end"><span class="wb-trip-time">14:25</span><small>Đến nơi</small></div></div><div class="wb-trip-details"><span class="wb-chip">Tuyến số 1</span><span class="wb-trip-duration"><i class="bi bi-clock me-1" aria-hidden="true"></i>25 phút</span><span class="wb-trip-code">Mã chuyến: <strong>20261020-R1-1400</strong></span></div><div class="wb-trip-action"><span class="wb-seats-left">Còn 32 ghế trống</span><a class="btn btn-wb-accent" href="/templates/trip/seats.html">Chọn ghế <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a></div></article>
+            </div>
+        </section>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"><script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script></th:block>
 </body>
 </html>

@@ -1,2 +1,154 @@
-/* BE2 sở hữu - CSS riêng cho các trang /admin/** (templates/admin/).
-   Dùng lại biến màu/component trong app.css, đừng định nghĩa lại. */
+/* ===== Khu quản trị Saigon Waterbus – Bước 3 =====
+   Mọi rule đặt dưới .wb-admin, dùng lại biến màu của app.css.
+   Chỉ THÊM file này; không sửa app.css. */
+
+.wb-admin { background: var(--wb-bg); }
+
+/* Bố cục 2 cột: sidebar + nội dung */
+.wb-admin .wb-admin-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 0; align-items: start; min-height: calc(100vh - 80px); }
+
+.wb-admin .wb-admin-sidebar {
+    position: sticky; top: 0;
+    display: flex; flex-direction: column;
+    min-height: calc(100vh - 80px);
+    padding: 24px 18px;
+    background: #fff; border-right: 1px solid var(--wb-line);
+}
+.wb-admin .wb-admin-side-head { display: flex; align-items: center; gap: 10px; color: var(--wb-navy); font-weight: 700; font-size: 1.05rem; padding: 4px 10px 18px; border-bottom: 1px solid var(--wb-line); margin-bottom: 16px; }
+.wb-admin .wb-admin-side-head i { color: var(--wb-blue-700); font-size: 22px; }
+.wb-admin .wb-admin-side-nav { display: grid; gap: 4px; flex: 1; }
+.wb-admin .wb-admin-side-link { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 12px; border-radius: 10px; color: var(--wb-muted); font-weight: 600; text-decoration: none; transition: background .2s ease, color .2s ease; }
+.wb-admin .wb-admin-side-link i { font-size: 18px; color: var(--wb-muted); }
+.wb-admin .wb-admin-side-link:hover { background: var(--wb-sky-50); color: var(--wb-blue-700); }
+.wb-admin .wb-admin-side-link:hover i { color: var(--wb-blue-700); }
+.wb-admin .wb-admin-side-link.is-active { background: var(--wb-sky-50); color: var(--wb-blue-700); }
+.wb-admin .wb-admin-side-link.is-active i { color: var(--wb-blue-700); }
+.wb-admin .wb-admin-side-back { display: flex; align-items: center; min-height: 44px; margin-top: 16px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--wb-line); color: var(--wb-navy); font-weight: 600; text-decoration: none; }
+.wb-admin .wb-admin-side-back:hover { border-color: var(--wb-sky-500); color: var(--wb-blue-700); }
+
+/* Nút mở sidebar trên mobile */
+.wb-admin .wb-admin-menu-toggle { display: none; }
+
+.wb-admin .wb-admin-content { padding: 28px 32px 64px; }
+
+/* Tiêu đề trang quản trị + nút thêm */
+.wb-admin .wb-admin-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.wb-admin .wb-admin-head h1 { font-size: clamp(1.5rem, 2.4vw, 2rem); margin-bottom: 4px; }
+.wb-admin .wb-admin-head p { color: var(--wb-muted); margin: 0; font-size: 14px; }
+.wb-admin .wb-admin-head .btn { white-space: nowrap; }
+
+/* Bảng danh sách quản trị */
+.wb-admin .wb-admin-table-wrap { background: #fff; border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 8px 24px rgba(11, 53, 80, .06); overflow: hidden; }
+.wb-admin .wb-admin-table { margin-bottom: 0; vertical-align: middle; }
+.wb-admin .wb-admin-table thead th { background: var(--wb-sky-50); color: var(--wb-navy); font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--wb-line); padding: 14px 16px; white-space: nowrap; }
+.wb-admin .wb-admin-table tbody td { border-color: var(--wb-line); color: var(--wb-ink); font-size: 14px; padding: 14px 16px; vertical-align: middle; }
+.wb-admin .wb-admin-table tbody tr:nth-child(even) td { background: #FBFDFE; }
+.wb-admin .wb-admin-table tbody tr:hover td { background: var(--wb-sky-50); }
+.wb-admin .wb-admin-table .wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .03em; }
+.wb-admin .wb-admin-table-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.wb-admin .wb-admin-table-actions .btn { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.wb-admin .wb-admin-empty { padding: 56px 24px; text-align: center; }
+.wb-admin .wb-admin-empty i { display: block; color: var(--wb-sky-500); font-size: 40px; margin-bottom: 16px; }
+.wb-admin .wb-admin-empty h2 { font-size: 1.25rem; margin-bottom: 8px; }
+.wb-admin .wb-admin-empty p { color: var(--wb-muted); margin-bottom: 20px; }
+
+/* Form quản trị */
+.wb-admin .wb-admin-form-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, .7fr); gap: 24px; align-items: start; }
+.wb-admin .wb-admin-form-card { background: #fff; border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 8px 24px rgba(11, 53, 80, .06); padding: 28px; }
+.wb-admin .wb-admin-form-title { font-size: 1.3rem; margin-bottom: 22px; }
+.wb-admin .wb-admin-form-row { margin-bottom: 18px; }
+.wb-admin .wb-admin-form-row label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+.wb-admin .wb-admin-required { color: var(--wb-danger); margin-left: 2px; }
+.wb-admin .wb-admin-form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--wb-line); }
+.wb-admin .wb-admin-form-actions .btn { min-width: 140px; }
+.wb-admin .wb-admin-form-help { color: var(--wb-muted); font-size: 14px; margin-top: 6px; }
+
+/* Thanh tóm tắt bên cạnh form */
+.wb-admin .wb-admin-side-card { background: #fff; border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 8px 24px rgba(11, 53, 80, .06); padding: 24px; position: sticky; top: 24px; }
+.wb-admin .wb-admin-side-card h2 { font-size: 1.1rem; margin-bottom: 14px; }
+.wb-admin .wb-admin-side-card ul { color: var(--wb-muted); font-size: 14px; padding-left: 18px; margin: 0; }
+.wb-admin .wb-admin-side-card li + li { margin-top: 8px; }
+
+/* Danh sách bến trong form tuyến (dynamic rows) */
+.wb-admin .wb-route-stops-editor { display: grid; gap: 10px; }
+.wb-admin .wb-route-stop-row { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; }
+.wb-admin .wb-route-stop-order { display: grid; place-items: center; width: 40px; height: 44px; border-radius: 10px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-weight: 700; }
+.wb-admin .wb-route-stop-row .form-select { min-height: 44px; }
+.wb-admin .wb-route-stop-tools { display: flex; gap: 6px; }
+.wb-admin .wb-route-stop-tools .btn { min-width: 40px; min-height: 44px; padding: 8px; border: 1px solid var(--wb-line); border-radius: 10px; color: var(--wb-blue-700); background: #fff; }
+.wb-admin .wb-route-stop-tools .btn:hover { background: var(--wb-sky-50); }
+.wb-admin .wb-route-stop-tools .btn.is-danger { color: var(--wb-danger); }
+.wb-admin .wb-route-add { margin-top: 6px; }
+
+/* Khuyến mãi: ẩn/hiện ô theo loại giảm giá */
+.wb-admin .wb-promo-percent-only { display: none; }
+.wb-admin .wb-promo-form.is-percent .wb-promo-percent-only { display: block; }
+
+/* Thẻ thống kê nhỏ trên đầu trang quản trị (tuỳ chọn) */
+.wb-admin .wb-admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.wb-admin .wb-admin-stat { background: #fff; border: 1px solid var(--wb-line); border-radius: 14px; padding: 18px; }
+.wb-admin .wb-admin-stat span { display: block; color: var(--wb-muted); font-size: 14px; }
+.wb-admin .wb-admin-stat strong { display: block; color: var(--wb-navy); font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+
+/* Confirm dialog ghi đè nhẹ */
+.wb-admin .wb-confirm-dialog { max-width: 420px; }
+.wb-admin .wb-confirm-dialog .modal-body { text-align: center; padding: 28px 24px 20px; }
+.wb-admin .wb-confirm-dialog .modal-body i { display: block; font-size: 40px; color: var(--wb-yellow-600); margin-bottom: 14px; }
+.wb-admin .wb-confirm-dialog .modal-body p { color: var(--wb-muted); margin: 0; }
+.wb-admin .wb-confirm-dialog .modal-footer { justify-content: center; }
+
+/* Responsive quản trị */
+@media (max-width: 991.98px) {
+    .wb-admin .wb-admin-layout { grid-template-columns: 1fr; }
+    .wb-admin .wb-admin-sidebar { display: none; }
+    .wb-admin .wb-admin-sidebar.is-open { display: flex; position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 1060; box-shadow: 0 12px 40px rgba(11, 53, 80, .25); }
+    .wb-admin .wb-admin-menu-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--wb-line); border-radius: 10px; background: #fff; color: var(--wb-blue-700); font-weight: 600; }
+    .wb-admin .wb-admin-menu-toggle:hover { background: var(--wb-sky-50); }
+    .wb-admin .wb-admin-content { padding: 20px 16px 56px; }
+    .wb-admin .wb-admin-form-layout { grid-template-columns: 1fr; }
+    .wb-admin .wb-admin-side-card { position: static; }
+}
+@media (max-width: 767.98px) {
+    .wb-admin .wb-admin-table thead { display: none; }
+    .wb-admin .wb-admin-table, .wb-admin .wb-admin-table tbody, .wb-admin .wb-admin-table tr, .wb-admin .wb-admin-table td { display: block; width: 100%; }
+    .wb-admin .wb-admin-table tr { padding: 14px 16px; border-bottom: 1px solid var(--wb-line); }
+    .wb-admin .wb-admin-table tbody tr:nth-child(even) td { background: transparent; }
+    .wb-admin .wb-admin-table td { border: 0; padding: 6px 0; }
+    .wb-admin .wb-admin-table td::before { content: attr(data-label); display: block; color: var(--wb-muted); font-size: 13px; font-weight: 600; }
+    .wb-admin .wb-admin-table-actions { justify-content: flex-start; }
+    .wb-admin .wb-route-stop-row { grid-template-columns: 36px 1fr; }
+    .wb-admin .wb-route-stop-tools { grid-column: 1 / -1; justify-content: flex-end; }
+}
+
+/* Keep additions scoped to admin pages and touch targets at least 44px. */
+.wb-admin .wb-admin-content { min-width: 0; }
+.wb-admin .wb-admin-side-nav { align-content: start; }
+.wb-admin .wb-admin-table { width: 100%; }
+.wb-admin .wb-admin-table td { overflow-wrap: anywhere; }
+.wb-admin .wb-admin-table-wrap { overflow-x: auto; }
+.wb-admin .wb-admin-table-actions { flex-wrap: wrap; }
+.wb-admin .wb-admin-table-actions form { margin: 0; }
+.wb-admin .wb-admin-table-actions .btn { min-height: 44px; }
+.wb-admin .wb-admin-danger { color: var(--wb-danger); border-color: var(--wb-danger); }
+.wb-admin .wb-admin-danger:hover { color: #fff; background: var(--wb-danger); }
+.wb-admin .wb-admin-field-label { font-size: 14px; color: var(--wb-navy); font-weight: 600; margin-bottom: 12px; }
+.wb-admin .wb-admin-check { margin-bottom: 18px; }
+.wb-admin .form-check { min-height: 44px; display: flex; align-items: center; gap: 10px; padding-left: 0; }
+.wb-admin .form-check .form-check-input { position: static; float: none; flex-shrink: 0; width: 20px; height: 20px; margin: 0; }
+.wb-admin .form-check .form-check-label { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
+.wb-admin .wb-admin-stop-label { min-width: 0; margin: 0; }
+.wb-admin .wb-route-stop-tools .btn { min-width: 44px; }
+.wb-admin .wb-admin-sidebar-close { display: none; }
+.wb-admin .wb-admin-backdrop { position: fixed; inset: 0; z-index: 1050; border: 0; padding: 0; background: rgba(11, 53, 80, .45); }
+.wb-admin .wb-admin-backdrop[hidden] { display: none; }
+.wb-admin.wb-admin-sidebar-open { overflow: hidden; }
+.wb-admin [data-promo-percent][hidden] { display: none; }
+@media (max-width: 991.98px) {
+    .wb-admin .wb-admin-sidebar { overflow-y: auto; max-width: calc(100vw - 48px); }
+    .wb-admin .wb-admin-sidebar-close { display: inline-flex; align-self: flex-end; margin-bottom: 16px; }
+}
+@media (max-width: 575.98px) {
+    .wb-admin .wb-admin-form-card { padding: 20px; }
+    .wb-admin .wb-admin-form-actions .btn { flex: 1 1 100%; }
+    .wb-admin .wb-route-stop-row { gap: 8px; }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Thông tin tuyến')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thông tin tuyến | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/templates/index.html" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar">
+            <div class="wb-admin-side-head"><i class="bi bi-gear-wide-connected" aria-hidden="true"></i><span>Quản trị</span></div>
+            <nav class="wb-admin-side-nav" aria-label="Menu quản trị">
+                <a class="wb-admin-side-link" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}" data-admin-nav="/admin/trips">Chuyến tàu</a>
+                <a class="wb-admin-side-link" href="/templates/admin/waterbus/list.html" th:href="@{/admin/waterbuses}" data-admin-nav="/admin/waterbuses">Tàu</a>
+                <a class="wb-admin-side-link" href="/templates/admin/station/list.html" th:href="@{/admin/stations}" data-admin-nav="/admin/stations">Bến</a>
+                <a class="wb-admin-side-link" href="/templates/admin/route/list.html" th:href="@{/admin/routes}" data-admin-nav="/admin/routes">Tuyến</a>
+                <a class="wb-admin-side-link" href="/templates/admin/promotion/list.html" th:href="@{/admin/promotions}" data-admin-nav="/admin/promotions">Khuyến mãi</a>
+                <a class="wb-admin-side-link" href="/templates/admin/tickettype/list.html" th:href="@{/admin/ticket-types}" data-admin-nav="/admin/ticket-types">Loại vé</a>
+            </nav>
+            <a class="wb-admin-side-back" href="/templates/index.html" th:href="@{/}">Về trang khách</a>
+        </aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div><span class="wb-eyebrow">Quản trị</span><h1 th:text="${route?.id == null} ? 'Thêm tuyến' : 'Sửa tuyến'">Thêm tuyến</h1><p>Những mục có dấu * là bắt buộc.</p></div>
+                <a class="btn btn-wb-outline" href="/templates/admin/route/list.html" th:href="@{/admin/routes}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Danh sách</a>
+            </header>
+            <div class="wb-admin-form-layout">
+                <section class="wb-admin-form-card">
+                    <h2 class="wb-admin-form-title">Thông tin tuyến</h2>
+                    <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/save}" method="post">
+                        <input type="hidden" name="id" value="" th:value="${route?.id}">
+                        <div class="wb-admin-form-row">
+                            <label for="code">Mã tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="code" name="code" type="text" value="" th:value="${route?.code}" required maxlength="20">
+                        </div>
+                        <div class="wb-admin-form-row">
+                            <label for="name">Tên tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="name" name="name" type="text" value="" th:value="${route?.name}" required maxlength="100">
+                        </div>
+                        <div class="wb-admin-form-row"><label for="description">Mô tả</label><textarea class="form-control" id="description" name="description" rows="3" maxlength="255" th:text="${route?.description}"></textarea></div>
+                        <div class="form-check wb-admin-check">
+                            <input type="hidden" name="_isActive" value="on">
+                            <input class="form-check-input" id="isActive" name="isActive" type="checkbox" value="true" th:checked="${route == null ? true : route?.isActive}">
+                            <label class="form-check-label" for="isActive">Tuyến đang hoạt động</label>
+                        </div>
+                        <fieldset class="wb-admin-form-row" data-route-editor>
+                            <legend class="wb-admin-form-title">Thứ tự bến</legend>
+                            <p class="wb-admin-form-help">Chọn ít nhất hai bến khác nhau, theo thứ tự tàu đi qua.</p>
+                            <div class="wb-route-stops-editor" data-route-rows>
+                                <div class="wb-route-stop-row" data-route-row th:each="sid : ${route?.stationIds}">
+                                    <span class="wb-route-stop-order" data-route-order aria-hidden="true">1</span>
+                                    <label class="wb-admin-stop-label"><span class="visually-hidden">Bến trong hành trình</span>
+                                        <select class="form-select" name="stationIds" required>
+                                            <option value="">Chọn bến</option>
+                                            <option value="1" th:each="s : ${stations}" th:value="${s.id}" th:text="${s.name}" th:selected="${s.id == sid}">Bạch Đằng</option>
+                                            <option value="6" th:remove="all">Thanh Đa</option>
+                                        </select>
+                                    </label>
+                                    <div class="wb-route-stop-tools">
+                                        <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                                        <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                                        <button class="btn is-danger" type="button" data-route-remove aria-label="Xoá bến khỏi tuyến"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                    </div>
+                                </div>
+                                <th:block th:if="${route?.stationIds == null or #lists.isEmpty(route.stationIds)}">
+                                    <div class="wb-route-stop-row" data-route-row>
+                                        <span class="wb-route-stop-order" data-route-order aria-hidden="true">1</span>
+                                        <label class="wb-admin-stop-label"><span class="visually-hidden">Bến trong hành trình</span>
+                                            <select class="form-select" name="stationIds" required>
+                                                <option value="">Chọn bến</option>
+                                                <option value="1" th:each="s : ${stations}" th:value="${s.id}" th:text="${s.name}">Bạch Đằng</option>
+                                                <option value="6" th:remove="all">Thanh Đa</option>
+                                            </select>
+                                        </label>
+                                        <div class="wb-route-stop-tools">
+                                            <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                                            <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                                            <button class="btn is-danger" type="button" data-route-remove aria-label="Xoá bến khỏi tuyến"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="wb-route-stop-row" data-route-row>
+                                        <span class="wb-route-stop-order" data-route-order aria-hidden="true">1</span>
+                                        <label class="wb-admin-stop-label"><span class="visually-hidden">Bến trong hành trình</span>
+                                            <select class="form-select" name="stationIds" required>
+                                                <option value="">Chọn bến</option>
+                                                <option value="1" th:each="s : ${stations}" th:value="${s.id}" th:text="${s.name}">Bạch Đằng</option>
+                                                <option value="6" th:remove="all">Thanh Đa</option>
+                                            </select>
+                                        </label>
+                                        <div class="wb-route-stop-tools">
+                                            <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                                            <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                                            <button class="btn is-danger" type="button" data-route-remove aria-label="Xoá bến khỏi tuyến"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+                                </th:block>
+                            </div>
+                            <template data-route-row-template>
+                                <div class="wb-route-stop-row" data-route-row>
+                                    <span class="wb-route-stop-order" data-route-order aria-hidden="true">1</span>
+                                    <label class="wb-admin-stop-label"><span class="visually-hidden">Bến trong hành trình</span>
+                                        <select class="form-select" name="stationIds" required>
+                                            <option value="">Chọn bến</option>
+                                            <option value="1" th:each="s : ${stations}" th:value="${s.id}" th:text="${s.name}">Bạch Đằng</option>
+                                            <option value="6" th:remove="all">Thanh Đa</option>
+                                        </select>
+                                    </label>
+                                    <div class="wb-route-stop-tools">
+                                        <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                                        <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                                        <button class="btn is-danger" type="button" data-route-remove aria-label="Xoá bến khỏi tuyến"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                    </div>
+                                </div>
+                            </template>
+                            <button class="btn btn-wb-outline wb-route-add" type="button" data-route-add><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm bến</button>
+                            <p class="wb-admin-form-help" data-route-message role="status" aria-live="polite"></p>
+                        </fieldset>
+                        <div class="wb-admin-form-actions">
+                            <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Lưu</button>
+                            <a class="btn btn-wb-outline" href="/templates/admin/route/list.html" th:href="@{/admin/routes}">Huỷ</a>
+                        </div>
+                    </form>
+                </section>
+                <aside class="wb-admin-side-card">
+                    <h2>Trước khi lưu</h2>
+                    <ul><li>Kiểm tra mã và tên để tránh nhầm lẫn.</li><li>Kiểm tra thông tin và trạng thái đang áp dụng.</li><li>Thứ tự các bến chính là thứ tự hành trình.</li></ul>
+                </aside>
+            </div>
+        </main>
+    </div>
+    <button class="wb-admin-backdrop" type="button" data-admin-sidebar-close aria-label="Đóng menu quản trị" hidden></button>
+    <footer th:replace="~{fragments/layout :: footer}" class="wb-footer"><div class="container">Saigon Waterbus</div></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}">
+        <script src="/static/js/bootstrap.bundle.min.js" th:src="@{/js/bootstrap.bundle.min.js}"></script>
+        <script src="/static/js/app.js" th:src="@{/js/app.js}"></script>
+    </th:block>
+</body>
+</html>

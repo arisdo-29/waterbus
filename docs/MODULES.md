@@ -38,11 +38,17 @@ Làm xong milestone trước rồi mới sang milestone sau. Chỉ **M1** có h�
 bằng dữ liệu mẫu trong script database.
 
 **Khuyên (BE1)**
-- [ ] Layout chung: navbar, footer, màu/font trong `app.css`, fragment `alerts` (hiện `successMessage`/`errorMessage`) - **làm đầu tiên, mọi trang đều dùng**
-- [ ] Trang chủ có form tìm chuyến (`index`) + `StationService` trả danh sách bến cho form
-- [ ] Trang checkout (`booking/checkout`)
-- [ ] Trang thanh toán (`payment/index`)
-- [ ] Trang xem vé (`booking/detail`)
+- [x] Layout chung: navbar, footer, màu/font trong `app.css`, fragment `alerts` (hiện `successMessage`/`errorMessage`) - **làm đầu tiên, mọi trang đều dùng**
+- [x] Trang chủ có form tìm chuyến (`index`) + `StationService` trả danh sách bến cho form
+- [x] Trang checkout (`booking/checkout`)
+- [x] Trang thanh toán (`payment/index`)
+- [x] Trang xem vé (`booking/detail`)
+
+Kiểm chứng BE1: HomeStationTests gọi `/` qua MVC/service/H2, lọc bến inactive, thứ tự ổn định và danh sách rỗng.
+CustomerViewTests render Thymeleaf thật cho các trang trên, alerts an toàn, giữ lựa chọn/liên hệ và trạng thái đơn.
+Đã chạy JAR sau `mvnw.cmd verify` với SQL Server local: `/` trả HTTP 200, hiển thị 5 bến;
+trình duyệt 360px/1280px không tràn ngang, menu mobile mở được, không có lỗi JavaScript.
+Giao diện #5–#7 đã có từ PR #46; việc đánh dấu ở đây chỉ xác nhận phần FE, còn chờ backend BE4 #13–#16.
 
 **Trí (BE2)**
 - [ ] `TripService.searchTrips` + trang kết quả tìm chuyến (`trip/index`)
@@ -84,8 +90,14 @@ Bị chặn vì chờ module khác → dùng dữ liệu cứng + `// TODO` rồ
 - [ ] Trang `auth/login`, `auth/register`
 
 **Khuyên (BE1)**
-- [ ] Navbar hiện tên người đăng nhập + nút đăng xuất
-- [ ] Trang lịch sử đặt vé (`booking/history`)
+- [x] Navbar hiện tên người đăng nhập + nút đăng xuất
+- [x] Trang lịch sử đặt vé (`booking/history`)
+
+Kiểm chứng BE1: render với session AccountDTO cho khách/CUSTOMER/ADMIN/STAFF và role lạ;
+history rỗng/có đơn, bảng desktop/card mobile, trạng thái PENDING/PAID/EXPIRED/CANCELLED.
+Script `src/test/js/customer-views.browser.cjs` kiểm tra HTML fixture đã render ở 360px/1280px,
+đổi chiều/chặn trùng bến và countdown. Chạy sau Maven test, dùng Playwright đã cài sẵn qua `PLAYWRIGHT_MODULE`.
+Giao diện #23 đã có từ PR #46; backend lịch sử/tài khoản/checkout #24–#26 vẫn thuộc Trâm và chưa được xác nhận hoàn thành.
 
 **Trâm (BE4)**
 - [ ] Gắn `account_id` cho booking khi đã đăng nhập (chưa đăng nhập = khách vãng lai)

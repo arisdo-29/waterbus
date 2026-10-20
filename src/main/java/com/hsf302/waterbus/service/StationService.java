@@ -8,6 +8,8 @@ import java.util.List;
 public interface StationService {
     List<StationDTO> getStations();
 
+    List<StationDTO> getActiveStations();
+
     StationDTO getStationById(int stationId);
 
     // TODO BE1: addStation, updateStation, deleteStation (ẩn bến: isActive = false) ...

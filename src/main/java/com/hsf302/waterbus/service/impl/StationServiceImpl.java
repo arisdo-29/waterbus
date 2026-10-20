@@ -33,6 +33,13 @@ public class StationServiceImpl implements StationService {
     }
 
     @Override
+    public List<StationDTO> getActiveStations() {
+        return stationRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    @Override
     public StationDTO getStationById(int stationId) {
         return stationRepository.findById(stationId)
                 .map(this::toDTO)

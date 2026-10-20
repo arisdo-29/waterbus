@@ -132,6 +132,11 @@
     }
 
     function initBackButton() {
+        document.querySelectorAll('[data-action="reload"]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                window.location.reload();
+            });
+        });
         document.querySelectorAll('[data-action="back"]').forEach(function (button) {
             button.addEventListener('click', function () {
                 window.history.back();
@@ -228,6 +233,36 @@
         });
     }
 
+    function initStationFilter() {
+        const filter = document.querySelector('[data-station-filter]');
+        const grid = document.querySelector('[data-station-grid]');
+        if (!filter || !grid) {
+            return;
+        }
+        const count = document.querySelector('[data-station-count]');
+        const empty = document.querySelector('[data-station-empty]');
+        const cards = Array.from(grid.children);
+        function update() {
+            const query = filter.value.trim().toLocaleLowerCase('vi');
+            let visible = 0;
+            cards.forEach(function (card) {
+                const matches = card.textContent.toLocaleLowerCase('vi').includes(query);
+                card.hidden = !matches;
+                if (matches) {
+                    visible++;
+                }
+            });
+            if (count) {
+                count.textContent = 'Có ' + visible + ' bến tàu';
+            }
+            if (empty) {
+                empty.hidden = visible > 0;
+            }
+        }
+        filter.addEventListener('input', update);
+        update();
+    }
+
     function init() {
         initNavigation();
         initSearchForms();
@@ -236,6 +271,7 @@
         initCountdown();
         initCopyButtons();
         initPrintButton();
+        initStationFilter();
     }
 
     if (document.readyState === 'loading') {

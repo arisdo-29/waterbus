@@ -118,9 +118,17 @@ Giao diện #23 đã có từ PR #46; backend lịch sử/tài khoản/checkout 
 - [ ] Phân quyền: chỉ ADMIN/STAFF vào được `/admin/**`
 
 **Khuyên (BE1)**
-- [ ] Backend CRUD bến (ẩn bến = `is_active = 0`)
-- [ ] Backend CRUD tuyến + sắp xếp thứ tự bến
-- [ ] Trang tuyến cho khách (`route/index`)
+- [x] Backend CRUD bến (ẩn bến = `is_active = 0`)
+- [x] Backend CRUD tuyến + sắp xếp thứ tự bến
+- [x] Trang tuyến cho khách (`route/index`)
+
+BE1 #34–#36: StationRouteAdminTests render đúng template admin hiện có, kiểm tra thêm/sửa/ẩn,
+code trùng, ID sai, checkbox marker, validation và giữ dữ liệu khi lỗi. Thứ tự tuyến 1..n được tải lại đúng,
+giữ ID/số phút của bến còn lại, kiểm tra bến trùng/không tồn tại/inactive; RouteTransactionTests kiểm tra rollback giữa lần lưu.
+GET `/routes` dùng DTO và chỉ lấy tuyến active; có test rỗng/có dữ liệu và đúng thứ tự.
+SQL Server local chỉ kiểm tra đọc: `/routes` có 4 tuyến, `/stations` có 5 bến; trang/form admin render được.
+Không ghi/reset database dùng chung; test CRUD/constraint bằng H2 không thay thế kiểm chứng đầy đủ SQL Server.
+Endpoint admin chưa được xác minh bảo vệ truy cập, cần Tân tích hợp #33 trước khi phát hành.
 
 ### M4 - Hoàn thiện
 
@@ -136,6 +144,16 @@ Giao diện #23 đã có từ PR #46; backend lịch sử/tài khoản/checkout 
 
 **Khuyên (BE1)**
 - [ ] Trang lỗi 404/500, giao diện điện thoại, rà soát lại toàn bộ giao diện
+
+BE1 #41: đã kiểm tra 404/500 qua error dispatch thật của Spring Boot (500 chỉ được tạo trong test),
+tiếng Việt và không lộ exception; sửa nút tải lại 500, bổ sung alerts vào hai trang lỗi.
+Đã rà 15 trang BE1/admin bằng HTML render thật ở 360/768/1280px, không tràn ngang/lỗi JS;
+kiểm tra navbar, lọc bến và tải lại trang lỗi bằng `src/test/js/be1-admin.browser.cjs`.
+Giữ issue #41 mở cho phần rà toàn bộ giao diện sau khi các trang module khác và luồng BE4 được nối thật;
+checkout/payment/detail/history hiện được kiểm tra bằng fixture của PR #50, `/booking` vẫn là trang khung BE4.
+Phần #42 của BE1: @Valid/BindingResult và alerts tiếng Việt đã có cho form bến/tuyến; template admin của Trí
+chưa có lỗi dưới từng field. Cần Trí bổ sung tại `templates/admin/station/form.html`, `templates/admin/route/form.html`;
+không đánh dấu xong issue chung #42. Hợp đồng/hành vi ẩn tuyến và bàn giao chi tiết ở PAGES.md.
 
 **Cả nhóm**
 - [ ] Validate form (`@Valid`, hiện lỗi dưới từng ô)

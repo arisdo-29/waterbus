@@ -3,6 +3,9 @@ package com.hsf302.waterbus.repository;
 import com.hsf302.waterbus.entity.Station;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 // Module: BE1 - Tuyến & Bến
 public interface StationRepository extends JpaRepository<Station, Integer> {
+    List<Station> findByIsActiveTrueOrderByIdAsc();
 }

@@ -150,6 +150,16 @@
         const expiredMessage = document.querySelector('[data-payment-expired]');
         const expiresAt = new Date(countdown.dataset.expiresAt).getTime();
 
+        if (!Number.isFinite(expiresAt)) {
+            if (output) {
+                output.textContent = 'Chưa có thời hạn giữ chỗ';
+            }
+            if (submit) {
+                submit.disabled = true;
+            }
+            return;
+        }
+
         function render() {
             const remaining = Math.max(0, expiresAt - Date.now());
             const seconds = Math.floor(remaining / 1000);

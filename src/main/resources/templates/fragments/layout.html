@@ -39,7 +39,7 @@
                         <button class="btn wb-account-button dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle me-2" aria-hidden="true"></i><span th:text="${session.loginAccount.fullName}">Nguyễn Minh An</span></button>
                         <ul class="dropdown-menu dropdown-menu-end wb-dropdown-menu">
                             <li><a class="dropdown-item" href="/templates/booking/index.html" th:href="@{/my-bookings}">Vé của tôi</a></li>
-                            <li th:if="${session.loginAccount.role != 'CUSTOMER'}"><a class="dropdown-item" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}">Quản trị</a></li>
+                            <li th:if="${session.loginAccount.role == 'ADMIN' or session.loginAccount.role == 'STAFF'}"><a class="dropdown-item" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}">Quản trị</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><form action="/templates/index.html" method="post" th:action="@{/auth/logout}"><button class="dropdown-item" type="submit">Đăng xuất</button></form></li>
                         </ul>

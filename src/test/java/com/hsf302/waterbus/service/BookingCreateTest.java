@@ -4,6 +4,7 @@ import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Ticket;
 import com.hsf302.waterbus.repository.TicketRepository;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -22,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 #14: tạo đơn (createBooking) và POST /booking. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
+// BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
 @SpringBootTest
 @Transactional
 class BookingCreateTest {
@@ -169,6 +171,55 @@ class BookingCreateTest {
         assertThat(html).contains("Ghế vừa có người đặt", "Tuyen test", "TEST_S1", "A2", "15.000 đ",
                 "value=\"Lan Anh\"", "value=\"lananh@example.com\"", "value=\"TEST10\"");
         assertThat(count("booking")).isEqualTo(1);
+    }
+
+    @Test
+    void checkoutShowsSelectedSeatsAndSubtotalWithoutSaving() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        MvcResult result = mvc.perform(post("/booking/checkout")
+                        .param("tripId", String.valueOf(tripId))
+                        .param("seatIds", String.valueOf(seatA1), String.valueOf(seatA2))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", String.valueOf(s1))
+                        .param("toStationId", String.valueOf(s3)))
+                .andExpect(status().isOk())
+                .andExpect(view().name("booking/checkout"))
+                .andExpect(model().attributeExists("trip", "seats", "ticketType", "subtotal",
+                        "fromStation", "toStation", "fromStationId", "toStationId"))
+                .andReturn();
+        // subtotal = 15.000 x 2 ghế
+        assertThat((BigDecimal) result.getModelAndView().getModel().get("subtotal")).isEqualByComparingTo("30000");
+        String html = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        // Form trên trang checkout gửi tiếp sang POST /booking, mang theo đủ chuyến + ghế đã chọn
+        assertThat(html).contains("action=\"/booking\"", "Tuyen test", "TEST_S1", "TEST_S3", "30.000 đ",
+                "name=\"tripId\" value=\"" + tripId + "\"",
+                "name=\"seatIds\" value=\"" + seatA1 + "\"", "name=\"seatIds\" value=\"" + seatA2 + "\"");
+        assertThat(count("booking")).isZero(); // checkout chỉ để xem lại, chưa tạo đơn
+    }
+
+    @Test
+    void checkoutGoesBackToSeatPageWhenSeatTakenOrNoSeatChosen() throws Exception {
+        bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+                "", null, "Nguoi khac", "0907654321", "khac@example.com");
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String seatPage = "/trips/" + tripId + "/seats?fromStationId=" + s1 + "&toStationId=" + s3;
+
+        mvc.perform(post("/booking/checkout")
+                        .param("tripId", String.valueOf(tripId))
+                        .param("seatIds", String.valueOf(seatA1), String.valueOf(seatA2))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", String.valueOf(s1))
+                        .param("toStationId", String.valueOf(s3)))
+                .andExpect(redirectedUrl(seatPage))
+                .andExpect(flash().attribute("errorMessage", "Ghế bạn chọn vừa có người đặt. Vui lòng chọn ghế khác."));
+
+        mvc.perform(post("/booking/checkout") // không tick ghế nào
+                        .param("tripId", String.valueOf(tripId))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", String.valueOf(s1))
+                        .param("toStationId", String.valueOf(s3)))
+                .andExpect(redirectedUrl(seatPage))
+                .andExpect(flash().attribute("errorMessage", "Vui lòng chọn ít nhất 1 ghế."));
     }
 
     private void assertInvalid(int trip, List<Integer> seats, int from, int to, String promo, String phone,

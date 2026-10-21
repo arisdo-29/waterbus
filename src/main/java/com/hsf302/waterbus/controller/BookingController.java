@@ -40,6 +40,30 @@ public class BookingController {
         return "booking/index";
     }
 
+    // POST /booking/checkout: form ở trang chọn ghế (trip/seats) gửi lên -> trang xem lại đơn, CHƯA lưu gì vào DB
+    @PostMapping("/checkout")
+    public String checkout(@RequestParam int tripId,
+                           @RequestParam(required = false) List<Integer> seatIds, // nhiều checkbox cùng tên
+                           @RequestParam int ticketTypeId,
+                           @RequestParam int fromStationId,
+                           @RequestParam int toStationId,
+                           Model model, RedirectAttributes flash) {
+        // Địa chỉ trang chọn ghế để quay lại khi có lỗi (URL theo docs/PAGES.md)
+        String seatPage = "redirect:/trips/" + tripId + "/seats?fromStationId=" + fromStationId
+                + "&toStationId=" + toStationId;
+        if (seatIds == null || seatIds.isEmpty()) {
+            flash.addFlashAttribute("errorMessage", "Vui lòng chọn ít nhất 1 ghế.");
+            return seatPage;
+        }
+        if (!bookingService.areSeatsAvailable(tripId, seatIds)) {
+            flash.addFlashAttribute("errorMessage", "Ghế bạn chọn vừa có người đặt. Vui lòng chọn ghế khác.");
+            return seatPage;
+        }
+        // Ghế đều còn trống -> đưa đủ dữ liệu cho trang checkout (subtotal = giá vé x số ghế)
+        fillCheckoutModel(model, tripId, seatIds, ticketTypeId, fromStationId, toStationId);
+        return "booking/checkout";
+    }
+
     // POST /booking: form ở trang checkout gửi lên -> tạo đơn (tên field theo docs/PAGES.md)
     @PostMapping
     public String create(@RequestParam int tripId,
@@ -83,7 +107,7 @@ public class BookingController {
         return "booking/detail";
     }
 
-    // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). #13 sẽ dùng lại.
+    // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). Dùng chung cho checkout() và create().
     private void fillCheckoutModel(Model model, int tripId, List<Integer> seatIds, int ticketTypeId,
                                    int fromStationId, int toStationId) {
         List<Seat> seats = bookingService.getSelectedSeats(tripId, seatIds);

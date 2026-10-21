@@ -221,6 +221,17 @@ public class BookingServiceImpl implements BookingService {
         return trip == null ? null : toTripDTO(trip);
     }
 
+    @Override
+    public boolean areSeatsAvailable(int tripId, List<Integer> seatIds) {
+        // Hỏi TripService (của Trí) từng ghế một, chỉ cần 1 ghế đã bị đặt là trả false
+        for (Integer seatId : seatIds) {
+            if (!tripService.isSeatAvailable(tripId, seatId)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // TODO: TripService chưa có getTripById (nhóm đã nhờ Trí thêm). Có rồi thì thay cả thân method bằng:
     //       return tripService.getTripById(tripId);   rồi xoá field entityManager.
     // Tạm đọc thẳng Trip - nhóm cho phép ngoại lệ CHỈ cho Trip. find() trả null nếu sai id nên không gây lỗi 500.

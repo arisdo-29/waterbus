@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service.impl;
 
+import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.SeatRepository;
@@ -22,8 +23,23 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Trip> searchTrips(int fromStationId, int toStationId, LocalDate date) {
-        throw new UnsupportedOperationException("TODO BE2");
+        if (date == null || fromStationId <= 0 || toStationId <= 0 || fromStationId == toStationId) {
+            return List.of();
+        }
+        return tripRepository.searchTrips(fromStationId, toStationId,
+                date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripSearchDTO> searchTripResults(int fromStationId, int toStationId, LocalDate date) {
+        return searchTrips(fromStationId, toStationId, date).stream()
+                .map(trip -> new TripSearchDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
+                        trip.getDepartureTime(), trip.getArrivalTime(),
+                        seatRepository.countAvailableSeats(trip.getId(), trip.getWaterbus().getId())))
+                .toList();
     }
 
     @Override

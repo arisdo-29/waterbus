@@ -86,4 +86,35 @@ public class AccountServiceImpl implements AccountService {
         }
         return accountRepository.findByEmailIgnoreCase(email.trim()).orElse(null);
     }
+
+    @Override
+    @Transactional
+    public AccountDTO updateProfile(int accountId, String fullName, String phone) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+
+        account.setFullName(fullName != null ? fullName.trim() : "");
+        account.setPhone(phone != null ? phone.trim() : null);
+
+        Account saved = accountRepository.save(account);
+        return toDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(int accountId, String currentPassword, String newPassword) {
+        if (currentPassword == null || newPassword == null) {
+            throw new IllegalArgumentException("Mật khẩu không được để trống");
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+
+        if (!passwordEncoder.matches(currentPassword, account.getPasswordHash())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác");
+        }
+
+        account.setPasswordHash(passwordEncoder.encode(newPassword));
+        accountRepository.save(account);
+    }
 }

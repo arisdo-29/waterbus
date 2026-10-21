@@ -1,10 +1,12 @@
 package com.hsf302.waterbus.service.impl;
 
 import com.hsf302.waterbus.dto.StationDTO;
+import com.hsf302.waterbus.dto.StationForm;
 import com.hsf302.waterbus.entity.Station;
 import com.hsf302.waterbus.repository.StationRepository;
 import com.hsf302.waterbus.service.StationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -33,10 +35,58 @@ public class StationServiceImpl implements StationService {
     }
 
     @Override
+    public List<StationDTO> getActiveStations() {
+        return stationRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    @Override
     public StationDTO getStationById(int stationId) {
         return stationRepository.findById(stationId)
                 .map(this::toDTO)
                 .orElse(null);
+    }
+
+    @Override
+    public StationForm getStationForEdit(int stationId) {
+        Station station = requireStation(stationId);
+        StationForm form = new StationForm();
+        form.setId(station.getId());
+        form.setCode(station.getCode());
+        form.setName(station.getName());
+        form.setAddress(station.getAddress());
+        form.setIsActive(station.getIsActive());
+        return form;
+    }
+
+    @Override
+    @Transactional
+    public int saveStation(StationForm form) {
+        Station station = form.getId() == null ? new Station() : requireStation(form.getId());
+        stationRepository.findFirstByCodeIgnoreCase(form.getCode()).ifPresent(existing -> {
+            if (!existing.getId().equals(form.getId())) {
+                throw new IllegalArgumentException("Mã bến đã tồn tại. Vui lòng chọn mã khác.");
+            }
+        });
+        station.setCode(form.getCode());
+        station.setName(form.getName());
+        station.setAddress(form.getAddress());
+        station.setIsActive(form.getIsActive());
+        return stationRepository.saveAndFlush(station).getId();
+    }
+
+    @Override
+    @Transactional
+    public void hideStation(int stationId) {
+        Station station = requireStation(stationId);
+        station.setIsActive(false);
+        stationRepository.flush();
+    }
+
+    private Station requireStation(int stationId) {
+        return stationRepository.findById(stationId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bến cần sửa hoặc ẩn."));
     }
 
     private StationDTO toDTO(Station s) {

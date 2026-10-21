@@ -1,5 +1,8 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.dto.BookingTripDTO;
+import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import java.util.List;
 
@@ -14,4 +17,13 @@ public interface BookingService {
 
     /** Lịch sử đặt vé của khách. */
     List<Booking> getBookingsOfAccount(int accountId);
+
+    /** Thông tin đơn theo mã để hiển thị (trang xem vé, thanh toán). Không tìm thấy -> null. */
+    BookingDTO getBookingDetail(String bookingCode);
+
+    /** Danh sách vé của 1 đơn, theo thứ tự tạo. */
+    List<TicketDTO> getTicketsOfBooking(int bookingId);
+
+    /** Chuyến tàu của 1 đơn (mọi vé trong đơn cùng 1 chuyến). Đơn không có vé -> null. */
+    BookingTripDTO getTripOfBooking(int bookingId);
 }

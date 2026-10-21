@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
 import java.time.LocalDate;
@@ -10,6 +11,8 @@ import java.util.List;
 public interface TripService {
     /** Tìm chuyến đi qua bến đi rồi tới bến đến trong ngày (màn hình tìm chuyến). */
     List<Trip> searchTrips(int fromStationId, int toStationId, LocalDate date);
+
+    List<TripSearchDTO> searchTripResults(int fromStationId, int toStationId, LocalDate date);
 
     /** HỢP ĐỒNG cho BE4: ghế còn trống của chuyến (không có vé HOLD/VALID/USED). */
     List<Seat> getAvailableSeats(int tripId);

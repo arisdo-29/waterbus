@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quản lý khuyến mãi')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý khuyến mãi | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div>
+                    <span class="wb-eyebrow">Quản trị</span>
+                    <h1>Mã khuyến mãi</h1>
+                    <p>Quản lý các chương trình giảm giá và ưu đãi đặt vé.</p>
+                </div>
+                <a class="btn btn-wb-accent" href="/templates/admin/promotion/form.html" th:href="@{/admin/promotions/create}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm khuyến mãi</a>
+            </header>
+            <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(promotions)}">
+                <table class="table wb-admin-table">
+                    <caption class="visually-hidden">Danh sách mã khuyến mãi</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Mã</th>
+                            <th scope="col">Tên chương trình</th>
+                            <th scope="col">Mức giảm</th>
+                            <th scope="col">Lượt dùng</th>
+                            <th scope="col">Thời hạn</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col" class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="promo : ${promotions}">
+                            <td data-label="Mã"><strong class="wb-mono text-primary" th:text="${promo.code}">SUMMER20</strong></td>
+                            <td data-label="Tên chương trình"><span th:text="${promo.name}">Ưu đãi mùa hè</span></td>
+                            <td data-label="Mức giảm">
+                                <span th:if="${promo.discountType == 'PERCENT'}" th:text="${#numbers.formatDecimal(promo.discountValue, 0, 'COMMA', 0, 'POINT')} + '%'">10%</span>
+                                <span th:if="${promo.discountType == 'FIXED'}" th:text="${#numbers.formatDecimal(promo.discountValue, 0, 'COMMA', 0, 'POINT')} + ' đ'">20.000 đ</span>
+                                <small class="text-muted d-block" th:if="${promo.maxDiscount != null and promo.maxDiscount > 0}">Tối đa: <span th:text="${#numbers.formatDecimal(promo.maxDiscount, 0, 'COMMA', 0, 'POINT')} + ' đ'">50.000 đ</span></small>
+                            </td>
+                            <td data-label="Lượt dùng">
+                                <span th:text="${promo.usedCount}">0</span> / 
+                                <span th:text="${promo.usageLimit != null ? promo.usageLimit : '∞'}">100</span>
+                            </td>
+                            <td data-label="Thời hạn" class="small">
+                                <div th:if="${promo.startAt != null and promo.endAt != null}">
+                                    <span th:text="${#temporals.format(promo.startAt, 'dd/MM/yyyy HH:mm')}">01/06/2026</span> - 
+                                    <span th:text="${#temporals.format(promo.endAt, 'dd/MM/yyyy HH:mm')}">30/06/2026</span>
+                                </div>
+                            </td>
+                            <td data-label="Trạng thái">
+                                <span th:replace="~{fragments/layout :: statusBadge(${promo.isActive ? 'ACTIVE' : 'INACTIVE'})}"></span>
+                            </td>
+                            <td data-label="Thao tác">
+                                <div class="wb-admin-table-actions">
+                                    <a class="btn btn-wb-outline" href="/templates/admin/promotion/form.html" th:href="@{/admin/promotions/{id}/edit(id=${promo.id})}">Sửa</a>
+                                    <form th:action="@{/admin/promotions/{id}/delete(id=${promo.id})}" method="post" data-confirm="Bạn có chắc muốn ẩn/xóa mã khuyến mãi này?">
+                                        <button class="btn btn-wb-outline wb-admin-danger" type="submit">Ẩn</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section class="wb-admin-table-wrap wb-admin-empty" th:if="${#lists.isEmpty(promotions)}">
+                <i class="bi bi-inbox" aria-hidden="true"></i>
+                <h2>Chưa có khuyến mãi</h2>
+                <p>Tạo chương trình khuyến mãi đầu tiên để kích cầu đặt vé.</p>
+                <a class="btn btn-wb-accent" href="/templates/admin/promotion/form.html" th:href="@{/admin/promotions/create}">Thêm mới</a>
+            </section>
+        </main>
+    </div>
+    <button class="wb-admin-backdrop" type="button" data-admin-sidebar-close aria-label="Đóng menu quản trị" hidden></button>
+    <footer th:replace="~{fragments/layout :: footer}" class="wb-footer"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

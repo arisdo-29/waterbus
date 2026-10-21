@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${promotion?.id == null ? 'Thêm khuyến mãi' : 'Sửa khuyến mãi'})}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thông tin khuyến mãi | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div>
+                    <span class="wb-eyebrow">Quản trị</span>
+                    <h1 th:text="${promotion?.id == null ? 'Thêm khuyến mãi mới' : 'Sửa khuyến mãi'}">Thêm khuyến mãi</h1>
+                    <p>Các trường có dấu <span class="wb-admin-required" aria-hidden="true">*</span> là bắt buộc.</p>
+                </div>
+                <a class="btn btn-wb-outline" href="/templates/admin/promotion/list.html" th:href="@{/admin/promotions}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại</a>
+            </header>
+            <div class="wb-admin-form-layout">
+                <section class="wb-admin-form-card">
+                    <h2 class="wb-admin-form-title">Thông tin khuyến mãi</h2>
+                    <form th:action="@{/admin/promotions/save}" th:object="${promotion}" method="post" novalidate>
+                        <input type="hidden" th:field="*{id}">
+                        <input type="hidden" th:field="*{usedCount}">
+
+                        <div class="wb-admin-form-row">
+                            <label for="code">Mã khuyến mãi <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control wb-mono text-uppercase" id="code" type="text" th:field="*{code}" required maxlength="30" placeholder="VD: SUMMER10" th:classappend="${#fields.hasErrors('code')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('code')}" th:errors="*{code}">Mã khuyến mãi không hợp lệ</div>
+                        </div>
+
+                        <div class="wb-admin-form-row">
+                            <label for="name">Tên chương trình <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="name" type="text" th:field="*{name}" required maxlength="100" placeholder="VD: Ưu đãi đầu hè 2026" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Tên chương trình không hợp lệ</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="discountType">Loại giảm giá <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                                <select class="form-select" id="discountType" th:field="*{discountType}">
+                                    <option value="PERCENT">Phần trăm (%)</option>
+                                    <option value="FIXED">Số tiền cố định (VNĐ)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="discountValue">Giá trị giảm <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                                <input class="form-control" id="discountValue" type="number" step="0.01" th:field="*{discountValue}" required placeholder="VD: 10 hoặc 20000" th:classappend="${#fields.hasErrors('discountValue')} ? 'is-invalid' : ''">
+                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('discountValue')}" th:errors="*{discountValue}">Giá trị giảm không hợp lệ</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="maxDiscount">Giảm tối đa (VNĐ)</label>
+                                <input class="form-control" id="maxDiscount" type="number" step="1000" th:field="*{maxDiscount}" placeholder="Chỉ áp dụng cho loại %">
+                                <small class="form-text text-muted">Để trống nếu không giới hạn mức giảm tối đa.</small>
+                            </div>
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="minOrderAmount">Đơn tối thiểu (VNĐ)</label>
+                                <input class="form-control" id="minOrderAmount" type="number" step="1000" th:field="*{minOrderAmount}" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="startAt">Thời gian bắt đầu <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                                <input class="form-control" id="startAt" type="datetime-local" th:field="*{startAt}" required th:classappend="${#fields.hasErrors('startAt')} ? 'is-invalid' : ''">
+                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('startAt')}" th:errors="*{startAt}">Thời gian bắt đầu không hợp lệ</div>
+                            </div>
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="endAt">Thời gian kết thúc <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                                <input class="form-control" id="endAt" type="datetime-local" th:field="*{endAt}" required th:classappend="${#fields.hasErrors('endAt')} ? 'is-invalid' : ''">
+                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('endAt')}" th:errors="*{endAt}">Thời gian kết thúc không hợp lệ</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="usageLimit">Giới hạn số lượt dùng</label>
+                                <input class="form-control" id="usageLimit" type="number" min="1" th:field="*{usageLimit}" placeholder="Để trống nếu không giới hạn">
+                            </div>
+                            <div class="col-md-6 wb-admin-form-row">
+                                <label for="isActive">Trạng thái áp dụng <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                                <select class="form-select" id="isActive" th:field="*{isActive}">
+                                    <option th:value="true">Đang kích hoạt</option>
+                                    <option th:value="false">Ngưng áp dụng (Ẩn)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="wb-admin-form-actions mt-4">
+                            <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Lưu thông tin</button>
+                            <a class="btn btn-wb-outline" href="/templates/admin/promotion/list.html" th:href="@{/admin/promotions}">Huỷ</a>
+                        </div>
+                    </form>
+                </section>
+                <aside class="wb-admin-side-card">
+                    <h2>Lưu ý khi tạo mã</h2>
+                    <ul>
+                        <li>Mã khuyến mãi nên viết hoa, không dấu, không khoảng trắng (ví dụ: <code>CHAOHE2026</code>).</li>
+                        <li>Nếu chọn loại <strong>Phần trăm (%)</strong>, nên đặt <strong>Giảm tối đa</strong> để tránh thất thoát với các đơn hàng số lượng lớn.</li>
+                        <li>Thời gian kết thúc bắt buộc phải sau thời gian bắt đầu.</li>
+                    </ul>
+                </aside>
+            </div>
+        </main>
+    </div>
+    <button class="wb-admin-backdrop" type="button" data-admin-sidebar-close aria-label="Đóng menu quản trị" hidden></button>
+    <footer th:replace="~{fragments/layout :: footer}" class="wb-footer"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

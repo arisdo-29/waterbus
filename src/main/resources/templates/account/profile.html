@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Thông tin tài khoản')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thông tin tài khoản | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+</head>
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <main class="wb-main wb-page-main wb-auth-page">
+        <div class="container">
+            <div class="wb-auth-shell">
+                <header class="wb-auth-head">
+                    <span class="wb-eyebrow">Cá nhân</span>
+                    <h1>Hồ sơ của tôi</h1>
+                    <p>Quản lý thông tin tài khoản cá nhân</p>
+                </header>
+
+                <div class="wb-card wb-form-card">
+                    <div class="mb-4 pb-3 border-bottom d-flex align-items-center justify-content-between">
+                        <div>
+                            <small class="text-muted d-block">Vai trò</small>
+                            <span class="badge rounded-pill wb-badge-info" th:text="${account?.role}">CUSTOMER</span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Trạng thái</small>
+                            <span th:replace="~{fragments/layout :: statusBadge(${account?.status})}"></span>
+                        </div>
+                    </div>
+
+                    <form th:action="@{/account/profile}" th:object="${updateProfileRequest}" method="post" novalidate>
+                        <div class="wb-form-row">
+                            <label for="email">Địa chỉ Email</label>
+                            <input type="email" id="email" class="form-control bg-light" th:value="${account?.email}" readonly disabled>
+                            <small class="form-text text-muted">Email là định danh tài khoản, không thể thay đổi.</small>
+                        </div>
+
+                        <div class="wb-form-row">
+                            <label for="fullName">Họ và tên <span class="wb-required" aria-hidden="true">*</span></label>
+                            <input type="text" id="fullName" class="form-control" th:field="*{fullName}" required maxlength="100" th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Họ và tên không hợp lệ</div>
+                        </div>
+
+                        <div class="wb-form-row">
+                            <label for="phone">Số điện thoại</label>
+                            <input type="tel" id="phone" class="form-control" th:field="*{phone}" maxlength="20" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Số điện thoại không hợp lệ</div>
+                        </div>
+
+                        <div class="d-flex flex-column gap-2 mt-4">
+                            <button type="submit" class="btn btn-wb-accent">
+                                <i class="bi bi-check2-circle me-2" aria-hidden="true"></i>Lưu thay đổi
+                            </button>
+                            <a href="/templates/account/change-password.html" th:href="@{/account/change-password}" class="btn btn-wb-outline text-center">
+                                <i class="bi bi-key me-2" aria-hidden="true"></i>Đổi mật khẩu
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

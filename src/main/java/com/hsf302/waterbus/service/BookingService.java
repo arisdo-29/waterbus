@@ -37,4 +37,7 @@ public interface BookingService {
 
     /** Thông tin chuyến để hiển thị trên trang checkout. Không tìm thấy -> null. */
     BookingTripDTO getTripInfo(int tripId);
+
+    /** true nếu TẤT CẢ ghế đã chọn còn trống (kiểm tra từng ghế bằng TripService.isSeatAvailable). */
+    boolean areSeatsAvailable(int tripId, List<Integer> seatIds);
 }

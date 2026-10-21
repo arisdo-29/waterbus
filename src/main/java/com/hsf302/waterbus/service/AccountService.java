@@ -20,4 +20,10 @@ public interface AccountService {
     Account getAccountById(int id);
 
     Account getAccountByEmail(String email);
+
+    /** Cập nhật thông tin cá nhân. */
+    AccountDTO updateProfile(int accountId, String fullName, String phone);
+
+    /** Đổi mật khẩu tài khoản. */
+    void changePassword(int accountId, String currentPassword, String newPassword);
 }

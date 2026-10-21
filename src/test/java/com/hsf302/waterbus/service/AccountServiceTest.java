@@ -119,4 +119,52 @@ class AccountServiceTest {
         assertEquals("Nguyen Van Test", dto.getFullName());
         assertEquals("STAFF", dto.getRole());
     }
+
+    @Test
+    void testUpdateProfile_Success() {
+        Account account = new Account();
+        account.setId(5);
+        account.setEmail("user5@gmail.com");
+        account.setFullName("Old Name");
+        account.setPhone("0900000005");
+        account.setRole("CUSTOMER");
+        account.setStatus("ACTIVE");
+
+        when(accountRepository.findById(5)).thenReturn(Optional.of(account));
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
+
+        AccountDTO updated = accountService.updateProfile(5, "New Name", "0988888888");
+
+        assertNotNull(updated);
+        assertEquals("New Name", updated.getFullName());
+        assertEquals("0988888888", updated.getPhone());
+    }
+
+    @Test
+    void testChangePassword_Success() {
+        Account account = new Account();
+        account.setId(5);
+        account.setPasswordHash(passwordEncoder.encode("OldPass@123"));
+
+        when(accountRepository.findById(5)).thenReturn(Optional.of(account));
+
+        accountService.changePassword(5, "OldPass@123", "NewPass@456");
+
+        assertTrue(passwordEncoder.matches("NewPass@456", account.getPasswordHash()));
+        verify(accountRepository, times(1)).save(account);
+    }
+
+    @Test
+    void testChangePassword_WrongCurrentPassword() {
+        Account account = new Account();
+        account.setId(5);
+        account.setPasswordHash(passwordEncoder.encode("OldPass@123"));
+
+        when(accountRepository.findById(5)).thenReturn(Optional.of(account));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.changePassword(5, "WrongPass", "NewPass@456")
+        );
+        verify(accountRepository, never()).save(account);
+    }
 }

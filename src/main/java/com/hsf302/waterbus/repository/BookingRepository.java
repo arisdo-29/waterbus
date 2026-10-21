@@ -9,4 +9,7 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Integer> {
     // Spring tự sinh câu SQL từ tên method: WHERE booking_code = ?
     Optional<Booking> findByBookingCode(String bookingCode);
+
+    // true nếu mã đơn đã có trong DB -> dùng khi sinh mã đơn mới để không bị trùng
+    boolean existsByBookingCode(String bookingCode);
 }

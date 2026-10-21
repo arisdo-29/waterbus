@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Đăng nhập')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng nhập | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+</head>
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <main class="wb-main wb-page-main wb-auth-page">
+        <div class="container">
+            <div class="wb-auth-shell">
+                <header class="wb-auth-head">
+                    <span class="wb-eyebrow">Tài khoản</span>
+                    <h1>Đăng nhập</h1>
+                    <p>Chào mừng bạn quay lại với Saigon Waterbus</p>
+                </header>
+
+                <div class="wb-card wb-form-card">
+                    <form th:action="@{/auth/login}" th:object="${loginRequest}" method="post" novalidate>
+                        <div class="wb-form-row">
+                            <label for="email">Email <span class="wb-required" aria-hidden="true">*</span></label>
+                            <input type="email" id="email" class="form-control" th:field="*{email}" placeholder="example@email.com" required th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Email không hợp lệ</div>
+                        </div>
+
+                        <div class="wb-form-row">
+                            <label for="password">Mật khẩu <span class="wb-required" aria-hidden="true">*</span></label>
+                            <div class="wb-password-field">
+                                <input type="password" id="password" class="form-control" th:field="*{password}" placeholder="Nhập mật khẩu" required th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''">
+                                <button type="button" class="wb-password-toggle" data-password-toggle="password" aria-label="Hiện hoặc ẩn mật khẩu">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Mật khẩu không được để trống</div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-wb-accent">
+                                <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>Đăng nhập
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="wb-auth-foot">
+                        <span>Chưa có tài khoản?</span>
+                        <a href="/templates/auth/register.html" th:href="@{/auth/register}" class="ms-1">Đăng ký ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

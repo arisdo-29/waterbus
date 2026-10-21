@@ -1,12 +1,19 @@
 package com.hsf302.waterbus.controller;
 
 import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.entity.Booking;
+import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.service.BookingService;
+import com.hsf302.waterbus.service.StationService;
+import com.hsf302.waterbus.service.TicketTypeService;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 // Module: BE4 - Đặt vé & Thanh toán. Mọi URL của controller này bắt đầu bằng /booking
@@ -16,15 +23,48 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class BookingController {
 
     private final BookingService bookingService;
+    // Module khác (chỉ đọc để hiển thị trang checkout): tên bến, loại vé
+    private final StationService stationService;
+    private final TicketTypeService ticketTypeService;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(BookingService bookingService, StationService stationService,
+                             TicketTypeService ticketTypeService) {
         this.bookingService = bookingService;
+        this.stationService = stationService;
+        this.ticketTypeService = ticketTypeService;
     }
 
     @GetMapping
     public String index() {
         // TODO BE4: lấy dữ liệu từ service, model.addAttribute(...), trả về view
         return "booking/index";
+    }
+
+    // POST /booking: form ở trang checkout gửi lên -> tạo đơn (tên field theo docs/PAGES.md)
+    @PostMapping
+    public String create(@RequestParam int tripId,
+                         @RequestParam(required = false) List<Integer> seatIds,
+                         @RequestParam int ticketTypeId,
+                         @RequestParam int fromStationId,
+                         @RequestParam int toStationId,
+                         @RequestParam(defaultValue = "") String contactName,
+                         @RequestParam(defaultValue = "") String contactPhone,
+                         @RequestParam(defaultValue = "") String contactEmail,
+                         @RequestParam(defaultValue = "") String promoCode,
+                         Model model) {
+        try {
+            // TODO #24 (M2): truyền id tài khoản đang đăng nhập (session "loginAccount") thay cho null
+            Booking booking = bookingService.createBooking(tripId, seatIds, ticketTypeId, fromStationId,
+                    toStationId, promoCode, null, contactName, contactPhone, contactEmail);
+            // Thành công -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
+            return "redirect:/payment/" + booking.getBookingCode();
+        } catch (IllegalArgumentException ex) {
+            // Lỗi -> hiện lại trang checkout, KHÔNG redirect để giữ dữ liệu đã nhập.
+            // Họ tên/SĐT/email/mã KM tự giữ vì template đọc ${param...} của chính request này.
+            fillCheckoutModel(model, tripId, seatIds, ticketTypeId, fromStationId, toStationId);
+            model.addAttribute("errorMessage", ex.getMessage());
+            return "booking/checkout";
+        }
     }
 
     // GET /booking/BK0000001 -> trang xem vé của đơn BK0000001
@@ -41,5 +81,19 @@ public class BookingController {
         model.addAttribute("trip", bookingService.getTripOfBooking(booking.getId()));
         model.addAttribute("tickets", bookingService.getTicketsOfBooking(booking.getId()));
         return "booking/detail";
+    }
+
+    // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). #13 sẽ dùng lại.
+    private void fillCheckoutModel(Model model, int tripId, List<Integer> seatIds, int ticketTypeId,
+                                   int fromStationId, int toStationId) {
+        List<Seat> seats = bookingService.getSelectedSeats(tripId, seatIds);
+        model.addAttribute("trip", bookingService.getTripInfo(tripId));
+        model.addAttribute("seats", seats);
+        model.addAttribute("ticketType", ticketTypeService.getTicketTypeById(ticketTypeId));
+        model.addAttribute("subtotal", bookingService.calculateSubtotal(ticketTypeId, seats.size()));
+        model.addAttribute("fromStation", stationService.getStationById(fromStationId));
+        model.addAttribute("toStation", stationService.getStationById(toStationId));
+        model.addAttribute("fromStationId", fromStationId);
+        model.addAttribute("toStationId", toStationId);
     }
 }

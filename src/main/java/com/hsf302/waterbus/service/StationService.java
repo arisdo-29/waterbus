@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.StationDTO;
+import com.hsf302.waterbus.dto.StationForm;
 
 import java.util.List;
 
@@ -12,5 +13,10 @@ public interface StationService {
 
     StationDTO getStationById(int stationId);
 
-    // TODO BE1: addStation, updateStation, deleteStation (ẩn bến: isActive = false) ...
+    StationForm getStationForEdit(int stationId);
+
+    int saveStation(StationForm form);
+
+    void hideStation(int stationId);
+
 }

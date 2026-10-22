@@ -27,7 +27,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Module: BE4 - Đặt vé & Thanh toán. TODO: thay các dòng throw bằng code thật.
+// Module: BE4 - Đặt vé & Thanh toán.
 @Service
 public class BookingServiceImpl implements BookingService {
 
@@ -174,8 +174,11 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<Booking> getBookingsOfAccount(int accountId) {
-        throw new UnsupportedOperationException("TODO BE4");
+    public List<BookingDTO> getBookingsOfAccount(int accountId) {
+        // Lấy đơn của tài khoản (mới nhất trước) rồi đổi Entity -> DTO, giống getStations() của Station
+        return bookingRepository.findByAccountIdOrderByCreatedAtDesc(accountId).stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     @Override

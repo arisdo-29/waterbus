@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Ticket;
@@ -16,16 +17,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. BE4 #24: gắn tài khoản. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
+// BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. BE4 #24: gắn tài khoản. BE4 #25: GET /my-bookings. BE4 #26: checkout tự điền. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
 @SpringBootTest
 @Transactional
 class BookingCreateTest {
@@ -245,6 +248,77 @@ class BookingCreateTest {
                         .param("toStationId", String.valueOf(s3)))
                 .andExpect(redirectedUrl(seatPage))
                 .andExpect(flash().attribute("errorMessage", "Vui lòng chọn ít nhất 1 ghế."));
+    }
+
+    @Test
+    void myBookingsRequiresLoginAndShowsOnlyOwnBookingsNewestFirst() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        // Chưa đăng nhập -> sang trang đăng nhập
+        mvc.perform(get("/my-bookings")).andExpect(redirectedUrl("/auth/login"));
+
+        AccountDTO lan = account("lan@example.com");
+        AccountDTO minh = account("minh@example.com");
+        Booking older = bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+                "", lan.getId(), "Lan", "0901234567", "lan@example.com");
+        Booking newer = bookingService.createBooking(tripId, List.of(seatA2), ticketTypeId, s1, s2,
+                "", lan.getId(), "Lan", "0901234567", "lan@example.com");
+        Booking ofMinh = bookingService.createBooking(tripId, List.of(seatA3), ticketTypeId, s1, s2,
+                "", minh.getId(), "Minh", "0907654321", "minh@example.com");
+        older.setCreatedAt(LocalDateTime.now().minusHours(1)); // để chắc chắn thứ tự thời gian
+
+        // Lan chỉ thấy 2 đơn của mình, đơn mới nhất lên đầu
+        MvcResult result = mvc.perform(get("/my-bookings").sessionAttr("loginAccount", lan))
+                .andExpect(status().isOk())
+                .andExpect(view().name("booking/history"))
+                .andReturn();
+        @SuppressWarnings("unchecked")
+        List<BookingDTO> bookings = (List<BookingDTO>) result.getModelAndView().getModel().get("bookings");
+        assertThat(bookings).extracting(BookingDTO::getBookingCode)
+                .containsExactly(newer.getBookingCode(), older.getBookingCode());
+        assertThat(result.getResponse().getContentAsString(StandardCharsets.UTF_8))
+                .contains(newer.getBookingCode(), older.getBookingCode()).doesNotContain(ofMinh.getBookingCode());
+
+        // Tài khoản chưa có đơn -> danh sách rỗng
+        AccountDTO empty = account("empty@example.com");
+        mvc.perform(get("/my-bookings").sessionAttr("loginAccount", empty))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("bookings", List.of()));
+    }
+
+    @Test
+    void checkoutFillsContactFromLoggedInAccount() throws Exception {
+        // #26: template booking/checkout đọc session "loginAccount" để điền sẵn tên/SĐT/email
+        AccountDTO lan = new AccountDTO(1, "lan@example.com", "Nguyen Thi Lan", "0901234567", "CUSTOMER", "ACTIVE");
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+
+        // Đã đăng nhập -> 3 ô liên hệ có sẵn thông tin tài khoản
+        String html = mvc.perform(checkoutRequest().sessionAttr("loginAccount", lan))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(html).contains("value=\"Nguyen Thi Lan\"", "value=\"0901234567\"", "value=\"lan@example.com\"");
+
+        // Chưa đăng nhập -> 3 ô để trống cho khách vãng lai tự nhập
+        String guestHtml = mvc.perform(checkoutRequest())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(guestHtml).doesNotContain("Nguyen Thi Lan", "lan@example.com");
+    }
+
+    // Form gửi từ trang chọn ghế sang POST /booking/checkout (ghế A1, chặng S1 -> S3)
+    private MockHttpServletRequestBuilder checkoutRequest() {
+        return post("/booking/checkout")
+                .param("tripId", String.valueOf(tripId))
+                .param("seatIds", String.valueOf(seatA1))
+                .param("ticketTypeId", String.valueOf(ticketTypeId))
+                .param("fromStationId", String.valueOf(s1))
+                .param("toStationId", String.valueOf(s3));
+    }
+
+    // Tạo 1 tài khoản trong DB test, trả về AccountDTO giống cái Tân lưu vào session khi đăng nhập
+    private AccountDTO account(String email) {
+        jdbc.update("INSERT INTO account (email, password_hash, full_name, phone, role, status, created_at) "
+                + "VALUES (?, 'x', 'Test', '0900000000', 'CUSTOMER', 'ACTIVE', ?)", email, LocalDateTime.now());
+        return new AccountDTO(id("account", "email", email), email, "Test", "0900000000", "CUSTOMER", "ACTIVE");
     }
 
     private void assertInvalid(int trip, List<Integer> seats, int from, int to, String promo, String phone,

@@ -17,8 +17,8 @@ public interface BookingService {
     /** Tra cứu đơn theo mã. */
     Booking getBookingByCode(String bookingCode);
 
-    /** Lịch sử đặt vé của khách. */
-    List<Booking> getBookingsOfAccount(int accountId);
+    /** Lịch sử đặt vé của khách, đơn mới nhất lên đầu. Chưa có đơn -> danh sách rỗng. */
+    List<BookingDTO> getBookingsOfAccount(int accountId);
 
     /** Thông tin đơn theo mã để hiển thị (trang xem vé, thanh toán). Không tìm thấy -> null. */
     BookingDTO getBookingDetail(String bookingCode);

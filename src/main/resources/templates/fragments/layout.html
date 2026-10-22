@@ -28,7 +28,6 @@
                     <li class="nav-item"><a class="nav-link" href="/templates/trip/index.html" th:href="@{/trips}">Tìm chuyến</a></li>
                     <li class="nav-item"><a class="nav-link" href="/templates/route/index.html" th:href="@{/routes}">Tuyến tàu</a></li>
                     <li class="nav-item"><a class="nav-link" href="/templates/station/list.html" th:href="@{/stations}">Bến tàu</a></li>
-                    <li class="nav-item wb-mobile-booking"><a class="btn btn-wb-accent" href="/templates/index.html#tim-chuyen" th:href="@{/#tim-chuyen}">Đặt vé</a></li>
                 </ul>
                 <div class="wb-account-actions">
                     <div th:unless="${session.loginAccount}" class="d-flex align-items-center gap-2">
@@ -58,7 +57,7 @@
         <div class="container">
             <div class="row gy-4">
                 <div class="col-lg-5"><a class="wb-brand wb-brand-footer" href="/templates/index.html" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a><p class="wb-footer-copy">Một hành trình nhẹ nhàng trên sông Sài Gòn, kết nối thành phố theo cách mát lành hơn.</p></div>
-                <div class="col-6 col-lg-3"><h2 class="wb-footer-heading">Liên kết nhanh</h2><a href="/templates/index.html#tim-chuyen" th:href="@{/#tim-chuyen}">Tìm chuyến</a><a href="/templates/route/index.html" th:href="@{/routes}">Tuyến tàu</a><a href="/templates/station/list.html" th:href="@{/stations}">Bến tàu</a></div>
+                <div class="col-6 col-lg-3"><h2 class="wb-footer-heading">Liên kết nhanh</h2><a href="/templates/trip/index.html" th:href="@{/trips}">Tìm chuyến</a><a href="/templates/route/index.html" th:href="@{/routes}">Tuyến tàu</a><a href="/templates/station/list.html" th:href="@{/stations}">Bến tàu</a></div>
                 <div class="col-6 col-lg-4"><h2 class="wb-footer-heading">Hỗ trợ</h2><p class="wb-hotline">Hotline: 1900 636 830</p><p>Hoạt động tất cả các ngày trong tuần, kể cả ngày lễ.</p></div>
             </div>
         </div>

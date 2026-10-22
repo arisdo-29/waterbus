@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Ticket;
@@ -24,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
+// BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. BE4 #24: gắn tài khoản. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
 @SpringBootTest
 @Transactional
 class BookingCreateTest {
@@ -146,6 +147,30 @@ class BookingCreateTest {
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(location).matches("/payment/BK[0-9]{8}");
         assertThat(count("ticket")).isEqualTo(2);
+        // #24: chưa đăng nhập -> khách vãng lai, account_id để NULL
+        assertThat(jdbc.queryForObject("SELECT account_id FROM booking", Integer.class)).isNull();
+    }
+
+    @Test
+    void postBookingLinksLoggedInAccount() throws Exception {
+        jdbc.update("INSERT INTO account (email, password_hash, full_name, phone, role, status, created_at) "
+                + "VALUES ('lan@example.com', 'x', 'Lan', '0901234567', 'CUSTOMER', 'ACTIVE', ?)", LocalDateTime.now());
+        int accountId = id("account", "email", "lan@example.com");
+        AccountDTO loginAccount = new AccountDTO(accountId, "lan@example.com", "Lan", "0901234567", "CUSTOMER", "ACTIVE");
+
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc.perform(post("/booking")
+                        .sessionAttr("loginAccount", loginAccount) // giả lập đã đăng nhập
+                        .param("tripId", String.valueOf(tripId))
+                        .param("seatIds", String.valueOf(seatA1))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", String.valueOf(s1))
+                        .param("toStationId", String.valueOf(s2))
+                        .param("contactName", "Lan").param("contactPhone", "0901234567")
+                        .param("contactEmail", "lan@example.com").param("promoCode", ""))
+                .andExpect(status().is3xxRedirection());
+        // #24: đơn được gắn đúng tài khoản đang đăng nhập
+        assertThat(jdbc.queryForObject("SELECT account_id FROM booking", Integer.class)).isEqualTo(accountId);
     }
 
     @Test

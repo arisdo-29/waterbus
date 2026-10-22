@@ -1,11 +1,13 @@
 package com.hsf302.waterbus.controller;
 
+import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.StationService;
 import com.hsf302.waterbus.service.TicketTypeService;
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -75,11 +77,14 @@ public class BookingController {
                          @RequestParam(defaultValue = "") String contactPhone,
                          @RequestParam(defaultValue = "") String contactEmail,
                          @RequestParam(defaultValue = "") String promoCode,
-                         Model model) {
+                         HttpSession session, Model model) {
+        // Lấy tài khoản đang đăng nhập (Tân lưu vào session tên "loginAccount" khi đăng nhập)
+        AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
+        // Đã đăng nhập -> id tài khoản; chưa đăng nhập -> null (khách vãng lai)
+        Integer accountId = (loginAccount == null) ? null : loginAccount.getId();
         try {
-            // TODO #24 (M2): truyền id tài khoản đang đăng nhập (session "loginAccount") thay cho null
             Booking booking = bookingService.createBooking(tripId, seatIds, ticketTypeId, fromStationId,
-                    toStationId, promoCode, null, contactName, contactPhone, contactEmail);
+                    toStationId, promoCode, accountId, contactName, contactPhone, contactEmail);
             // Thành công -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
             return "redirect:/payment/" + booking.getBookingCode();
         } catch (IllegalArgumentException ex) {

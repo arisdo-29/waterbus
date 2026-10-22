@@ -12,6 +12,7 @@ import com.hsf302.waterbus.entity.TicketType;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
+import com.hsf302.waterbus.service.AccountService;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PromotionService;
 import com.hsf302.waterbus.service.RouteService;
@@ -37,19 +38,21 @@ public class BookingServiceImpl implements BookingService {
     private final RouteService routeService;
     private final TicketTypeService ticketTypeService;
     private final PromotionService promotionService;
+    private final AccountService accountService; // module Tân: lấy tài khoản đang đăng nhập
     private final EntityManager entityManager; // chỉ dùng tạm trong findTrip(), xem TODO bên dưới
 
     // Constructor injection: Spring tự đưa các repository/service vào
     public BookingServiceImpl(BookingRepository bookingRepository, TicketRepository ticketRepository,
                               TripService tripService, RouteService routeService,
                               TicketTypeService ticketTypeService, PromotionService promotionService,
-                              EntityManager entityManager) {
+                              AccountService accountService, EntityManager entityManager) {
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
         this.tripService = tripService;
         this.routeService = routeService;
         this.ticketTypeService = ticketTypeService;
         this.promotionService = promotionService;
+        this.accountService = accountService;
         this.entityManager = entityManager;
     }
 
@@ -133,7 +136,10 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = new Booking();
         booking.setBookingCode("BK" + number);
         booking.setPromotion(promotion);
-        // TODO #24 (M2): gắn tài khoản đang đăng nhập (accountId) vào booking
+        // Đã đăng nhập -> gắn tài khoản vào đơn. Chưa đăng nhập (accountId = null) -> khách vãng lai, account_id để NULL
+        if (accountId != null) {
+            booking.setAccount(accountService.getAccountById(accountId));
+        }
         booking.setContactName(contactName.trim());
         booking.setContactPhone(contactPhone.trim());
         booking.setContactEmail(contactEmail.trim());

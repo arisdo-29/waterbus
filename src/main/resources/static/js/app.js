@@ -233,6 +233,40 @@
         });
     }
 
+    function initTicketQRCodes() {
+        const qrElements = document.querySelectorAll('[data-qr-value]');
+        if (!qrElements.length) {
+            return;
+        }
+
+        function renderAll() {
+            if (typeof QRCode === 'undefined') {
+                return;
+            }
+            qrElements.forEach(function (el) {
+                const val = el.getAttribute('data-qr-value');
+                if (val && !el.querySelector('img, canvas, svg')) {
+                    el.innerHTML = '';
+                    new QRCode(el, {
+                        text: val,
+                        width: 88,
+                        height: 88,
+                        colorDark: '#0B3550',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                }
+            });
+        }
+
+        if (typeof QRCode !== 'undefined') {
+            renderAll();
+        } else {
+            window.addEventListener('load', renderAll);
+        }
+    }
+    window.initTicketQRCodes = initTicketQRCodes;
+
     function initStationFilter() {
         const filter = document.querySelector('[data-station-filter]');
         const grid = document.querySelector('[data-station-grid]');
@@ -271,6 +305,7 @@
         initCountdown();
         initCopyButtons();
         initPrintButton();
+        initTicketQRCodes();
         initStationFilter();
     }
 

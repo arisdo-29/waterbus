@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 // Module: BE4 - Đặt vé & Thanh toán.
@@ -152,20 +153,44 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
 
         // 8. Mỗi ghế 1 vé HOLD (giữ ghế tới khi thanh toán hoặc hết hạn)
-        for (int i = 0; i < seatIds.size(); i++) {
-            Ticket ticket = new Ticket();
-            ticket.setTicketCode("TK" + number + "-" + (i + 1)); // VD: TK12345678-1, TK12345678-2
-            ticket.setBooking(booking);
-            ticket.setTrip(trip);
-            ticket.setSeat(availableSeats.get(seatIds.get(i)));
-            ticket.setTicketType(ticketType);
-            ticket.setFromStation(fromStop.getStation());
-            ticket.setToStation(toStop.getStation());
-            ticket.setPrice(price); // chụp lại giá lúc mua
-            ticket.setStatus("HOLD");
-            ticketRepository.save(ticket);
+        try {
+            for (int i = 0; i < seatIds.size(); i++) {
+                Ticket ticket = new Ticket();
+                ticket.setTicketCode("TK" + number + "-" + (i + 1)); // VD: TK12345678-1, TK12345678-2
+                ticket.setBooking(booking);
+                ticket.setTrip(trip);
+                ticket.setSeat(availableSeats.get(seatIds.get(i)));
+                ticket.setTicketType(ticketType);
+                ticket.setFromStation(fromStop.getStation());
+                ticket.setToStation(toStop.getStation());
+                ticket.setPrice(price); // chụp lại giá lúc mua
+                ticket.setStatus("HOLD");
+                ticketRepository.save(ticket);
+            }
+            // Force the unique active-seat index check before this method returns.
+            ticketRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            if (isActiveSeatConflict(ex)) {
+                throw new IllegalArgumentException("Ghế vừa có người đặt. Vui lòng chọn ghế khác.", ex);
+            }
+            throw ex;
         }
         return booking;
+    }
+
+    private boolean isActiveSeatConflict(DataIntegrityViolationException exception) {
+        String indexName = "ux_ticket_trip_seat_active";
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof org.hibernate.exception.ConstraintViolationException violation
+                    && indexName.equalsIgnoreCase(violation.getConstraintName())) {
+                return true;
+            }
+            if (cause.getMessage() != null
+                    && cause.getMessage().toLowerCase(java.util.Locale.ROOT).contains(indexName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

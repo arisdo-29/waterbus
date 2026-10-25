@@ -112,6 +112,23 @@ public class BookingController {
         return "booking/detail";
     }
 
+    // POST /booking/BK12345678/cancel -> nút "Huỷ đơn" (chỉ hiện khi đơn đang PENDING, xem docs/PAGES.md)
+    @PostMapping("/{bookingCode}/cancel")
+    public String cancel(@PathVariable String bookingCode, HttpSession session, RedirectAttributes flash) {
+        // Lấy tài khoản đang đăng nhập giống create(): chưa đăng nhập -> null
+        AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
+        Integer accountId = (loginAccount == null) ? null : loginAccount.getId();
+        try {
+            bookingService.cancelBooking(bookingCode, accountId);
+            flash.addFlashAttribute("successMessage", "Đã huỷ đơn.");
+        } catch (IllegalArgumentException ex) {
+            // Không tìm thấy đơn / đơn đã thanh toán / không phải đơn của mình -> báo lỗi đỏ
+            flash.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        // Quay về trang xem đơn. Spring tự điền {bookingCode} bằng giá trị trên URL hiện tại
+        return "redirect:/booking/{bookingCode}";
+    }
+
     // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). Dùng chung cho checkout() và create().
     private void fillCheckoutModel(Model model, int tripId, List<Integer> seatIds, int ticketTypeId,
                                    int fromStationId, int toStationId) {

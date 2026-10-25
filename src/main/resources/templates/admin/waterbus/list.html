@@ -47,8 +47,13 @@
                             <td data-label="Trạng thái"><span th:replace="~{fragments/layout :: statusBadge(${waterbus?.status})}" class="badge rounded-pill wb-badge-success">Đang hoạt động</span></td>
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
                                 <a class="btn btn-wb-outline" href="/templates/admin/waterbus/form.html" th:href="@{/admin/waterbuses/{id}/edit(id=${waterbus?.id})}">Sửa</a>
-                                <form action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/{id}/delete(id=${waterbus?.id})}" method="post" data-confirm="Xoá tàu này?">
-                                    <button class="btn btn-wb-outline wb-admin-danger" type="submit">Xoá</button>
+                                <form action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/{id}/status(id=${waterbus?.id})}" method="post">
+                                    <select class="form-select" name="status" aria-label="Trạng thái tàu">
+                                        <option value="ACTIVE" th:selected="${waterbus?.status == 'ACTIVE'}">Đang hoạt động</option>
+                                        <option value="MAINTENANCE" th:selected="${waterbus?.status == 'MAINTENANCE'}">Bảo trì</option>
+                                        <option value="INACTIVE" th:selected="${waterbus?.status == 'INACTIVE'}">Ngưng hoạt động</option>
+                                    </select>
+                                    <button class="btn btn-wb-outline" type="submit">Cập nhật trạng thái</button>
                                 </form>
                             </div></td>
                         </tr>

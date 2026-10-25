@@ -37,35 +37,36 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Tạo chuyến tàu</h2>
-                    <form action="/templates/admin/trip/list.html" th:action="@{/admin/trips/save}" method="post">
+                    <form action="/templates/admin/trip/list.html" th:action="@{/admin/trips/save}" th:object="${trip}" method="post">
                         <div class="wb-admin-form-row">
                             <label for="routeId">Tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="routeId" name="routeId" required>
+                            <select class="form-select" id="routeId" th:field="*{routeId}" required>
                                 <option value="">Chọn tuyến</option>
-                                <option value="1" th:each="option : ${routes}" th:value="${option?.id}" th:text="${option?.name}" th:selected="${option?.id == trip?.routeId}">Tuyến mẫu</option>
+                                <option value="1" th:each="option : ${routes}" th:value="${option?.id}" th:text="${option?.name}">Tuyến mẫu</option>
                                 <option value="2" th:remove="all">Lựa chọn mẫu khác</option>
                             </select>
+                            <small class="text-danger" th:errors="*{routeId}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="waterbusId">Tàu <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="waterbusId" name="waterbusId" required>
+                            <select class="form-select" id="waterbusId" th:field="*{waterbusId}" required>
                                 <option value="">Chọn tàu</option>
-                                <option value="1" th:each="option : ${waterbuses}" th:value="${option?.id}" th:text="${option?.name}" th:selected="${option?.id == trip?.waterbusId}">Tàu mẫu</option>
+                                <option value="1" th:each="option : ${waterbuses}" th:value="${option?.id}" th:text="${option?.name}">Tàu mẫu</option>
                                 <option value="2" th:remove="all">Lựa chọn mẫu khác</option>
                             </select>
+                            <small class="text-danger" th:errors="*{waterbusId}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="departureTime">Giờ khởi hành <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <input class="form-control" id="departureTime" name="departureTime" type="datetime-local" value="" th:value="${trip?.departureTime == null ? '' : #temporals.format(trip.departureTime, 'yyyy-MM-dd') + 'T' + #temporals.format(trip.departureTime, 'HH:mm')}" required>
+                            <input class="form-control" id="departureTime" th:field="*{departureTime}" type="datetime-local" required>
+                            <small class="text-danger" th:errors="*{departureTime}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="status">Trạng thái <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="status" name="status" required>
-                                <option value="SCHEDULED" th:selected="${trip?.status == 'SCHEDULED' or trip == null}">Đã lên lịch</option>
-                                <option value="DEPARTED" th:selected="${trip?.status == 'DEPARTED'}">Đã khởi hành</option>
-                                <option value="COMPLETED" th:selected="${trip?.status == 'COMPLETED'}">Hoàn thành</option>
-                                <option value="CANCELLED" th:selected="${trip?.status == 'CANCELLED'}">Đã huỷ</option>
+                            <select class="form-select" id="status" th:field="*{status}" required>
+                                <option value="SCHEDULED">Đã lên lịch</option>
                             </select>
+                            <small class="text-danger" th:errors="*{status}"></small>
                         </div>
                         <div class="wb-admin-form-actions">
                             <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Lưu</button>

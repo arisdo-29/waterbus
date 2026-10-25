@@ -37,17 +37,19 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin bến</h2>
-                    <form action="/templates/admin/station/list.html" th:action="@{/admin/stations/save}" method="post">
+                    <form action="/templates/admin/station/list.html" th:action="@{/admin/stations/save}" th:object="${station}" method="post">
                         <input type="hidden" name="id" value="" th:value="${station?.id}">
                         <div class="wb-admin-form-row">
                             <label for="code">Mã bến <span class="wb-admin-required" aria-hidden="true">*</span></label>
                             <input class="form-control" id="code" name="code" type="text" value="" th:value="${station?.code}" required maxlength="20">
+                            <small class="text-danger" th:errors="*{code}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="name">Tên bến <span class="wb-admin-required" aria-hidden="true">*</span></label>
                             <input class="form-control" id="name" name="name" type="text" value="" th:value="${station?.name}" required maxlength="100">
+                            <small class="text-danger" th:errors="*{name}"></small>
                         </div>
-                        <div class="wb-admin-form-row"><label for="address">Địa chỉ</label><textarea class="form-control" id="address" name="address" rows="3" maxlength="255" th:text="${station?.address}"></textarea></div>
+                        <div class="wb-admin-form-row"><label for="address">Địa chỉ</label><textarea class="form-control" id="address" name="address" rows="3" maxlength="255" th:text="${station?.address}"></textarea><small class="text-danger" th:errors="*{address}"></small></div>
                         <div class="form-check wb-admin-check">
                             <input type="hidden" name="_isActive" value="on">
                             <input class="form-check-input" id="isActive" name="isActive" type="checkbox" value="true" th:checked="${station == null ? true : station?.isActive}">

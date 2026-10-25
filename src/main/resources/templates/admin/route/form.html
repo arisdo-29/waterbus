@@ -37,17 +37,19 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin tuyến</h2>
-                    <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/save}" method="post">
+                    <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/save}" th:object="${route}" method="post">
                         <input type="hidden" name="id" value="" th:value="${route?.id}">
                         <div class="wb-admin-form-row">
                             <label for="code">Mã tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>
                             <input class="form-control" id="code" name="code" type="text" value="" th:value="${route?.code}" required maxlength="20">
+                            <small class="text-danger" th:errors="*{code}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="name">Tên tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>
                             <input class="form-control" id="name" name="name" type="text" value="" th:value="${route?.name}" required maxlength="100">
+                            <small class="text-danger" th:errors="*{name}"></small>
                         </div>
-                        <div class="wb-admin-form-row"><label for="description">Mô tả</label><textarea class="form-control" id="description" name="description" rows="3" maxlength="255" th:text="${route?.description}"></textarea></div>
+                        <div class="wb-admin-form-row"><label for="description">Mô tả</label><textarea class="form-control" id="description" name="description" rows="3" maxlength="255" th:text="${route?.description}"></textarea><small class="text-danger" th:errors="*{description}"></small></div>
                         <div class="form-check wb-admin-check">
                             <input type="hidden" name="_isActive" value="on">
                             <input class="form-check-input" id="isActive" name="isActive" type="checkbox" value="true" th:checked="${route == null ? true : route?.isActive}">
@@ -124,6 +126,7 @@
                             </template>
                             <button class="btn btn-wb-outline wb-route-add" type="button" data-route-add><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm bến</button>
                             <p class="wb-admin-form-help" data-route-message role="status" aria-live="polite"></p>
+                            <small class="text-danger" th:errors="*{stationIds}"></small>
                         </fieldset>
                         <div class="wb-admin-form-actions">
                             <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Lưu</button>

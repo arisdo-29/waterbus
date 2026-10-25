@@ -1,6 +1,8 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.BookingTripDTO;
+import com.hsf302.waterbus.dto.AdminTripDTO;
+import com.hsf302.waterbus.dto.AdminTripForm;
 import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.entity.Seat;
@@ -11,6 +13,12 @@ import java.util.List;
 // Module: BE2 - Tàu, Ghế & Chuyến
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface TripService {
+    List<AdminTripDTO> getTripsForAdmin();
+
+    void createAdminTrip(AdminTripForm form);
+
+    void cancelTrip(int tripId);
+
     /** Tìm chuyến đi qua bến đi rồi tới bến đến trong ngày (màn hình tìm chuyến). */
     List<Trip> searchTrips(int fromStationId, int toStationId, LocalDate date);
 

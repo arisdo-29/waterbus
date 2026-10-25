@@ -5,6 +5,7 @@ import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Ticket;
+import com.hsf302.waterbus.repository.SeatRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -19,24 +20,28 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. BE4 #24: gắn tài khoản. BE4 #25: GET /my-bookings. BE4 #26: checkout tự điền. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
-@SpringBootTest
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:booking-create-test;MODE=MSSQLServer;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
 @Transactional
 class BookingCreateTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private BookingService bookingService;
     @Autowired private TripService tripService;
     @Autowired private TicketRepository ticketRepository;
+    @Autowired private SeatRepository seatRepository;
     @Autowired private WebApplicationContext context;
+    @MockitoSpyBean private TripService tripServiceSpy;
 
     private int tripId;
     private int cancelledTripId;
@@ -51,6 +56,7 @@ class BookingCreateTest {
 
     @BeforeEach
     void setUp() {
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_ticket_trip_seat_active ON ticket (trip_id, seat_id)");
         // Tuyến S1 -> S2 -> S3, 1 trạm không thuộc tuyến
         s1 = station("TEST_S1");
         s2 = station("TEST_S2");
@@ -119,6 +125,34 @@ class BookingCreateTest {
                 "", null, "Minh", "0907654321", "minh@example.com"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Ghế vừa có người đặt");
         assertThat(count("booking")).isEqualTo(1);
+        assertThat(count("ticket")).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentSeatConflictFromUniqueIndexShowsFriendlyCheckoutError() throws Exception {
+        bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+                "", null, "Nguoi khac", "0907654321", "khac@example.com");
+
+        // Simulate two requests that both read the seat as available before either inserts its ticket.
+        Seat staleAvailability = seatRepository.findById(seatA1).orElseThrow();
+        doReturn(List.of(staleAvailability)).when(tripServiceSpy).getAvailableSeats(tripId);
+
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String html = mvc.perform(post("/booking")
+                        .param("tripId", String.valueOf(tripId))
+                        .param("seatIds", String.valueOf(seatA1))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", String.valueOf(s1))
+                        .param("toStationId", String.valueOf(s2))
+                        .param("contactName", "Lan").param("contactPhone", "0901234567")
+                        .param("contactEmail", "lan@example.com").param("promoCode", ""))
+                .andExpect(status().isOk())
+                .andExpect(view().name("booking/checkout"))
+                .andExpect(model().attribute("errorMessage",
+                        "Ghế vừa có người đặt. Vui lòng chọn ghế khác."))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(html).contains("Ghế vừa có người đặt. Vui lòng chọn ghế khác.");
         assertThat(count("ticket")).isEqualTo(1);
     }
 

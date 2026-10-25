@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Soát vé lên tàu')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Soát vé lên tàu | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div>
+                    <span class="wb-eyebrow">Nhân viên bến</span>
+                    <h1>Soát vé lên tàu</h1>
+                    <p>Nhập hoặc quét mã vé để xác thực và đóng dấu hành khách lên tàu.</p>
+                </div>
+            </header>
+
+            <!-- Khung nhập mã vé -->
+            <section class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <form th:action="@{/admin/checkin}" method="post" class="row g-3 align-items-center">
+                        <div class="col-md-8">
+                            <label for="ticketCode" class="form-label fw-semibold">Mã vé (Ticket Code)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light text-primary"><i class="bi bi-upc-scan"></i></span>
+                                <input type="text" id="ticketCode" name="ticketCode" th:value="${ticketCode}"
+                                       class="form-control text-uppercase font-monospace"
+                                       placeholder="VD: TK1001, TK-2026..." autofocus required>
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end gap-2 pt-md-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                                <i class="bi bi-check2-circle me-1"></i> Soát vé
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Kết quả soát vé thành công -->
+            <section th:if="${checkedInTicket}" class="card border-success shadow-sm mb-4">
+                <div class="card-header bg-success text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold fs-5"><i class="bi bi-check-circle-fill me-2"></i>SOÁT VÉ THÀNH CÔNG - HỢP LỆ LÊN TÀU</span>
+                        <span class="badge bg-light text-success fs-6" th:text="${checkedInTicket.status}">USED</span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end">
+                            <h5 class="text-muted mb-3"><i class="bi bi-person me-2"></i>Thông tin hành khách</h5>
+                            <p class="mb-2"><strong>Hành khách:</strong> <span th:text="${checkedInTicket.passengerName}">Nguyễn Văn A</span></p>
+                            <p class="mb-2"><strong>Số điện thoại:</strong> <span th:text="${checkedInTicket.passengerPhone}">0901234567</span></p>
+                            <p class="mb-2"><strong>Mã đơn đặt vé:</strong> <span class="badge bg-secondary font-monospace" th:text="${checkedInTicket.bookingCode}">BK1001</span></p>
+                            <p class="mb-0"><strong>Thời gian soát vé:</strong> <span class="text-success fw-semibold" th:text="${#temporals.format(checkedInTicket.checkedInAt, 'HH:mm:ss - dd/MM/yyyy')}">17:50 - 22/10/2026</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted mb-3"><i class="bi bi-water me-2"></i>Thông tin chuyến tàu</h5>
+                            <p class="mb-2"><strong>Tàu:</strong> <span th:text="${checkedInTicket.waterbusName}">Waterbus 01</span> | <strong>Ghế:</strong> <span class="badge bg-primary fs-6 font-monospace" th:text="${checkedInTicket.seatCode}">A1</span></p>
+                            <p class="mb-2"><strong>Tuyến:</strong> <span th:text="${checkedInTicket.routeName}">Bạch Đằng - Linh Đông</span></p>
+                            <p class="mb-2"><strong>Hành trình:</strong> <span class="fw-bold" th:text="${checkedInTicket.fromStationName}">Bạch Đằng</span> <i class="bi bi-arrow-right mx-1"></i> <span class="fw-bold" th:text="${checkedInTicket.toStationName}">Linh Đông</span></p>
+                            <p class="mb-2"><strong>Khởi hành:</strong> <span th:text="${#temporals.format(checkedInTicket.departureTime, 'HH:mm dd/MM/yyyy')}">08:00 23/10/2026</span></p>
+                            <p class="mb-0"><strong>Loại vé / Giá:</strong> <span th:text="${checkedInTicket.ticketTypeName}">Vé tiêu chuẩn</span> - <span th:text="${#numbers.formatDecimal(checkedInTicket.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">15.000 đ</span></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

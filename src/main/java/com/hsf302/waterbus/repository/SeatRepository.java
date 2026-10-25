@@ -32,6 +32,13 @@ public interface SeatRepository extends JpaRepository<Seat, Integer> {
     List<Seat> findAvailableSeats(@Param("tripId") int tripId, @Param("waterbusId") int waterbusId);
 
     @Query("""
+            SELECT s FROM Seat s
+            WHERE s.waterbus.id = :waterbusId AND s.isActive = true
+            ORDER BY s.seatRow, s.seatCol, s.id
+            """)
+    List<Seat> findActiveSeats(@Param("waterbusId") int waterbusId);
+
+    @Query("""
             SELECT COUNT(s) FROM Seat s
             WHERE s.id = :seatId AND s.waterbus.id = :waterbusId AND s.isActive = true
               AND NOT EXISTS (

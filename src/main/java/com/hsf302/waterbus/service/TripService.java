@@ -1,5 +1,7 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.BookingTripDTO;
+import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
@@ -13,6 +15,12 @@ public interface TripService {
     List<Trip> searchTrips(int fromStationId, int toStationId, LocalDate date);
 
     List<TripSearchDTO> searchTripResults(int fromStationId, int toStationId, LocalDate date);
+
+    /** Thông tin chuyến cho trang chọn ghế; null nếu không có chuyến hoặc chuyến không SCHEDULED. */
+    BookingTripDTO getBookableTrip(int tripId);
+
+    /** Sơ đồ ghế của chuyến: mọi ghế đang dùng của tàu, available = còn trống. */
+    List<SeatDTO> getSeatMap(int tripId);
 
     /** HỢP ĐỒNG cho BE4: ghế còn trống của chuyến (không có vé HOLD/VALID/USED). */
     List<Seat> getAvailableSeats(int tripId);

@@ -39,7 +39,7 @@ public class BookingServiceImpl implements BookingService {
     private final TicketTypeService ticketTypeService;
     private final PromotionService promotionService;
     private final AccountService accountService; // module Tân: lấy tài khoản đang đăng nhập
-    private final EntityManager entityManager; // chỉ dùng tạm trong findTrip(), xem TODO bên dưới
+    private final EntityManager entityManager; // chỉ dùng tạm trong findTrip() cho createBooking(), xem TODO bên dưới
 
     // Constructor injection: Spring tự đưa các repository/service vào
     public BookingServiceImpl(BookingRepository bookingRepository, TicketRepository ticketRepository,
@@ -224,10 +224,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true) // giữ kết nối DB mở để đọc tuyến (quan hệ LAZY) của chuyến
     public BookingTripDTO getTripInfo(int tripId) {
-        Trip trip = findTrip(tripId);
-        return trip == null ? null : toTripDTO(trip);
+        // Dùng hợp đồng của Trí: null nếu không có chuyến hoặc chuyến không còn SCHEDULED
+        return tripService.getBookableTrip(tripId);
     }
 
     @Override
@@ -279,7 +278,8 @@ public class BookingServiceImpl implements BookingService {
         releaseHoldTickets(booking.getId());
     }
 
-    // TODO: TripService chưa có getTripById (nhóm đã nhờ Trí thêm). Có rồi thì thay cả thân method bằng:
+    // Chỉ createBooking() còn dùng: vé (Ticket) cần object Trip, mà TripService mới có getBookableTrip trả về DTO.
+    // TODO: khi Trí thêm "Trip getTripById(int tripId)" (HỢP ĐỒNG cho BE4) thì thay thân method bằng
     //       return tripService.getTripById(tripId);   rồi xoá field entityManager.
     // Tạm đọc thẳng Trip - nhóm cho phép ngoại lệ CHỈ cho Trip. find() trả null nếu sai id nên không gây lỗi 500.
     private Trip findTrip(int tripId) {

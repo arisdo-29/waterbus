@@ -60,10 +60,14 @@ Giao diện #5–#7 đã có từ PR #46; việc đánh dấu ở đây chỉ x�
 - [ ] `PromotionService.calculateDiscount` (hợp đồng cho Trâm): PERCENT có trần `max_discount`, FIXED, hạn dùng, `usage_limit`, `min_order_amount` - **làm trước tiên**
 
 **Trâm (BE4)**
-- [ ] `POST /booking/checkout`: nhận lựa chọn ghế, tính `subtotal`
-- [ ] `BookingService.createBooking` (`@Transactional`): booking `PENDING`, vé `HOLD`, `expires_at = now + 10 phút`
-- [ ] `PaymentService.payMock`: payment `SUCCESS`, booking `PAID`, vé `VALID`, tăng `used_count` của khuyến mãi
-- [ ] Xem đơn theo mã (`GET /booking/{bookingCode}`)
+- [x] `POST /booking/checkout`: nhận lựa chọn ghế, tính `subtotal`
+- [x] `BookingService.createBooking` (`@Transactional`): booking `PENDING`, vé `HOLD`, `expires_at = now + 10 phút`
+- [x] `PaymentService.payMock`: payment `SUCCESS`, booking `PAID`, vé `VALID`, tăng `used_count` của khuyến mãi
+- [x] Xem đơn theo mã (`GET /booking/{bookingCode}`)
+
+Kiểm chứng BE4 #13–#16 (PR #55, #56, #58, #59): BookingCreateTest, PaymentMockTest chạy luồng checkout → tạo đơn →
+thanh toán → xem vé bằng MockMvc/H2. Đã chạy tay trên SQL Server 2022 local: đơn `PENDING` 2 vé `HOLD`, hạn 10 phút,
+`WELCOME10` giảm 3.000đ; thanh toán xong đơn `PAID`, vé `VALID`, `used_count` +1.
 
 **Cả nhóm / Leader**
 - [ ] Setup máy, chạy được `/stations`
@@ -100,9 +104,13 @@ Script `src/test/js/customer-views.browser.cjs` kiểm tra HTML fixture đã ren
 Giao diện #23 đã có từ PR #46; backend lịch sử/tài khoản/checkout #24–#26 vẫn thuộc Trâm và chưa được xác nhận hoàn thành.
 
 **Trâm (BE4)**
-- [ ] Gắn `account_id` cho booking khi đã đăng nhập (chưa đăng nhập = khách vãng lai)
-- [ ] `GET /my-bookings`: lịch sử đặt vé của khách
-- [ ] Checkout tự điền tên/điện thoại/email từ tài khoản đang đăng nhập
+- [x] Gắn `account_id` cho booking khi đã đăng nhập (chưa đăng nhập = khách vãng lai)
+- [x] `GET /my-bookings`: lịch sử đặt vé của khách
+- [x] Checkout tự điền tên/điện thoại/email từ tài khoản đang đăng nhập
+
+Kiểm chứng BE4 #24–#26 (PR #61, #62, #63): test đặt vé có/không có session `loginAccount`, `/my-bookings`
+chuyển sang `/auth/login` khi chưa đăng nhập, chỉ hiện đơn của mình, mới nhất lên đầu. Tự điền (#26) do template
+checkout đọc `session.loginAccount`, BE4 chỉ thêm test xác nhận.
 
 ### M3 - Quản trị
 
@@ -133,8 +141,13 @@ Endpoint admin chưa được xác minh bảo vệ truy cập, cần Tân tích 
 ### M4 - Hoàn thiện
 
 **Trâm (BE4)**
-- [ ] `@Scheduled` tự huỷ booking quá hạn → vé `CANCELLED` để nhả ghế
-- [ ] Huỷ đơn chưa thanh toán
+- [x] `@Scheduled` tự huỷ booking quá hạn → vé `CANCELLED` để nhả ghế
+- [x] Huỷ đơn chưa thanh toán (backend)
+
+Kiểm chứng BE4 #37–#38 (PR #69): BookingExpiryCancelTest kiểm tra job chỉ huỷ đơn `PENDING` quá hạn và nhả ghế cho
+người khác đặt lại, huỷ đơn kiểm tra không tìm thấy / không còn `PENDING` / sai chủ đơn.
+**Còn chờ Khuyên:** nút "Huỷ đơn" trên `booking/detail` (hợp đồng ở PAGES.md), nên #38 chưa dùng được trên giao diện.
+Phần #42 của BE4 (form `POST /booking`, PR #70) đã xong; còn chờ `th:object`/`th:errors` trong `booking/checkout`.
 
 **Tân (BE3)**
 - [ ] Soát vé (STAFF): nhập `ticket_code` → vé `USED`, ghi `checked_in_at`

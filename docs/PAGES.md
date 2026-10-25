@@ -20,9 +20,10 @@ Người: **Khuyên** (BE1) · **Trí** (BE2) · **Tân** (BE3) · **Trâm** (BE
 | M1 | `GET /trips?fromStationId=&toStationId=&date=` | `trip/index` | Trí | Trí | `stations`, `trips` (mỗi chuyến: `id`, `tripCode`, `routeName`, `departureTime`, `arrivalTime`, `availableSeats`), giữ lại `fromStationId`, `toStationId`, `date` | |
 | M1 | `GET /trips/{id}/seats?fromStationId=&toStationId=` | `trip/seats` | Trí | Trí | `trip`, `seats` (mỗi ghế: `id`, `seatCode`, `seatRow`, `seatCol`, `available`), `ticketTypes`, `fromStationId`, `toStationId` | → `POST /booking/checkout`: `tripId`, `seatIds` (nhiều checkbox), `ticketTypeId`, `fromStationId`, `toStationId` |
 | M1 | `POST /booking/checkout` | `booking/checkout` | Khuyên | Trâm | `trip`, `seats` (ghế đã chọn), `ticketType`, `subtotal`, `fromStation`, `toStation`, `fromStationId`, `toStationId`; tài khoản từ session `loginAccount` (M2) | → `POST /booking`: `tripId`, `ticketTypeId`, `fromStationId`, `toStationId`, `seatIds` (nhiều input cùng tên), `contactName`, `contactPhone`, `contactEmail`, `promoCode` |
-| M1 | `POST /booking` | redirect `/payment/{bookingCode}` | - | Trâm | lỗi validate → render lại `booking/checkout` với `errorMessage`, đầy đủ model checkout và request parameters đã nhập | |
+| M1 | `POST /booking` | redirect `/payment/{bookingCode}` | - | Trâm | lỗi validate → render lại `booking/checkout` với `errorMessage`, đầy đủ model checkout và request parameters đã nhập. M4: form bind vào **`bookingForm`** (`BookingForm`) + BindingResult; lỗi từng ô ở field `contactName`, `contactPhone`, `contactEmail`, `promoCode`, `seatIds` (xem ghi chú validate bên dưới) | |
 | M1 | `GET /payment/{bookingCode}` | `payment/index` | Khuyên | Trâm | `booking` (`bookingCode`, `status`, `subtotal`, `discountAmount`, `totalAmount`, `expiresAt`), `trip`, `tickets` | → `POST /payment/{bookingCode}/mock` (nút "Thanh toán") |
 | M1 | `GET /booking/{bookingCode}` | `booking/detail` | Khuyên | Trâm | `booking` (`bookingCode`, `status`, `contactName`, `contactPhone`, `contactEmail`, `totalAmount`, `createdAt`, `paidAt`), `trip`, `tickets` (mỗi vé: `ticketCode`, `seatCode`, `fromStation`, `toStation`, `price`, `status`) | |
+| M4 | `POST /booking/{bookingCode}/cancel` | redirect `/booking/{bookingCode}` | Khuyên (nút "Huỷ đơn" trên `booking/detail`) | Trâm | flash `successMessage` = "Đã huỷ đơn." hoặc `errorMessage` (không tìm thấy đơn / đơn không còn `PENDING` / không phải đơn của tài khoản đang đăng nhập) | Nút **chỉ hiện khi `booking.status == 'PENDING'`**; `<form method="post">` tới `/booking/{bookingCode}/cancel`, không cần field |
 | M2 | `GET /auth/login` | `auth/login` | Tân | Tân | `errorMessage` (nếu sai) | → `POST /auth/login`: `email`, `password` |
 | M2 | `GET /auth/register` | `auth/register` | Tân | Tân | `errorMessage` | → `POST /auth/register`: `email`, `password`, `fullName`, `phone` |
 | M2 | `POST /auth/logout` | redirect `/` | Khuyên (nút trên navbar) | Tân | | |
@@ -42,6 +43,14 @@ Các số tiền model là BigDecimal; thời gian là LocalDateTime (có thể 
 Payment chỉ cho bấm khi `PENDING` và có hạn giữ chỗ; JS vô hiệu hóa nút nếu hạn sai/đã qua,
 không đổi trạng thái đơn. Checkout ưu tiên request parameters khi render lỗi, kể cả giá trị rỗng;
 BE4 cần forward/render lại cùng request và bổ sung đầy đủ model, không redirect làm mất dữ liệu.
+
+**Validate checkout (M4, BE4 → Khuyên):** model của `booking/checkout` **luôn có `bookingForm`** (lần đầu vào là object rỗng,
+khi `POST /booking` lỗi thì kèm BindingResult). Tên field giữ nguyên như cột "Form gửi lên". Để hiện lỗi dưới từng ô,
+thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví dụ ô họ tên:
+`<input ... th:classappend="${#fields.hasErrors('contactName')} ? 'is-invalid'">`
+`<div class="invalid-feedback" th:if="${#fields.hasErrors('contactName')}" th:errors="*{contactName}"></div>`
+(tương tự `contactPhone`, `contactEmail`, `promoCode`). **Giữ `th:value` như hiện tại**, không đổi sang `th:field`, để vẫn
+ưu tiên giá trị vừa nhập và tự điền từ `session.loginAccount` (#26). Lỗi `seatIds` (ô ẩn) chỉ hiện qua `errorMessage`.
 
 **Trạng thái tích hợp tại `49bca30`:** `/` đã nối service/database trong phần BE1 này.
 BE3 đã có handler login/register/logout và AccountDTO trong session. Các hợp đồng booking/payment/detail/history

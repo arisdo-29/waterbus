@@ -2,20 +2,28 @@ package com.hsf302.waterbus.controller;
 
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.StationService;
 import com.hsf302.waterbus.service.TicketTypeService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 // Module: BE4 - Đặt vé & Thanh toán. Mọi URL của controller này bắt đầu bằng /booking
@@ -67,33 +75,41 @@ public class BookingController {
     }
 
     // POST /booking: form ở trang checkout gửi lên -> tạo đơn (tên field theo docs/PAGES.md)
+    // @Valid: Spring kiểm tra các annotation trong BookingForm, kết quả nằm trong BindingResult "errors".
+    // @ModelAttribute("bookingForm"): form + lỗi tự có trong model với tên "bookingForm" để template dùng th:errors.
     @PostMapping
-    public String create(@RequestParam int tripId,
-                         @RequestParam(required = false) List<Integer> seatIds,
-                         @RequestParam int ticketTypeId,
-                         @RequestParam int fromStationId,
-                         @RequestParam int toStationId,
-                         @RequestParam(defaultValue = "") String contactName,
-                         @RequestParam(defaultValue = "") String contactPhone,
-                         @RequestParam(defaultValue = "") String contactEmail,
-                         @RequestParam(defaultValue = "") String promoCode,
+    public String create(@Valid @ModelAttribute("bookingForm") BookingForm form, BindingResult errors,
                          HttpSession session, Model model) {
-        // Lấy tài khoản đang đăng nhập (Tân lưu vào session tên "loginAccount" khi đăng nhập)
-        AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
-        // Đã đăng nhập -> id tài khoản; chưa đăng nhập -> null (khách vãng lai)
-        Integer accountId = (loginAccount == null) ? null : loginAccount.getId();
-        try {
-            Booking booking = bookingService.createBooking(tripId, seatIds, ticketTypeId, fromStationId,
-                    toStationId, promoCode, accountId, contactName, contactPhone, contactEmail);
-            // Thành công -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
-            return "redirect:/payment/" + booking.getBookingCode();
-        } catch (IllegalArgumentException ex) {
-            // Lỗi -> hiện lại trang checkout, KHÔNG redirect để giữ dữ liệu đã nhập.
-            // Họ tên/SĐT/email/mã KM tự giữ vì template đọc ${param...} của chính request này.
-            fillCheckoutModel(model, tripId, seatIds, ticketTypeId, fromStationId, toStationId);
-            model.addAttribute("errorMessage", ex.getMessage());
-            return "booking/checkout";
+        // Thiếu chuyến/loại vé/bến (form bị sửa tay) -> không vẽ lại được trang checkout -> báo lỗi 400
+        if (form.getTripId() == null || form.getTicketTypeId() == null
+                || form.getFromStationId() == null || form.getToStationId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thông tin chuyến, loại vé hoặc bến.");
         }
+
+        if (errors.hasErrors()) {
+            // Nhập sai (trống tên, SĐT sai...) -> chưa gọi service, báo lỗi
+            model.addAttribute("errorMessage", errorText(errors));
+        } else {
+            // Lấy tài khoản đang đăng nhập (Tân lưu vào session tên "loginAccount" khi đăng nhập)
+            AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
+            // Đã đăng nhập -> id tài khoản; chưa đăng nhập -> null (khách vãng lai)
+            Integer accountId = (loginAccount == null) ? null : loginAccount.getId();
+            try {
+                Booking booking = bookingService.createBooking(form.getTripId(), form.getSeatIds(),
+                        form.getTicketTypeId(), form.getFromStationId(), form.getToStationId(), form.getPromoCode(),
+                        accountId, form.getContactName(), form.getContactPhone(), form.getContactEmail());
+                // Thành công -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
+                return "redirect:/payment/" + booking.getBookingCode();
+            } catch (IllegalArgumentException ex) {
+                // Lỗi nghiệp vụ (ghế vừa bị đặt, mã KM sai...) -> báo lỗi
+                model.addAttribute("errorMessage", ex.getMessage());
+            }
+        }
+        // Có lỗi -> hiện lại trang checkout, KHÔNG redirect để giữ dữ liệu đã nhập.
+        // Họ tên/SĐT/email/mã KM tự giữ vì template đọc ${param...} của chính request này.
+        fillCheckoutModel(model, form.getTripId(), form.getSeatIds(), form.getTicketTypeId(),
+                form.getFromStationId(), form.getToStationId());
+        return "booking/checkout";
     }
 
     // GET /booking/BK0000001 -> trang xem vé của đơn BK0000001
@@ -141,5 +157,23 @@ public class BookingController {
         model.addAttribute("toStation", stationService.getStationById(toStationId));
         model.addAttribute("fromStationId", fromStationId);
         model.addAttribute("toStationId", toStationId);
+        // Template dùng th:object="${bookingForm}" -> lúc mới vào checkout (chưa gửi form) cũng phải có object rỗng
+        if (!model.containsAttribute("bookingForm")) {
+            model.addAttribute("bookingForm", new BookingForm());
+        }
+    }
+
+    // Gộp các lỗi validate thành 1 câu cho alert đỏ (errorMessage) ở đầu form
+    private String errorText(BindingResult errors) {
+        String text = "";
+        for (ObjectError error : errors.getAllErrors()) {
+            String message = error.getDefaultMessage();
+            // Lỗi đổi kiểu (VD seatIds=abc) có message tiếng Anh khó hiểu -> thay bằng câu dễ hiểu
+            if (error instanceof FieldError field && field.isBindingFailure()) {
+                message = "Dữ liệu gửi lên không hợp lệ.";
+            }
+            text = text + message + " ";
+        }
+        return text.trim();
     }
 }

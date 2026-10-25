@@ -37,27 +37,31 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin tàu</h2>
-                    <form action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/save}" method="post">
-                        <input type="hidden" name="id" value="" th:value="${waterbus?.id}">
+                    <form action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/save}" th:object="${waterbus}" method="post">
+                        <input type="hidden" th:field="*{id}">
                         <div class="wb-admin-form-row">
                             <label for="code">Mã tàu <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <input class="form-control" id="code" name="code" type="text" value="" th:value="${waterbus?.code}" required maxlength="20">
+                            <input class="form-control" id="code" th:field="*{code}" type="text" required maxlength="20">
+                            <small class="text-danger" th:errors="*{code}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="name">Tên tàu <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <input class="form-control" id="name" name="name" type="text" value="" th:value="${waterbus?.name}" required maxlength="100">
+                            <input class="form-control" id="name" th:field="*{name}" type="text" required maxlength="100">
+                            <small class="text-danger" th:errors="*{name}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="capacity">Sức chứa <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <input class="form-control" id="capacity" name="capacity" type="number" value="" th:value="${waterbus?.capacity}" required min="1" step="1">
+                            <input class="form-control" id="capacity" th:field="*{capacity}" type="number" required min="1" step="1">
+                            <small class="text-danger" th:errors="*{capacity}"></small>
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="status">Trạng thái <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="status" name="status" required>
-                                <option value="ACTIVE" th:selected="${waterbus?.status == 'ACTIVE' or waterbus == null}">Đang hoạt động</option>
-                                <option value="MAINTENANCE" th:selected="${waterbus?.status == 'MAINTENANCE'}">Bảo trì</option>
-                                <option value="INACTIVE" th:selected="${waterbus?.status == 'INACTIVE'}">Ngưng hoạt động</option>
+                            <select class="form-select" id="status" th:field="*{status}" required>
+                                <option value="ACTIVE">Đang hoạt động</option>
+                                <option value="MAINTENANCE">Bảo trì</option>
+                                <option value="INACTIVE">Ngưng hoạt động</option>
                             </select>
+                            <small class="text-danger" th:errors="*{status}"></small>
                         </div>
                         <div class="wb-admin-form-actions">
                             <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Lưu</button>

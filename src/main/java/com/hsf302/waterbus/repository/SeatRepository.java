@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 // Module: BE2 - Tàu, Ghế & Chuyến
 public interface SeatRepository extends JpaRepository<Seat, Integer> {
+    List<Seat> findByWaterbusIdOrderBySeatRowAscSeatColAsc(int waterbusId);
+
     @Query("""
             SELECT COUNT(s) FROM Seat s
             WHERE s.waterbus.id = :waterbusId AND s.isActive = true

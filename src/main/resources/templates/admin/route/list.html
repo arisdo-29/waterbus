@@ -47,8 +47,8 @@
                             <td data-label="Trạng thái"><span th:replace="~{fragments/layout :: statusBadge(${route?.isActive == true ? 'ACTIVE' : 'INACTIVE'})}" class="badge rounded-pill wb-badge-success">Đang hoạt động</span></td>
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
                                 <a class="btn btn-wb-outline" href="/templates/admin/route/form.html" th:href="@{/admin/routes/{id}/edit(id=${route?.id})}">Sửa</a>
-                                <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/{id}/delete(id=${route?.id})}" method="post" data-confirm="Xoá tuyến này?">
-                                    <button class="btn btn-wb-outline wb-admin-danger" type="submit">Xoá</button>
+                                <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/{id}/delete(id=${route?.id})}" method="post" data-confirm="Ngừng hoạt động tuyến này?">
+                                    <button class="btn btn-wb-outline wb-admin-danger" type="submit">Ngừng hoạt động</button>
                                 </form>
                             </div></td>
                         </tr>

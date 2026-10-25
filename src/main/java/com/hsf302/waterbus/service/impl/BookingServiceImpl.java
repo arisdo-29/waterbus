@@ -241,6 +241,44 @@ public class BookingServiceImpl implements BookingService {
         return true;
     }
 
+    @Override
+    @Transactional // đổi nhiều vé cùng lúc: lỗi giữa chừng thì huỷ hết
+    public void releaseHoldTickets(int bookingId) {
+        // Lấy tất cả vé của đơn
+        List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(bookingId);
+        for (Ticket ticket : tickets) {
+            // Chỉ đổi vé đang giữ chỗ. Vé VALID/USED (đã trả tiền / đã lên tàu) giữ nguyên
+            if ("HOLD".equals(ticket.getStatus())) {
+                // CANCELLED không bị unique index UX_ticket_trip_seat_active tính -> ghế được nhả cho người khác
+                ticket.setStatus("CANCELLED");
+                ticketRepository.save(ticket);
+            }
+        }
+    }
+
+    @Override
+    @Transactional // đổi booking + nhiều vé: lỗi giữa chừng thì huỷ hết
+    public void cancelBooking(String bookingCode, Integer accountId) {
+        // 1. Tìm đơn theo mã
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) {
+            throw new IllegalArgumentException("Không tìm thấy đơn đặt vé.");
+        }
+        // 2. Chỉ huỷ được đơn đang chờ thanh toán (PAID/EXPIRED/CANCELLED thì không)
+        if (!"PENDING".equals(booking.getStatus())) {
+            throw new IllegalArgumentException("Chỉ huỷ được đơn chưa thanh toán.");
+        }
+        // 3. Đơn gắn với tài khoản -> chỉ đúng tài khoản đó được huỷ.
+        //    Đơn khách vãng lai (account = null) -> ai có mã đơn cũng huỷ được.
+        if (booking.getAccount() != null && !booking.getAccount().getId().equals(accountId)) {
+            throw new IllegalArgumentException("Bạn không có quyền huỷ đơn này.");
+        }
+        // 4. Hợp lệ -> huỷ đơn rồi nhả ghế (dùng lại method ở trên)
+        booking.setStatus("CANCELLED");
+        bookingRepository.save(booking);
+        releaseHoldTickets(booking.getId());
+    }
+
     // TODO: TripService chưa có getTripById (nhóm đã nhờ Trí thêm). Có rồi thì thay cả thân method bằng:
     //       return tripService.getTripById(tripId);   rồi xoá field entityManager.
     // Tạm đọc thẳng Trip - nhóm cho phép ngoại lệ CHỈ cho Trip. find() trả null nếu sai id nên không gây lỗi 500.

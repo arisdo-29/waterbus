@@ -40,4 +40,10 @@ public interface BookingService {
 
     /** true nếu TẤT CẢ ghế đã chọn còn trống (kiểm tra từng ghế bằng TripService.isSeatAvailable). */
     boolean areSeatsAvailable(int tripId, List<Integer> seatIds);
+
+    /** Nhả ghế của 1 đơn: các vé HOLD -> CANCELLED. Dùng chung cho job hết hạn và chức năng huỷ đơn. */
+    void releaseHoldTickets(int bookingId);
+
+    /** Khách huỷ đơn chưa thanh toán: booking -> CANCELLED và nhả ghế. Không hợp lệ -> IllegalArgumentException. */
+    void cancelBooking(String bookingCode, Integer accountId);
 }

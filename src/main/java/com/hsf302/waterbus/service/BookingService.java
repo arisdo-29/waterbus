@@ -35,7 +35,7 @@ public interface BookingService {
     /** Tạm tính = giá loại vé x số ghế. */
     BigDecimal calculateSubtotal(int ticketTypeId, int seatCount);
 
-    /** Thông tin chuyến để hiển thị trên trang checkout. Không tìm thấy -> null. */
+    /** Thông tin chuyến để hiển thị trên trang checkout (qua TripService.getBookableTrip). Không tìm thấy hoặc chuyến không còn SCHEDULED -> null. */
     BookingTripDTO getTripInfo(int tripId);
 
     /** true nếu TẤT CẢ ghế đã chọn còn trống (kiểm tra từng ghế bằng TripService.isSeatAvailable). */

@@ -32,7 +32,12 @@
               <h2>Đơn chưa thanh toán</h2>
               <p>Vui lòng hoàn tất thanh toán để giữ chỗ.</p>
             </div>
-            <a class="btn btn-wb-accent" href="/templates/payment/index.html" th:href="@{/payment/{code}(code=${booking?.bookingCode})}">Thanh toán ngay</a>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <a class="btn btn-wb-accent" href="/templates/payment/index.html" th:href="@{/payment/{code}(code=${booking?.bookingCode})}">Thanh toán ngay</a>
+              <form action="/templates/booking/detail.html" th:action="@{/booking/{code}/cancel(code=${booking?.bookingCode})}" method="post" data-confirm="Huỷ đơn đặt vé này? Ghế sẽ được nhả cho người khác.">
+                <button class="btn btn-wb-outline" type="submit">Huỷ đơn</button>
+              </form>
+            </div>
           </div>
           <div th:case="'EXPIRED'" class="wb-status-muted">
             <i class="bi bi-clock-history" aria-hidden="true"></i>

@@ -44,10 +44,10 @@ public class BookingController {
         this.ticketTypeService = ticketTypeService;
     }
 
+    // GET /booking: không có trang riêng, chuyển sang lịch sử đặt vé của tài khoản
     @GetMapping
     public String index() {
-        // TODO BE4: lấy dữ liệu từ service, model.addAttribute(...), trả về view
-        return "booking/index";
+        return "redirect:/my-bookings";
     }
 
     // POST /booking/checkout: form ở trang chọn ghế (trip/seats) gửi lên -> trang xem lại đơn, CHƯA lưu gì vào DB

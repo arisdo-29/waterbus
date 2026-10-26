@@ -108,12 +108,14 @@
       </div>
       <nav class="wb-admin-side-nav" aria-label="Menu quản trị">
         <a class="wb-admin-side-link" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}" data-admin-nav="/admin/trips"><i class="bi bi-water" aria-hidden="true"></i><span>Chuyến tàu</span></a>
+        <th:block th:if="${session.loginAccount?.role == 'ADMIN'}">
             <a class="wb-admin-side-link" href="/templates/admin/waterbus/list.html" th:href="@{/admin/waterbuses}" data-admin-nav="/admin/waterbuses"><i class="bi bi-life-preserver" aria-hidden="true"></i><span>Tàu</span></a>
             <a class="wb-admin-side-link" href="/templates/admin/station/list.html" th:href="@{/admin/stations}" data-admin-nav="/admin/stations"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>Bến</span></a>
             <a class="wb-admin-side-link" href="/templates/admin/route/list.html" th:href="@{/admin/routes}" data-admin-nav="/admin/routes"><i class="bi bi-signpost-2" aria-hidden="true"></i><span>Tuyến</span></a>
             <a class="wb-admin-side-link" href="/templates/admin/promotion/list.html" th:href="@{/admin/promotions}" data-admin-nav="/admin/promotions"><i class="bi bi-percent" aria-hidden="true"></i><span>Khuyến mãi</span></a>
             <a class="wb-admin-side-link" href="/templates/admin/tickettype/list.html" th:href="@{/admin/ticket-types}" data-admin-nav="/admin/ticket-types"><i class="bi bi-ticket-perforated" aria-hidden="true"></i><span>Loại vé</span></a>
-            <a class="wb-admin-side-link" href="/templates/admin/checkin/index.html" th:href="@{/admin/checkin}" data-admin-nav="/admin/checkin"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Soát vé</span></a>
+        </th:block>
+        <a class="wb-admin-side-link" href="/templates/admin/checkin/index.html" th:href="@{/admin/checkin}" data-admin-nav="/admin/checkin"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Soát vé</span></a>
       </nav>
       <a class="wb-admin-side-back" href="/templates/index.html" th:href="@{/}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Về trang khách</a>
     </aside>

@@ -112,6 +112,10 @@ class CustomerViewTests {
         assertThat(detail).contains("REAL-42", "TICKET-91", "42.000 đ", "C7")
                 .doesNotContain("BK0000002", "TK0000003", "09:13 19/10/2026");
         assertThat(detail.contains("Thanh toán ngay")).isEqualTo(state.equals("PENDING"));
+        assertThat(detail.contains("Huỷ đơn")).isEqualTo(state.equals("PENDING"));
+        if (state.equals("PENDING")) {
+            assertThat(detail).contains("action=\"/booking/REAL-42/cancel\"");
+        }
         String history = render("history", model);
         assertThat(history).contains("wb-booking-table", "wb-booking-cards", "18:05 24/10/2026");
         assertThat(history.split("href=\"/booking/REAL-42\"", -1)).hasSize(3);

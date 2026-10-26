@@ -97,4 +97,23 @@ class PromotionServiceTest {
         BigDecimal discount = promotionService.calculateDiscount("HETHAN", BigDecimal.valueOf(50000));
         assertEquals(BigDecimal.ZERO, discount);
     }
+
+    @Test
+    void testIsCodeDuplicate() {
+        Promotion existing = new Promotion();
+        existing.setId(10);
+        existing.setCode("WELCOME10");
+
+        when(promotionRepository.findByCodeIgnoreCase("WELCOME10")).thenReturn(Optional.of(existing));
+        when(promotionRepository.findByCodeIgnoreCase("NEWCODE")).thenReturn(Optional.empty());
+
+        // Tạo mới (excludeId = null) với mã đã tồn tại -> true
+        assertEquals(true, promotionService.isCodeDuplicate("WELCOME10", null));
+        // Tạo mới với mã chưa có -> false
+        assertEquals(false, promotionService.isCodeDuplicate("NEWCODE", null));
+        // Cập nhật chính nó (excludeId = 10) -> false (không tính là trùng)
+        assertEquals(false, promotionService.isCodeDuplicate("WELCOME10", 10));
+        // Cập nhật record khác (excludeId = 99) thành mã của record 10 -> true (trùng)
+        assertEquals(true, promotionService.isCodeDuplicate("WELCOME10", 99));
+    }
 }

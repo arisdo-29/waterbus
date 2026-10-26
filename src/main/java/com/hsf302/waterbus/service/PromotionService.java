@@ -33,4 +33,7 @@ public interface PromotionService {
 
     /** Xoá mềm (ẩn) khuyến mãi. */
     void deletePromotion(int id);
+
+    /** Kiểm tra mã khuyến mãi đã tồn tại hay chưa (bỏ qua ID nếu đang cập nhật). */
+    boolean isCodeDuplicate(String code, Integer excludeId);
 }

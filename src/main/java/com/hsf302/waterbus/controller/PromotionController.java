@@ -9,6 +9,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+
 // Module: BE3 - Tài khoản, Loại vé & Khuyến mãi. Mọi URL của controller này bắt đầu bằng /admin/promotions
 // View đặt trong templates/admin/promotion/ (giao diện: Tân)
 @Controller
@@ -50,6 +52,20 @@ public class PromotionController {
     public String save(@Valid @ModelAttribute("promotion") PromotionDTO promotion,
                        BindingResult bindingResult,
                        RedirectAttributes redirectAttributes) {
+        if (promotion.getCode() != null && !promotion.getCode().trim().isEmpty()) {
+            String normalizedCode = promotion.getCode().trim().toUpperCase();
+            promotion.setCode(normalizedCode);
+            if (promotionService.isCodeDuplicate(normalizedCode, promotion.getId())) {
+                bindingResult.rejectValue("code", "error.duplicate", "Mã khuyến mãi đã tồn tại trong hệ thống");
+            }
+        }
+
+        if ("PERCENT".equalsIgnoreCase(promotion.getDiscountType())) {
+            if (promotion.getDiscountValue() != null && promotion.getDiscountValue().compareTo(BigDecimal.valueOf(100)) > 0) {
+                bindingResult.rejectValue("discountValue", "error.percent", "Giá trị giảm theo phần trăm không được vượt quá 100%");
+            }
+        }
+
         if (promotion.getStartAt() != null && promotion.getEndAt() != null &&
                 !promotion.getEndAt().isAfter(promotion.getStartAt())) {
             bindingResult.rejectValue("endAt", "error.endAt", "Thời gian kết thúc phải sau thời gian bắt đầu");
@@ -59,9 +75,14 @@ public class PromotionController {
             return "admin/promotion/form";
         }
 
-        promotionService.savePromotion(promotion);
-        redirectAttributes.addFlashAttribute("successMessage", "Lưu khuyến mãi thành công!");
-        return "redirect:/admin/promotions";
+        try {
+            promotionService.savePromotion(promotion);
+            redirectAttributes.addFlashAttribute("successMessage", "Lưu khuyến mãi thành công!");
+            return "redirect:/admin/promotions";
+        } catch (Exception e) {
+            bindingResult.reject("error.save", "Không thể lưu khuyến mãi. Vui lòng kiểm tra lại thông tin.");
+            return "admin/promotion/form";
+        }
     }
 
     @PostMapping("/{id}/delete")

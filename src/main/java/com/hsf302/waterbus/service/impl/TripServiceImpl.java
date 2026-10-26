@@ -132,6 +132,12 @@ public class TripServiceImpl implements TripService {
 
     @Override
     @Transactional(readOnly = true)
+    public Trip getTripById(int tripId) {
+        return tripRepository.findById(tripId).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<SeatDTO> getSeatMap(int tripId) {
         return tripRepository.findById(tripId)
                 .map(trip -> {

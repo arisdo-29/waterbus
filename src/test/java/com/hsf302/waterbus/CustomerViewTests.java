@@ -192,6 +192,7 @@ class CustomerViewTests {
         model.put("bookings", List.of(booking));
         model.put("seats", List.of(Map.of("id", 91, "seatCode", "C7"), Map.of("id", 92, "seatCode", "C8")));
         model.put("ticketType", Map.of("id", 8, "name", "Vé thường", "price", new java.math.BigDecimal("22500")));
+        model.put("bookingForm", new com.hsf302.waterbus.dto.BookingForm()); // controller thật luôn đưa bookingForm vào checkout
         model.put("subtotal", new java.math.BigDecimal("45000"));
         model.put("fromStationId", 11);
         model.put("toStationId", 12);

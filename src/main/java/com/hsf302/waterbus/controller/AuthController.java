@@ -30,7 +30,14 @@ public class AuthController {
 
     @GetMapping("/login")
     public String showLoginForm(Model model, HttpSession session) {
-        if (session.getAttribute("loginAccount") != null) {
+        AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
+        if (loginAccount != null) {
+            if ("STAFF".equalsIgnoreCase(loginAccount.getRole())) {
+                return "redirect:/admin/checkin";
+            }
+            if ("ADMIN".equalsIgnoreCase(loginAccount.getRole())) {
+                return "redirect:/admin/trips";
+            }
             return "redirect:/";
         }
         if (!model.containsAttribute("loginRequest")) {
@@ -56,6 +63,13 @@ public class AuthController {
 
         AccountDTO accountDTO = accountService.toDTO(account);
         session.setAttribute("loginAccount", accountDTO);
+
+        if ("STAFF".equalsIgnoreCase(accountDTO.getRole())) {
+            return "redirect:/admin/checkin";
+        }
+        if ("ADMIN".equalsIgnoreCase(accountDTO.getRole())) {
+            return "redirect:/admin/trips";
+        }
         return "redirect:/";
     }
 

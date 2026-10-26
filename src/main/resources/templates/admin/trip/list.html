@@ -32,7 +32,7 @@
             <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
             <header class="wb-admin-head">
                 <div><span class="wb-eyebrow">Quản trị</span><h1>Chuyến tàu</h1><p>Quản lý thông tin chuyến tàu của Saigon Waterbus.</p></div>
-                <a class="btn btn-wb-accent" href="/templates/admin/trip/form.html" th:href="@{/admin/trips/new}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm mới</a>
+                <a th:if="${session.loginAccount?.role == 'ADMIN'}" class="btn btn-wb-accent" href="/templates/admin/trip/form.html" th:href="@{/admin/trips/new}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm mới</a>
             </header>
             <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(trips)}">
                 <table class="table wb-admin-table">
@@ -48,9 +48,10 @@
                             <td data-label="Đến nơi"><span th:text="${#temporals.format(trip?.arrivalTime, 'HH:mm dd/MM/yyyy')}">07:50 22/10/2026</span></td>
                             <td data-label="Trạng thái"><span th:replace="~{fragments/layout :: statusBadge(${trip?.status})}" class="badge rounded-pill wb-badge-success">Đang hoạt động</span></td>
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
-                                <form action="/templates/admin/trip/list.html" th:action="@{/admin/trips/{id}/cancel(id=${trip?.id})}" method="post" data-confirm="Huỷ chuyến này? Hãy kiểm tra các vé đã đặt trước khi tiếp tục.">
+                                <form th:if="${session.loginAccount?.role == 'ADMIN'}" action="/templates/admin/trip/list.html" th:action="@{/admin/trips/{id}/cancel(id=${trip?.id})}" method="post" data-confirm="Huỷ chuyến này? Hãy kiểm tra các vé đã đặt trước khi tiếp tục.">
                                     <button class="btn btn-wb-outline" type="submit" th:disabled="${trip?.status != 'SCHEDULED'}">Huỷ chuyến</button>
                                 </form>
+                                <span th:if="${session.loginAccount?.role != 'ADMIN'}" class="text-muted small">Chỉ xem</span>
                             </div></td>
                         </tr>
                         <tr th:remove="all"><td colspan="8" data-label="Ví dụ">Dữ liệu mẫu xem trước</td></tr>

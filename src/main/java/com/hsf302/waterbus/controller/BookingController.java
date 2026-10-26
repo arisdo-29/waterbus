@@ -44,10 +44,10 @@ public class BookingController {
         this.ticketTypeService = ticketTypeService;
     }
 
+    // GET /booking: không có trang riêng, chuyển sang lịch sử đặt vé của tài khoản
     @GetMapping
     public String index() {
-        // TODO BE4: lấy dữ liệu từ service, model.addAttribute(...), trả về view
-        return "booking/index";
+        return "redirect:/my-bookings";
     }
 
     // POST /booking/checkout: form ở trang chọn ghế (trip/seats) gửi lên -> trang xem lại đơn, CHƯA lưu gì vào DB
@@ -58,6 +58,11 @@ public class BookingController {
                            @RequestParam int fromStationId,
                            @RequestParam int toStationId,
                            Model model, RedirectAttributes flash) {
+        // Chuyến hoặc loại vé không tồn tại (sửa tay form) -> về trang tìm chuyến
+        if (!tripAndTicketTypeExist(tripId, ticketTypeId)) {
+            flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
+            return "redirect:/trips";
+        }
         // Địa chỉ trang chọn ghế để quay lại khi có lỗi (URL theo docs/PAGES.md)
         String seatPage = "redirect:/trips/" + tripId + "/seats?fromStationId=" + fromStationId
                 + "&toStationId=" + toStationId;
@@ -79,13 +84,17 @@ public class BookingController {
     // @ModelAttribute("bookingForm"): form + lỗi tự có trong model với tên "bookingForm" để template dùng th:errors.
     @PostMapping
     public String create(@Valid @ModelAttribute("bookingForm") BookingForm form, BindingResult errors,
-                         HttpSession session, Model model) {
+                         HttpSession session, Model model, RedirectAttributes flash) {
         // Thiếu chuyến/loại vé/bến (form bị sửa tay) -> không vẽ lại được trang checkout -> báo lỗi 400
         if (form.getTripId() == null || form.getTicketTypeId() == null
                 || form.getFromStationId() == null || form.getToStationId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thông tin chuyến, loại vé hoặc bến.");
         }
 
+        if (!tripAndTicketTypeExist(form.getTripId(), form.getTicketTypeId())) {
+            flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
+            return "redirect:/trips";
+        }
         if (errors.hasErrors()) {
             // Nhập sai (trống tên, SĐT sai...) -> chưa gọi service, báo lỗi
             model.addAttribute("errorMessage", errorText(errors));
@@ -143,6 +152,11 @@ public class BookingController {
         }
         // Quay về trang xem đơn. Spring tự điền {bookingCode} bằng giá trị trên URL hiện tại
         return "redirect:/booking/{bookingCode}";
+    }
+
+    // Chuyến còn mở bán và loại vé có tồn tại thì mới vẽ được trang checkout
+    private boolean tripAndTicketTypeExist(int tripId, int ticketTypeId) {
+        return bookingService.getTripInfo(tripId) != null && ticketTypeService.getTicketTypeById(ticketTypeId) != null;
     }
 
     // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). Dùng chung cho checkout() và create().

@@ -52,11 +52,8 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
 (tương tự `contactPhone`, `contactEmail`, `promoCode`). **Giữ `th:value` như hiện tại**, không đổi sang `th:field`, để vẫn
 ưu tiên giá trị vừa nhập và tự điền từ `session.loginAccount` (#26). Lỗi `seatIds` (ô ẩn) chỉ hiện qua `errorMessage`.
 
-**Trạng thái tích hợp tại `49bca30`:** `/` đã nối service/database trong phần BE1 này.
-BE3 đã có handler login/register/logout và AccountDTO trong session. Các hợp đồng booking/payment/detail/history
-ở trên là yêu cầu FE, đã kiểm tra bằng fixture render trong test; BE4 hiện chưa triển khai các endpoint đó
-(controller mới có `GET /booking`, `GET /payment`). Trí còn cần nối dữ liệu tìm chuyến/chọn ghế.
-Không coi kiểm thử fixture là kiểm thử toàn luồng hoặc hoàn thành #24–#26.
+**Trạng thái tích hợp:** các endpoint khách hàng ở bảng trên (tìm chuyến, chọn ghế, checkout, thanh toán, xem vé, huỷ đơn,
+lịch sử đặt vé) đã được triển khai và nối với service/database. `GET /booking` chuyển hướng sang `/my-bookings`.
 
 ## Trang quản trị (M3)
 

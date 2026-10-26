@@ -1,25 +1,151 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Trang chủ')}">
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
-</head>
-<body>
+  <head th:replace="~{fragments/layout :: head('Trang chủ')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+  </head>
+  <body>
     <nav th:replace="~{fragments/layout :: navbar}"></nav>
     <div th:replace="~{fragments/layout :: alerts}"></div>
     <main class="wb-main">
-        <section class="wb-hero">
-            <div class="container wb-hero-content"><span class="wb-eyebrow wb-eyebrow-light">Saigon Waterbus</span><h1>Đi qua thành phố,<br><span>ngắm sông thật gần.</span></h1><p>Hành trình trên sông Sài Gòn nhanh, mát và đúng giờ cho mỗi ngày của bạn.</p><a class="btn btn-wb-accent btn-lg" href="#tim-chuyen">Tìm chuyến <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a></div>
-            <svg class="wb-hero-waves" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true"><path d="M0 80c180-65 300 55 510 0s330-70 520-12 245 20 410-35v147H0Z" fill="#D9F0FB"></path><path d="M0 117c180-45 320 47 518 3s327-56 514-5 264 20 408-18v83H0Z" fill="#F6FAFC"></path></svg>
-        </section>
-        <section class="container wb-booking-wrap" id="tim-chuyen">
-            <div class="wb-card wb-search-card"><div class="wb-search-heading"><div><span class="wb-eyebrow">Lên đường nào</span><h2>Tìm chuyến phù hợp</h2></div><i class="bi bi-water" aria-hidden="true"></i></div><form action="/templates/trip/index.html" method="get" th:action="@{/trips}" data-trip-search><div class="row g-3 align-items-end"><div class="col-12 col-lg-3"><label for="fromStationId">Nơi đi</label><select class="form-select" id="fromStationId" name="fromStationId" required><option value="">Chọn bến</option><option th:each="s : ${stations}" th:value="${s?.id}" th:text="${s?.name}">Bạch Đằng</option><option th:remove="all">Bình An</option><option th:remove="all">Thanh Đa</option><option th:remove="all">Hiệp Bình Chánh</option><option th:remove="all">Linh Đông</option></select></div><div class="col-12 col-lg-auto wb-swap-col"><button class="wb-swap-button" type="button" data-swap-stations aria-label="Đổi chiều nơi đi và nơi đến"><i class="bi bi-arrow-down-up" aria-hidden="true"></i></button></div><div class="col-12 col-lg-3"><label for="toStationId">Nơi đến</label><select class="form-select" id="toStationId" name="toStationId" required><option value="">Chọn bến</option><option th:each="s : ${stations}" th:value="${s?.id}" th:text="${s?.name}">Linh Đông</option><option th:remove="all">Bạch Đằng</option><option th:remove="all">Bình An</option><option th:remove="all">Thanh Đa</option><option th:remove="all">Hiệp Bình Chánh</option></select></div><div class="col-12 col-lg-2"><label for="date">Ngày đi</label><input class="form-control" id="date" name="date" type="date" required></div><div class="col-12 col-lg"><button class="btn btn-wb-accent w-100" type="submit" th:disabled="${#lists.isEmpty(stations)}">Tìm chuyến <i class="bi bi-search ms-2" aria-hidden="true"></i></button></div></div><div class="wb-form-error" data-search-error role="alert"></div><p class="wb-muted-text mb-0" th:if="${#lists.isEmpty(stations)}">Thông tin bến tàu đang được cập nhật. Vui lòng quay lại sau.</p></form></div>
-        </section>
-        <section class="container wb-section"><div class="wb-section-heading"><span class="wb-eyebrow">Thông tin chung</span><h2 class="wb-section-title">Mỗi chuyến đi, một nhịp sống nhẹ nhàng</h2></div><div class="row g-3 g-lg-4"><div class="col-12 col-md-6 col-xl-3"><article class="wb-card wb-info-card"><i class="bi bi-signpost-2 wb-icon" aria-hidden="true"></i><h3>Lộ trình</h3><p>Tuyến số 1 Bạch Đằng ⇄ Linh Đông, nối trung tâm TP.HCM với TP. Thủ Đức, dài khoảng 11 km.</p></article></div><div class="col-12 col-md-6 col-xl-3"><article class="wb-card wb-info-card"><i class="bi bi-clock wb-icon" aria-hidden="true"></i><h3>Thời gian hoạt động</h3><p>Tất cả các ngày trong tuần, kể cả ngày lễ.</p></article></div><div class="col-12 col-md-6 col-xl-3"><article class="wb-card wb-info-card"><i class="bi bi-ticket-perforated wb-icon" aria-hidden="true"></i><h3>Giá vé</h3><p>15.000 đ/lượt/người.</p></article></div><div class="col-12 col-md-6 col-xl-3"><article class="wb-card wb-info-card"><i class="bi bi-phone wb-icon" aria-hidden="true"></i><h3>Mua vé</h3><p>Tại các bến tàu hoặc đặt trực tuyến trên website.</p></article></div></div></section>
-        <section class="wb-section wb-stations-section"><div class="container"><div class="wb-section-heading"><span class="wb-eyebrow">Tuyến số 1</span><h2 class="wb-section-title">Các bến trên tuyến</h2></div><div class="wb-stations-scroll"><div class="wb-stations-line"></div><div class="wb-stations-list"><div class="wb-station" th:each="s, st : ${stations}"><span class="wb-station-dot" th:text="${st?.count}">1</span><strong th:text="${s?.name}">Bạch Đằng</strong><small th:text="${s?.address}">Quận 1</small></div><div class="wb-station" th:remove="all"><span class="wb-station-dot">2</span><strong>Bình An</strong><small>TP. Thủ Đức</small></div></div></div></div></section>
-        <section class="container wb-section"><div class="wb-section-heading"><span class="wb-eyebrow">Đơn giản và rõ ràng</span><h2 class="wb-section-title">Đặt vé trong 4 bước</h2></div><div class="wb-stepper"><div class="wb-step"><span>1</span><strong>Tìm chuyến</strong></div><div class="wb-step"><span>2</span><strong>Chọn ghế</strong></div><div class="wb-step"><span>3</span><strong>Nhập thông tin</strong></div><div class="wb-step"><span>4</span><strong>Thanh toán &amp; nhận mã vé</strong></div></div></section>
-        <section class="container wb-section wb-notice-section"><div class="wb-notice"><i class="bi bi-info-circle wb-notice-icon" aria-hidden="true"></i><div><h2>Lưu ý trước chuyến đi</h2><ul><li>Vé đã mua không đổi, không hoàn. Vui lòng kiểm tra kỹ ngày giờ trước khi thanh toán.</li><li>Có mặt tại bến ít nhất 15 phút trước giờ chạy.</li><li>Miễn phí vé cho người từ 70 tuổi, trẻ em dưới 1 tuổi, người khuyết tật, thương binh. Vui lòng xuất trình giấy tờ khi lên tàu. Hỗ trợ qua hotline 1900 636 830.</li></ul></div></div></section>
+      <section class="wb-hero">
+        <div class="container wb-hero-content">
+          <span class="wb-eyebrow wb-eyebrow-light">Saigon Waterbus</span>
+          <h1>Đi qua thành phố,<br><span>ngắm sông thật gần.</span></h1>
+          <p>Hành trình trên sông Sài Gòn nhanh, mát và đúng giờ cho mỗi ngày của bạn.</p>
+          <a class="btn btn-wb-accent btn-lg" href="#tim-chuyen">Tìm chuyến <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a>
+        </div>
+        <svg class="wb-hero-waves" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true"><path d="M0 80c180-65 300 55 510 0s330-70 520-12 245 20 410-35v147H0Z" fill="#D9F0FB"></path><path d="M0 117c180-45 320 47 518 3s327-56 514-5 264 20 408-18v83H0Z" fill="#F6FAFC"></path></svg>
+      </section>
+      <section class="container wb-booking-wrap" id="tim-chuyen">
+        <div class="wb-card wb-search-card">
+          <div class="wb-search-heading">
+            <div>
+              <span class="wb-eyebrow">Lên đường nào</span>
+              <h2>Tìm chuyến phù hợp</h2>
+            </div>
+            <i class="bi bi-water" aria-hidden="true"></i>
+          </div>
+          <form action="/templates/trip/index.html" method="get" th:action="@{/trips}" data-trip-search>
+            <div class="row g-3 align-items-end">
+              <div class="col-12 col-lg-3">
+                <label for="fromStationId">Nơi đi</label>
+                <select class="form-select" id="fromStationId" name="fromStationId" required>
+                  <option value="">Chọn bến</option>
+                  <option th:each="s : ${stations}" th:value="${s?.id}" th:text="${s?.name}">Bạch Đằng</option>
+                </select>
+              </div>
+              <div class="col-12 col-lg-auto wb-swap-col">
+                <button class="wb-swap-button" type="button" data-swap-stations aria-label="Đổi chiều nơi đi và nơi đến"><i class="bi bi-arrow-down-up" aria-hidden="true"></i></button>
+              </div>
+              <div class="col-12 col-lg-3">
+                <label for="toStationId">Nơi đến</label>
+                <select class="form-select" id="toStationId" name="toStationId" required>
+                  <option value="">Chọn bến</option>
+                  <option th:each="s : ${stations}" th:value="${s?.id}" th:text="${s?.name}">Linh Đông</option>
+                </select>
+              </div>
+              <div class="col-12 col-lg-2">
+                <label for="date">Ngày đi</label><input class="form-control" id="date" name="date" type="date" required>
+              </div>
+              <div class="col-12 col-lg">
+                <button class="btn btn-wb-accent w-100" type="submit" th:disabled="${#lists.isEmpty(stations)}">Tìm chuyến <i class="bi bi-search ms-2" aria-hidden="true"></i></button>
+              </div>
+            </div>
+            <div class="wb-form-error" data-search-error role="alert"></div>
+            <p class="wb-muted-text mb-0" th:if="${#lists.isEmpty(stations)}">
+              Thông tin bến tàu đang được cập nhật. Vui lòng quay lại sau.
+            </p>
+          </form>
+        </div>
+      </section>
+      <section class="container wb-section">
+        <div class="wb-section-heading">
+          <span class="wb-eyebrow">Thông tin chung</span>
+          <h2 class="wb-section-title">Mỗi chuyến đi, một nhịp sống nhẹ nhàng</h2>
+        </div>
+        <div class="row g-3 g-lg-4">
+          <div class="col-12 col-md-6 col-xl-3">
+            <article class="wb-card wb-info-card">
+              <i class="bi bi-signpost-2 wb-icon" aria-hidden="true"></i>
+              <h3>Lộ trình</h3>
+              <p>Tuyến số 1 Bạch Đằng ⇄ Linh Đông, nối trung tâm TP.HCM với TP. Thủ Đức, dài khoảng 11 km.</p>
+            </article>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <article class="wb-card wb-info-card">
+              <i class="bi bi-clock wb-icon" aria-hidden="true"></i>
+              <h3>Thời gian hoạt động</h3>
+              <p>Tất cả các ngày trong tuần, kể cả ngày lễ.</p>
+            </article>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <article class="wb-card wb-info-card">
+              <i class="bi bi-ticket-perforated wb-icon" aria-hidden="true"></i>
+              <h3>Giá vé</h3>
+              <p>15.000 đ/lượt/người.</p>
+            </article>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <article class="wb-card wb-info-card">
+              <i class="bi bi-phone wb-icon" aria-hidden="true"></i>
+              <h3>Mua vé</h3>
+              <p>Tại các bến tàu hoặc đặt trực tuyến trên website.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="wb-section wb-stations-section">
+        <div class="container">
+          <div class="wb-section-heading">
+            <span class="wb-eyebrow">Tuyến số 1</span>
+            <h2 class="wb-section-title">Các bến trên tuyến</h2>
+          </div>
+          <div class="wb-stations-scroll">
+            <div class="wb-stations-line"></div>
+            <div class="wb-stations-list">
+              <div class="wb-station" th:each="s, st : ${stations}">
+                <span class="wb-station-dot" th:text="${st?.count}">1</span><strong th:text="${s?.name}">Bạch Đằng</strong><small th:text="${s?.address}">Quận 1</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="container wb-section">
+        <div class="wb-section-heading">
+          <span class="wb-eyebrow">Đơn giản và rõ ràng</span>
+          <h2 class="wb-section-title">Đặt vé trong 4 bước</h2>
+        </div>
+        <div class="wb-stepper">
+          <div class="wb-step"><span>1</span><strong>Tìm chuyến</strong></div>
+          <div class="wb-step"><span>2</span><strong>Chọn ghế</strong></div>
+          <div class="wb-step"><span>3</span><strong>Nhập thông tin</strong></div>
+          <div class="wb-step"><span>4</span><strong>Thanh toán &amp; nhận mã vé</strong></div>
+        </div>
+      </section>
+      <section class="container wb-section wb-notice-section">
+        <div class="wb-notice">
+          <i class="bi bi-info-circle wb-notice-icon" aria-hidden="true"></i>
+          <div>
+            <h2>Lưu ý trước chuyến đi</h2>
+            <ul>
+              <li>Vé đã mua không đổi, không hoàn. Vui lòng kiểm tra kỹ ngày giờ trước khi thanh toán.</li>
+              <li>Có mặt tại bến ít nhất 15 phút trước giờ chạy.</li>
+              <li>
+                Miễn phí vé cho người từ 70 tuổi, trẻ em dưới 1 tuổi, người khuyết tật, thương binh. Vui lòng xuất trình giấy tờ khi lên tàu. Hỗ trợ qua hotline 1900 636 830.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
-    <th:block th:replace="~{fragments/layout :: scripts}"><script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script></th:block>
-</body>
+    <th:block th:replace="~{fragments/layout :: scripts}">
+      <script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script>
+    </th:block>
+  </body>
 </html>

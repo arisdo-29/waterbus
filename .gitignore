@@ -46,3 +46,6 @@ build/
 __MACOSX/
 Thumbs.db
 desktop.ini
+
+### Log chạy app ###
+*.log

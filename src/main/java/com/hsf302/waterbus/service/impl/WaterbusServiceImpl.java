@@ -11,7 +11,7 @@ import java.util.Set;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
-// Module: BE2 - Tàu, Ghế & Chuyến. TODO: thay các dòng throw bằng code thật.
+// Module: BE2 - Tàu, Ghế & Chuyến.
 @Service
 public class WaterbusServiceImpl implements WaterbusService {
     private final WaterbusRepository waterbusRepository;

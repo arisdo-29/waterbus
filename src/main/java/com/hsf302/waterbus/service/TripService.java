@@ -27,6 +27,9 @@ public interface TripService {
     /** Thông tin chuyến cho trang chọn ghế; null nếu không có chuyến hoặc chuyến không SCHEDULED. */
     BookingTripDTO getBookableTrip(int tripId);
 
+    /** HỢP ĐỒNG cho BE4: lấy chuyến theo id để gắn vào vé; null nếu không có. */
+    Trip getTripById(int tripId);
+
     /** Sơ đồ ghế của chuyến: mọi ghế đang dùng của tàu, available = còn trống. */
     List<SeatDTO> getSeatMap(int tripId);
 

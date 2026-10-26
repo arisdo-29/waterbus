@@ -18,7 +18,6 @@ import com.hsf302.waterbus.service.PromotionService;
 import com.hsf302.waterbus.service.RouteService;
 import com.hsf302.waterbus.service.TicketTypeService;
 import com.hsf302.waterbus.service.TripService;
-import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -40,13 +39,12 @@ public class BookingServiceImpl implements BookingService {
     private final TicketTypeService ticketTypeService;
     private final PromotionService promotionService;
     private final AccountService accountService; // module Tân: lấy tài khoản đang đăng nhập
-    private final EntityManager entityManager; // chỉ dùng tạm trong findTrip() cho createBooking(), xem TODO bên dưới
 
     // Constructor injection: Spring tự đưa các repository/service vào
     public BookingServiceImpl(BookingRepository bookingRepository, TicketRepository ticketRepository,
                               TripService tripService, RouteService routeService,
                               TicketTypeService ticketTypeService, PromotionService promotionService,
-                              AccountService accountService, EntityManager entityManager) {
+                              AccountService accountService) {
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
         this.tripService = tripService;
@@ -54,7 +52,6 @@ public class BookingServiceImpl implements BookingService {
         this.ticketTypeService = ticketTypeService;
         this.promotionService = promotionService;
         this.accountService = accountService;
-        this.entityManager = entityManager;
     }
 
     @Override
@@ -88,7 +85,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 3. Chuyến: phải tồn tại và còn đang mở bán
-        Trip trip = findTrip(tripId);
+        Trip trip = tripService.getTripById(tripId);
         if (trip == null || !"SCHEDULED".equals(trip.getStatus())) {
             throw new IllegalArgumentException("Chuyến tàu này không còn nhận đặt vé.");
         }
@@ -301,14 +298,6 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
         releaseHoldTickets(booking.getId());
-    }
-
-    // Chỉ createBooking() còn dùng: vé (Ticket) cần object Trip, mà TripService mới có getBookableTrip trả về DTO.
-    // TODO: khi Trí thêm "Trip getTripById(int tripId)" (HỢP ĐỒNG cho BE4) thì thay thân method bằng
-    //       return tripService.getTripById(tripId);   rồi xoá field entityManager.
-    // Tạm đọc thẳng Trip - nhóm cho phép ngoại lệ CHỈ cho Trip. find() trả null nếu sai id nên không gây lỗi 500.
-    private Trip findTrip(int tripId) {
-        return entityManager.find(Trip.class, tripId);
     }
 
     // Sinh 8 chữ số ngẫu nhiên cho mã đơn, thử lại nếu mã đã có trong DB

@@ -1,9 +1,8 @@
 package com.hsf302.waterbus.service.impl;
 
-import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.dto.AdminTripDTO;
 import com.hsf302.waterbus.dto.AdminTripForm;
-import com.hsf302.waterbus.entity.Trip;
+import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.entity.Seat;
@@ -11,11 +10,11 @@ import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.SeatRepository;
 import com.hsf302.waterbus.repository.TripRepository;
 import com.hsf302.waterbus.service.RouteService;
+import com.hsf302.waterbus.service.TripService;
 import com.hsf302.waterbus.service.WaterbusService;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
-import com.hsf302.waterbus.service.TripService;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

@@ -131,14 +131,20 @@ public class PromotionServiceImpl implements PromotionService {
                     .orElse(new Promotion());
         } else {
             promo = new Promotion();
-            promo.setCode(dto.getCode());
             promo.setUsedCount(0);
         }
 
+        if (dto.getCode() != null) {
+            promo.setCode(dto.getCode().trim().toUpperCase());
+        }
         promo.setName(dto.getName());
         promo.setDiscountType(dto.getDiscountType());
         promo.setDiscountValue(dto.getDiscountValue());
-        promo.setMaxDiscount(dto.getMaxDiscount());
+        if ("FIXED".equalsIgnoreCase(dto.getDiscountType())) {
+            promo.setMaxDiscount(null);
+        } else {
+            promo.setMaxDiscount(dto.getMaxDiscount());
+        }
         promo.setMinOrderAmount(dto.getMinOrderAmount() != null ? dto.getMinOrderAmount() : BigDecimal.ZERO);
         promo.setStartAt(dto.getStartAt());
         promo.setEndAt(dto.getEndAt());
@@ -146,6 +152,18 @@ public class PromotionServiceImpl implements PromotionService {
         promo.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
 
         promotionRepository.save(promo);
+    }
+
+    @Override
+    public boolean isCodeDuplicate(String code, Integer excludeId) {
+        if (code == null || code.trim().isEmpty()) {
+            return false;
+        }
+        Optional<Promotion> existing = promotionRepository.findByCodeIgnoreCase(code.trim());
+        if (existing.isEmpty()) {
+            return false;
+        }
+        return excludeId == null || !existing.get().getId().equals(excludeId);
     }
 
     @Override

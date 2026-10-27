@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Yêu cầu không hợp lệ')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+</head>
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <main class="wb-main wb-page-main wb-error-page">
+        <section class="container">
+            <div class="wb-error-shell">
+                <svg class="wb-error-illustration" viewBox="0 0 120 120" role="img" aria-label="Biển báo cảnh báo luồng tàu">
+                    <circle cx="60" cy="60" r="56" fill="#D9F0FB"></circle>
+                    <path d="M10 82c12 6 24 6 36 0s24-6 36 0 18 6 28 0" fill="none" stroke="#8FD3F2" stroke-width="4" stroke-linecap="round"></path>
+                    <path d="M10 96c12 6 24 6 36 0s24-6 36 0 18 6 28 0" fill="none" stroke="#8FD3F2" stroke-width="4" stroke-linecap="round" opacity="0.6"></path>
+                    <!-- Warning diamond buoy -->
+                    <polygon points="60,24 88,52 60,80 32,52" fill="#FFC629" stroke="#E8AE00" stroke-width="3" stroke-linejoin="round"></polygon>
+                    <polygon points="60,30 82,52 60,74 38,52" fill="#FFE082"></polygon>
+                    <!-- Exclamation point -->
+                    <rect x="58" y="38" width="4" height="18" rx="2" fill="#1D2B36"></rect>
+                    <circle cx="60" cy="64" r="2.8" fill="#1D2B36"></circle>
+                </svg>
+                <span class="wb-eyebrow">Lỗi 400</span>
+                <h1>Yêu cầu không hợp lệ</h1>
+                <p>Thông tin hoặc tham số trên đường dẫn không đúng định dạng. Hãy quay lại trang chủ và tìm chuyến nhé.</p>
+                <div class="wb-error-actions">
+                    <a class="btn btn-wb-accent" href="/templates/index.html" th:href="@{/}">Về trang chủ <i class="bi bi-house ms-2" aria-hidden="true"></i></a>
+                    <a class="btn btn-wb-outline" href="/templates/index.html#tim-chuyen" th:href="@{/#tim-chuyen}">Tìm chuyến <i class="bi bi-search ms-2" aria-hidden="true"></i></a>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"><script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script></th:block>
+</body>
+</html>

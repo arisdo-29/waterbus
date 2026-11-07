@@ -71,6 +71,8 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 .wb-swap-col { display: flex; justify-content: center; padding-bottom: 2px; }
 .wb-swap-button { width: 44px; height: 44px; border: 1px solid var(--wb-sky-300); border-radius: 50%; background: var(--wb-sky-50); color: var(--wb-blue-700); transition: transform .2s ease, background .2s ease; }
 .wb-swap-button:hover, .wb-swap-button:focus-visible { background: var(--wb-sky-100); transform: rotate(180deg); }
+.wb-swap-button i { display: inline-block; line-height: 1; }
+@media (min-width: 992px) { .wb-swap-button i { transform: rotate(90deg); } }
 .wb-form-error { min-height: 0; color: var(--wb-danger); font-size: 14px; margin-top: 10px; }
 .wb-form-error.is-visible { min-height: 22px; }
 .wb-section { padding-top: 88px; }
@@ -101,7 +103,7 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 .wb-notice ul { color: var(--wb-muted); margin-bottom: 0; padding-left: 20px; }
 .wb-notice li + li { margin-top: 8px; }
 .wb-footer { background: var(--wb-navy); color: #D9EAF3; padding: 58px 0 24px; }
-.wb-brand-footer img { width: 210px; filter: brightness(0) invert(1); opacity: .95; }
+.wb-brand-footer img { width: 210px; }
 .wb-footer-copy { max-width: 360px; margin: 20px 0 0; color: #BFD5E1; }
 .wb-footer-heading { color: #fff; font-size: 1rem; margin-bottom: 16px; }
 .wb-footer a { display: block; width: fit-content; color: #D9EAF3; text-decoration: none; margin-bottom: 8px; }
@@ -111,9 +113,9 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 .wb-footer-bottom { border-top: 1px solid rgba(217, 240, 251, .2); color: #9FBDCC; font-size: 14px; margin-top: 42px; padding-top: 20px; }
 .wb-badge-warning { background: #FFF1BD; color: #795B00; }.wb-badge-success { background: #D9F5E7; color: #126B43; }.wb-badge-muted { background: #E8EEF2; color: #536572; }.wb-badge-danger { background: #FBE0E0; color: #963232; }.wb-badge-info { background: #D9F0FB; color: #0D6A99; }.wb-badge-sky { background: #E6F7FD; color: #167AA6; }
 .wb-preview-index { background: linear-gradient(135deg, var(--wb-sky-50), #fff); min-height: 100vh; }.wb-preview-list { display: grid; gap: 10px; }.wb-preview-shell { max-width: 640px; margin: 8vh auto 0; padding: 42px; border: 1px solid var(--wb-line); border-radius: 20px; background: #fff; box-shadow: 0 18px 50px rgba(11, 53, 80, .1); }.wb-lead { color: var(--wb-muted); }.wb-preview-link { display: flex; justify-content: space-between; align-items: center; min-height: 54px; padding: 12px 16px; border: 1px solid var(--wb-line); border-radius: 12px; color: var(--wb-blue-700); font-weight: 600; text-decoration: none; }.wb-preview-link:hover { border-color: var(--wb-sky-500); background: var(--wb-sky-50); transform: translateX(4px); }.wb-preview-note { margin: 24px 0 0; color: var(--wb-muted); font-size: 14px; }
-@media (max-width: 991.98px) { .wb-navbar { min-height: 72px; }.wb-nav-links { margin-top: 14px; gap: 2px; }.wb-account-actions { padding: 14px 0 10px; border-top: 1px solid var(--wb-line); margin-top: 12px; }.wb-hero { min-height: 500px; }.wb-hero-content { padding-top: 76px; }.wb-search-card { padding: 22px; }.wb-swap-col { position: absolute; right: 34px; margin-top: 28px; }.wb-stepper { gap: 12px; } }
+@media (max-width: 991.98px) { .wb-navbar { min-height: 72px; }.wb-nav-links { margin-top: 14px; gap: 2px; }.wb-account-actions { padding: 14px 0 10px; border-top: 1px solid var(--wb-line); margin-top: 12px; }.wb-hero { min-height: 500px; }.wb-hero-content { padding-top: 76px; }.wb-search-card { padding: 22px; }.wb-stepper { gap: 12px; } }
 @media (max-width: 767.98px) { .wb-hero h1 { font-size: 2.45rem; }.wb-hero p { font-size: 1rem; }.wb-booking-wrap { margin-top: -65px; }.wb-section { padding-top: 64px; }.wb-stations-section { margin-top: 64px; padding-bottom: 60px; }.wb-stepper { grid-template-columns: 1fr 1fr; row-gap: 24px; }.wb-step:not(:last-child)::after { display: none; }.wb-notice-section { padding-bottom: 64px; }.wb-notice { align-items: flex-start; padding: 22px; gap: 14px; }.wb-preview-shell { margin-top: 24px; padding: 26px; } }
-@media (max-width: 575.98px) { .wb-brand img, .wb-brand-footer img { width: 182px; }.wb-hero-content { padding-top: 60px; padding-bottom: 160px; }.wb-search-card { padding: 18px; }.wb-swap-col { position: static; margin-top: -4px; }.wb-swap-button { transform: rotate(90deg); }.wb-swap-button:hover, .wb-swap-button:focus-visible { transform: rotate(270deg); }.wb-stations-scroll { margin-inline: -12px; }.wb-stepper { grid-template-columns: 1fr; }.wb-notice { flex-direction: column; } }
+@media (max-width: 575.98px) { .wb-brand img, .wb-brand-footer img { width: 182px; }.wb-hero-content { padding-top: 60px; padding-bottom: 160px; }.wb-search-card { padding: 18px; }.wb-stations-scroll { margin-inline: -12px; }.wb-stepper { grid-template-columns: 1fr; }.wb-notice { flex-direction: column; } }
 
 .wb-page-main { padding-bottom: 88px; }
 .wb-page-heading { padding-top: 64px; }

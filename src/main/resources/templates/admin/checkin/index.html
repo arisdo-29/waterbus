@@ -19,66 +19,338 @@
         <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
         <main class="wb-main wb-admin-content">
             <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
-            <header class="wb-admin-head">
+            
+            <header class="wb-admin-head mb-4">
                 <div>
-                    <span class="wb-eyebrow">Nhân viên bến</span>
-                    <h1>Soát vé lên tàu</h1>
-                    <p>Nhập hoặc quét mã vé để xác thực và đóng dấu hành khách lên tàu.</p>
+                    <span class="wb-eyebrow">Nhân viên bến tàu</span>
+                    <h1 class="h3 fw-bold mb-1">Soát vé lên tàu</h1>
+                    <p class="text-muted mb-0">Quét camera QR hoặc nhập mã vé/mã đơn để kiểm tra và đóng dấu hành khách lên tàu.</p>
                 </div>
             </header>
 
-            <!-- Khung nhập mã vé -->
+            <!-- Thẻ báo kết quả ẩn dùng cho JS initCheckin() -->
+            <div th:if="${resultStatus != null}" data-checkin-result
+                 th:attr="data-result=${resultStatus},data-message=${resultMessage}" class="d-none"></div>
+
+            <!-- CHỌN CHUYẾN ĐANG SOÁT HÔM NAY -->
             <section class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <form th:action="@{/admin/checkin}" method="post" class="row g-3 align-items-center">
-                        <div class="col-md-8">
-                            <label for="ticketCode" class="form-label fw-semibold">Mã vé (Ticket Code)</label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light text-primary"><i class="bi bi-upc-scan"></i></span>
-                                <input type="text" id="ticketCode" name="ticketCode" th:value="${ticketCode}"
-                                       class="form-control text-uppercase font-monospace"
-                                       placeholder="VD: TK1001, TK-2026..." autofocus required>
-                            </div>
+                <div class="card-body p-3">
+                    <form method="get" th:action="@{/admin/checkin}" class="row g-2 align-items-center">
+                        <div class="col-12 col-md-3">
+                            <label for="selectTrip" class="form-label fw-semibold text-primary mb-1">
+                                <i class="bi bi-water me-1"></i> Chuyến đang soát:
+                            </label>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end gap-2 pt-md-4">
-                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
-                                <i class="bi bi-check2-circle me-1"></i> Soát vé
-                            </button>
+                        <div class="col-12 col-md-9">
+                            <select id="selectTrip" name="tripId" class="form-select form-select-lg fw-semibold" onchange="this.form.submit()">
+                                <option th:each="t : ${tripsToday}"
+                                        th:value="${t.id}"
+                                        th:selected="${selectedTrip != null and selectedTrip.id == t.id}"
+                                        th:text="${(t.departureTime != null ? #temporals.format(t.departureTime, 'HH:mm') : '') + ' - ' + t.tripCode + ' (' + t.routeName + ' · ' + t.waterbusName + ')'}">
+                                    08:00 - BD-0800 (Bạch Đằng - Linh Đông)
+                                </option>
+                            </select>
                         </div>
                     </form>
                 </div>
             </section>
 
-            <!-- Kết quả soát vé thành công -->
-            <section th:if="${checkedInTicket}" class="card border-success shadow-sm mb-4">
-                <div class="card-header bg-success text-white py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold fs-5"><i class="bi bi-check-circle-fill me-2"></i>SOÁT VÉ THÀNH CÔNG - HỢP LỆ LÊN TÀU</span>
-                        <span class="badge bg-light text-success fs-6" th:text="${checkedInTicket.status}">USED</span>
+            <!-- KHUNG TRA CỨU / QUÉT QR (ĐÚNG THEO HỢP ĐỒNG JS PAGES.MD) -->
+            <section class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <form data-checkin-form method="get" th:action="@{/admin/checkin}" class="row g-3 align-items-center">
+                        <input type="hidden" name="tripId" th:value="${selectedTripId}">
+                        <div class="col-12 col-md-8">
+                            <label for="ticketCodeInput" class="form-label fw-semibold">
+                                <i class="bi bi-upc-scan me-1"></i> Mã vé hoặc Mã đơn đặt vé
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light text-primary"><i class="bi bi-search"></i></span>
+                                <input type="text" id="ticketCodeInput" data-checkin-input name="ticketCode"
+                                       th:value="${ticketCode}" class="form-control text-uppercase font-monospace fw-bold"
+                                       placeholder="VD: TK1001 hoặc BK00000001..." autofocus>
+                            </div>
+                            <div class="form-text">Nhập mã vé lẻ hoặc mã đơn cả nhóm (Enter để tra cứu). Máy quét mã vạch USB/Bluetooth tự nhận.</div>
+                        </div>
+                        <div class="col-12 col-md-4 d-flex flex-column gap-2 pt-md-4">
+                            <button class="btn btn-wb-accent btn-lg w-100 fw-bold" type="submit">
+                                <i class="bi bi-search me-1"></i> Tra cứu mã
+                            </button>
+                            <button class="btn btn-wb-outline btn-lg w-100 fw-semibold" type="button" data-qr-start>
+                                <i class="bi bi-camera-fill me-1"></i> Quét camera QR
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Khung camera QR -->
+                    <div data-qr-reader class="mt-3"></div>
+                </div>
+            </section>
+
+            <!-- MODAL XEM TRƯỚC VÉ ĐƠN (DATA-CHECKIN-PREVIEW) -->
+            <div th:if="${previewTicket != null}" class="modal fade" id="modalPreviewTicket" tabindex="-1" data-checkin-preview aria-labelledby="pvTicketTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-primary text-white">
+                            <h2 class="modal-title fs-5" id="pvTicketTitle">
+                                <i class="bi bi-ticket-perforated me-2"></i>Chi tiết vé [[${previewTicket.ticketCode}]]
+                            </h2>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <!-- Cảnh báo nếu chuyến tàu lệch với chuyến đang soát -->
+                            <div th:if="${isTripMismatch}" class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                                <div>
+                                    <strong class="d-block">CẢNH BÁO LỆCH CHUYẾN!</strong>
+                                    Vé này thuộc chuyến <strong th:text="${mismatchTripCode}">TRIP</strong>
+                                    (Khởi hành: <span th:text="${#temporals.format(mismatchDepartureTime, 'HH:mm dd/MM/yyyy')}"></span>),
+                                    không phải chuyến đang soát hiện tại!
+                                </div>
+                            </div>
+
+                            <!-- Nhãn vàng kiểm tra giấy tờ nếu là vé ưu đãi -->
+                            <div th:if="${previewTicket.requiresVerification}" class="alert alert-warning border-warning d-flex align-items-center mb-3">
+                                <i class="bi bi-shield-exclamation fs-3 me-3 text-warning"></i>
+                                <div>
+                                    <span class="badge bg-warning text-dark fs-6 mb-1">⚠️ YÊU CẦU KIỂM TRA GIẤY TỜ GỐC</span>
+                                    <div>Loại vé: <strong th:text="${previewTicket.ticketTypeName}">Ưu đãi</strong>.
+                                        <span th:if="${previewTicket.birthYear != null}">
+                                            Hành khách sinh năm <strong th:text="${previewTicket.birthYear}">1950</strong>
+                                            (<strong th:text="${previewTicket.passengerAge}">76</strong> tuổi).
+                                        </span>
+                                        Vui lòng đối chiếu CCCD / Thẻ đối tượng trước khi đóng dấu lên tàu!
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Thông tin vé và hành khách -->
+                            <div class="row g-3">
+                                <div class="col-md-6 border-end">
+                                    <h6 class="text-muted text-uppercase mb-2">Hành khách & Đơn</h6>
+                                    <p class="mb-1"><strong>Họ và tên:</strong> <span class="fs-5 fw-bold text-dark" th:text="${previewTicket.passengerName}">Nguyễn Văn A</span></p>
+                                    <p class="mb-1"><strong>Số điện thoại:</strong> <span th:text="${previewTicket.passengerPhone}">0901234567</span></p>
+                                    <p class="mb-1"><strong>Mã đơn vé:</strong> <span class="badge bg-light text-dark font-monospace border" th:text="${previewTicket.bookingCode}">BK1001</span></p>
+                                    <p class="mb-0"><strong>Trạng thái:</strong>
+                                        <span th:replace="~{fragments/layout :: statusBadge(${previewTicket.status})}"></span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted text-uppercase mb-2">Chuyến tàu & Vị trí</h6>
+                                    <p class="mb-1"><strong>Ghế:</strong> <span class="badge bg-primary fs-5 font-monospace px-3 py-1" th:text="${previewTicket.seatCode}">A1</span> | <span th:text="${previewTicket.waterbusName}">Tàu 1</span></p>
+                                    <p class="mb-1"><strong>Chuyến:</strong> <span class="fw-bold" th:text="${previewTicket.tripCode}">BD-0800</span> (<span th:text="${previewTicket.routeName}">Bạch Đằng - Linh Đông</span>)</p>
+                                    <p class="mb-1"><strong>Hành trình:</strong> <span th:text="${previewTicket.fromStationName}">Bến 1</span> <i class="bi bi-arrow-right mx-1"></i> <span th:text="${previewTicket.toStationName}">Bến 2</span></p>
+                                    <p class="mb-0"><strong>Khởi hành:</strong> <span class="fw-bold text-primary" th:text="${#temporals.format(previewTicket.departureTime, 'HH:mm - dd/MM/yyyy')}">08:00 - 23/10/2026</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-between">
+                            <!-- Nút từ chối vé ưu đãi nếu không mang giấy tờ -->
+                            <div th:if="${previewTicket.requiresVerification and previewTicket.isValid()}">
+                                <form method="post" th:action="@{/admin/checkin/reject}" class="d-inline"
+                                      data-confirm="Từ chối vé ưu đãi này? Vé sẽ bị huỷ và nhả ghế lại cho người khác." data-confirm-variant="danger">
+                                    <input type="hidden" name="ticketCode" th:value="${previewTicket.ticketCode}">
+                                    <input type="hidden" name="tripId" th:value="${selectedTripId}">
+                                    <input type="hidden" name="reason" value="Không xuất trình được giấy tờ gốc hợp lệ">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="bi bi-x-circle me-1"></i> Từ chối vé ưu đãi
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="d-flex gap-2 ms-auto">
+                                <button type="button" class="btn btn-wb-outline" data-bs-dismiss="modal">Đóng</button>
+                                <form method="post" th:action="@{/admin/checkin}" class="d-inline" th:if="${previewTicket.isValid()}">
+                                    <input type="hidden" name="ticketCode" th:value="${previewTicket.ticketCode}">
+                                    <input type="hidden" name="tripId" th:value="${selectedTripId}">
+                                    <input type="hidden" name="override" th:value="${isTripMismatch == true ? 'true' : 'false'}">
+                                    <button type="submit" class="btn" th:classappend="${isTripMismatch == true ? 'btn-warning' : 'btn-wb-accent'}" data-checkin-confirm>
+                                        <i class="bi bi-check2-circle me-1"></i>
+                                        <span th:text="${isTripMismatch == true ? 'Vẫn cho lên tàu (Override)' : 'Xác nhận lên tàu'}">Xác nhận lên tàu</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body p-4">
-                    <div class="row g-4">
-                        <div class="col-md-6 border-end">
-                            <h5 class="text-muted mb-3"><i class="bi bi-person me-2"></i>Thông tin hành khách</h5>
-                            <p class="mb-2"><strong>Hành khách:</strong> <span th:text="${checkedInTicket.passengerName}">Nguyễn Văn A</span></p>
-                            <p class="mb-2"><strong>Số điện thoại:</strong> <span th:text="${checkedInTicket.passengerPhone}">0901234567</span></p>
-                            <p class="mb-2"><strong>Mã đơn đặt vé:</strong> <span class="badge bg-secondary font-monospace" th:text="${checkedInTicket.bookingCode}">BK1001</span></p>
-                            <p class="mb-0"><strong>Thời gian soát vé:</strong> <span class="text-success fw-semibold" th:text="${#temporals.format(checkedInTicket.checkedInAt, 'HH:mm:ss - dd/MM/yyyy')}">17:50 - 22/10/2026</span></p>
+            </div>
+
+            <!-- MODAL XEM TRƯỚC ĐƠN CẢ NHÓM (GROUP CHECK-IN) -->
+            <div th:if="${previewBooking != null}" class="modal fade" id="modalPreviewBooking" tabindex="-1" data-checkin-preview aria-labelledby="pvBookingTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-success text-white">
+                            <h2 class="modal-title fs-5" id="pvBookingTitle">
+                                <i class="bi bi-people-fill me-2"></i>Soát vé cả đoàn: Đơn [[${previewBooking.bookingCode}]]
+                            </h2>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
                         </div>
-                        <div class="col-md-6">
-                            <h5 class="text-muted mb-3"><i class="bi bi-water me-2"></i>Thông tin chuyến tàu</h5>
-                            <p class="mb-2"><strong>Tàu:</strong> <span th:text="${checkedInTicket.waterbusName}">Waterbus 01</span> | <strong>Ghế:</strong> <span class="badge bg-primary fs-6 font-monospace" th:text="${checkedInTicket.seatCode}">A1</span></p>
-                            <p class="mb-2"><strong>Tuyến:</strong> <span th:text="${checkedInTicket.routeName}">Bạch Đằng - Linh Đông</span></p>
-                            <p class="mb-2"><strong>Hành trình:</strong> <span class="fw-bold" th:text="${checkedInTicket.fromStationName}">Bạch Đằng</span> <i class="bi bi-arrow-right mx-1"></i> <span class="fw-bold" th:text="${checkedInTicket.toStationName}">Linh Đông</span></p>
-                            <p class="mb-2"><strong>Khởi hành:</strong> <span th:text="${#temporals.format(checkedInTicket.departureTime, 'HH:mm dd/MM/yyyy')}">08:00 23/10/2026</span></p>
-                            <p class="mb-0"><strong>Loại vé / Giá:</strong> <span th:text="${checkedInTicket.ticketTypeName}">Vé tiêu chuẩn</span> - <span th:text="${#numbers.formatDecimal(checkedInTicket.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">15.000 đ</span></p>
+                        <form method="post" th:action="@{/admin/checkin/group}">
+                            <input type="hidden" name="tripId" th:value="${selectedTripId}">
+                            <div class="modal-body p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <strong>Người liên hệ:</strong> [[${previewBooking.contactName}]] ([[${previewBooking.contactPhone}]])
+                                    </div>
+                                    <div>
+                                        Chuyến: <strong>[[${previewBooking.tripCode}]]</strong> (<span th:text="${#temporals.format(previewBooking.departureTime, 'HH:mm')}"></span>)
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 40px;" class="text-center">Chọn</th>
+                                                <th>Mã vé</th>
+                                                <th>Hành khách</th>
+                                                <th>Ghế</th>
+                                                <th>Loại vé</th>
+                                                <th>Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="tk : ${previewBooking.tickets}">
+                                                <td class="text-center">
+                                                    <input th:if="${tk.isValid()}" type="checkbox" name="ticketCodes" th:value="${tk.ticketCode}" checked class="form-check-input">
+                                                    <input th:unless="${tk.isValid()}" type="checkbox" disabled class="form-check-input">
+                                                </td>
+                                                <td class="font-monospace fw-bold" th:text="${tk.ticketCode}">TK01</td>
+                                                <td th:text="${tk.passengerName}">Tên</td>
+                                                <td><span class="badge bg-primary font-monospace" th:text="${tk.seatCode}">A1</span></td>
+                                                <td>
+                                                    <span th:text="${tk.ticketTypeName}">Tiêu chuẩn</span>
+                                                    <span th:if="${tk.requiresVerification}" class="badge bg-warning text-dark ms-1">Ưu đãi</span>
+                                                </td>
+                                                <td><span th:replace="~{fragments/layout :: statusBadge(${tk.status})}"></span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-wb-outline" data-bs-dismiss="modal">Đóng</button>
+                                <button type="submit" class="btn btn-wb-accent" data-checkin-confirm>
+                                    <i class="bi bi-check2-circle me-1"></i> Xác nhận lên tàu cho các vé đã chọn
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DANH SÁCH HÀNH KHÁCH CỦA CHUYẾN (PASSENGER MANIFEST) -->
+            <section class="card border-0 shadow-sm" th:if="${selectedTrip != null}">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h2 class="h5 fw-bold mb-1">
+                            <i class="bi bi-card-checklist me-2 text-primary"></i>Danh sách hành khách (Passenger Manifest)
+                        </h2>
+                        <span class="text-muted small">
+                            Chuyến <strong th:text="${selectedTrip.tripCode}"></strong> khởi hành lúc
+                            <strong class="text-primary" th:text="${#temporals.format(selectedTrip.departureTime, 'HH:mm - dd/MM/yyyy')}"></strong>
+                        </span>
+                    </div>
+                    <!-- Bộ đếm hành khách -->
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="text-end">
+                            <div class="small text-muted">Tiến độ lên tàu</div>
+                            <strong class="fs-5 text-success">[[${boardedPassengers}]] / [[${totalPassengers}]]</strong> khách
                         </div>
                     </div>
+                </div>
+
+                <!-- Bộ lọc & Tìm kiếm -->
+                <div class="card-body p-3 bg-light border-bottom">
+                    <form method="get" th:action="@{/admin/checkin}" class="row g-2 align-items-center">
+                        <input type="hidden" name="tripId" th:value="${selectedTripId}">
+                        <div class="col-12 col-md-6 d-flex flex-wrap gap-1">
+                            <a class="btn btn-sm" th:classappend="${currentFilter == 'all'} ? 'btn-primary' : 'btn-outline-secondary'"
+                               th:href="@{/admin/checkin(tripId=${selectedTripId}, filter='all', keyword=${keyword})}">Tất cả ([[${totalPassengers}]])</a>
+                            <a class="btn btn-sm" th:classappend="${currentFilter == 'unboarded'} ? 'btn-primary' : 'btn-outline-secondary'"
+                               th:href="@{/admin/checkin(tripId=${selectedTripId}, filter='unboarded', keyword=${keyword})}">Chưa lên</a>
+                            <a class="btn btn-sm" th:classappend="${currentFilter == 'boarded'} ? 'btn-primary' : 'btn-outline-secondary'"
+                               th:href="@{/admin/checkin(tripId=${selectedTripId}, filter='boarded', keyword=${keyword})}">Đã lên ([[${boardedPassengers}]])</a>
+                            <a class="btn btn-sm" th:classappend="${currentFilter == 'priority'} ? 'btn-primary' : 'btn-outline-secondary'"
+                               th:href="@{/admin/checkin(tripId=${selectedTripId}, filter='priority', keyword=${keyword})}">Vé ưu đãi</a>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="input-group input-group-sm">
+                                <input type="text" name="keyword" th:value="${keyword}" class="form-control" placeholder="Tìm theo tên khách, SĐT, ghế...">
+                                <input type="hidden" name="filter" th:value="${currentFilter}">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+                                <a th:if="${keyword != null and !keyword.isEmpty()}" th:href="@{/admin/checkin(tripId=${selectedTripId}, filter=${currentFilter})}" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Bảng danh sách hành khách -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th>Ghế</th>
+                                <th>Hành khách</th>
+                                <th>Số điện thoại</th>
+                                <th>Mã vé</th>
+                                <th>Loại vé</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(manifest)}">
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>Chưa có hành khách nào phù hợp với bộ lọc.
+                                </td>
+                            </tr>
+                            <tr th:each="p : ${manifest}">
+                                <td>
+                                    <span class="badge bg-primary font-monospace fs-6 px-2 py-1" th:text="${p.seatCode}">A1</span>
+                                </td>
+                                <td>
+                                    <strong class="d-block" th:text="${p.passengerName}">Nguyễn Văn A</strong>
+                                    <span class="small text-muted font-monospace" th:text="${p.bookingCode}">BK1001</span>
+                                </td>
+                                <td>
+                                    <span th:text="${p.passengerPhone}">0901234567</span>
+                                </td>
+                                <td>
+                                    <span class="font-monospace fw-semibold" th:text="${p.ticketCode}">TK0001</span>
+                                </td>
+                                <td>
+                                    <span th:text="${p.ticketTypeName}">Tiêu chuẩn</span>
+                                    <span th:if="${p.requiresVerification}" class="badge bg-warning text-dark ms-1">
+                                        <i class="bi bi-exclamation-triangle"></i> Ưu đãi
+                                    </span>
+                                </td>
+                                <td>
+                                    <span th:replace="~{fragments/layout :: statusBadge(${p.status})}"></span>
+                                    <div th:if="${p.checkedInAt != null}" class="small text-muted">
+                                        [[${#temporals.format(p.checkedInAt, 'HH:mm:ss')}]]
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <!-- Nút soát vé nhanh nếu vé hợp lệ chưa lên -->
+                                    <form th:if="${p.isValid()}" method="post" th:action="@{/admin/checkin}" class="d-inline">
+                                        <input type="hidden" name="ticketCode" th:value="${p.ticketCode}">
+                                        <input type="hidden" name="tripId" th:value="${selectedTripId}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-check2"></i> Soát vé
+                                        </button>
+                                    </form>
+                                    <span th:if="${p.isUsed()}" class="badge bg-light text-success border border-success">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Đã lên tàu
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>
     </div>
-    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+    <!-- DÙNG FRAGMENT scriptsCheckin THEO ĐÚNG HỢP ĐỒNG PAGES.MD -->
+    <th:block th:replace="~{fragments/layout :: scriptsCheckin}"></th:block>
 </body>
 </html>

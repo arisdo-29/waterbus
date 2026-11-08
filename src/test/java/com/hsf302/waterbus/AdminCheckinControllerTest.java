@@ -51,17 +51,33 @@ class AdminCheckinControllerTest {
     @Autowired
     private TicketTypeRepository ticketTypeRepository;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     private MockMvc mvc;
     private AccountDTO staffAccount;
     private AccountDTO customerAccount;
     private Ticket validTicket;
+    private Ticket priorityTicket;
+    private Trip trip;
+    private Booking booking;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
 
-        staffAccount = new AccountDTO(1, "Nhân Viên Bến", "staff@waterbus.vn", "0901234567", "STAFF", "ACTIVE");
-        customerAccount = new AccountDTO(2, "Khách Hàng", "customer@test.com", "0909876543", "CUSTOMER", "ACTIVE");
+        Account staff = new Account();
+        staff.setFullName("Nhân Viên Bến");
+        staff.setEmail("staff@waterbus.vn");
+        staff.setPhone("0901234567");
+        staff.setPasswordHash("hash");
+        staff.setRole("STAFF");
+        staff.setStatus("ACTIVE");
+        staff.setCreatedAt(LocalDateTime.now());
+        staff = accountRepository.save(staff);
+
+        staffAccount = new AccountDTO(staff.getId(), "staff@waterbus.vn", "Nhân Viên Bến", "0901234567", "STAFF", "ACTIVE");
+        customerAccount = new AccountDTO(999, "customer@test.com", "Khách Hàng", "0909876543", "CUSTOMER", "ACTIVE");
 
         Station st1 = new Station();
         st1.setCode("ST_CK_1");
@@ -88,15 +104,23 @@ class AdminCheckinControllerTest {
         waterbus.setStatus("ACTIVE");
         waterbus = waterbusRepository.save(waterbus);
 
-        Seat seat = new Seat();
-        seat.setWaterbus(waterbus);
-        seat.setSeatCode("B2");
-        seat.setSeatRow(2);
-        seat.setSeatCol(2);
-        seat.setIsActive(true);
-        seat = seatRepository.save(seat);
+        Seat seat1 = new Seat();
+        seat1.setWaterbus(waterbus);
+        seat1.setSeatCode("B2");
+        seat1.setSeatRow(2);
+        seat1.setSeatCol(2);
+        seat1.setIsActive(true);
+        seat1 = seatRepository.save(seat1);
 
-        Trip trip = new Trip();
+        Seat seat2 = new Seat();
+        seat2.setWaterbus(waterbus);
+        seat2.setSeatCode("B3");
+        seat2.setSeatRow(2);
+        seat2.setSeatCol(3);
+        seat2.setIsActive(true);
+        seat2 = seatRepository.save(seat2);
+
+        trip = new Trip();
         trip.setTripCode("TRIP_CK_1");
         trip.setRoute(route);
         trip.setWaterbus(waterbus);
@@ -113,7 +137,15 @@ class AdminCheckinControllerTest {
         ticketType.setIsActive(true);
         ticketType = ticketTypeRepository.save(ticketType);
 
-        Booking booking = new Booking();
+        TicketType priorityType = new TicketType();
+        priorityType.setCode("SENIOR_70");
+        priorityType.setName("Người Cao Tuổi (>=70)");
+        priorityType.setPrice(BigDecimal.ZERO);
+        priorityType.setRequiresVerification(true);
+        priorityType.setIsActive(true);
+        priorityType = ticketTypeRepository.save(priorityType);
+
+        booking = new Booking();
         booking.setBookingCode("BK_CK_1");
         booking.setContactName("Trần Văn B");
         booking.setContactPhone("0988776655");
@@ -131,13 +163,28 @@ class AdminCheckinControllerTest {
         validTicket.setTicketCode("TK_MOCK_CHECKIN");
         validTicket.setBooking(booking);
         validTicket.setTrip(trip);
-        validTicket.setSeat(seat);
+        validTicket.setSeat(seat1);
         validTicket.setTicketType(ticketType);
         validTicket.setFromStation(st1);
         validTicket.setToStation(st2);
         validTicket.setPrice(BigDecimal.valueOf(15000));
         validTicket.setStatus("VALID");
+        validTicket.setPassengerName("Trần Văn B");
         validTicket = ticketRepository.save(validTicket);
+
+        priorityTicket = new Ticket();
+        priorityTicket.setTicketCode("TK_MOCK_PRIORITY");
+        priorityTicket.setBooking(booking);
+        priorityTicket.setTrip(trip);
+        priorityTicket.setSeat(seat2);
+        priorityTicket.setTicketType(priorityType);
+        priorityTicket.setFromStation(st1);
+        priorityTicket.setToStation(st2);
+        priorityTicket.setPrice(BigDecimal.ZERO);
+        priorityTicket.setStatus("VALID");
+        priorityTicket.setPassengerName("Trần Cụ C");
+        priorityTicket.setBirthYear(1950);
+        priorityTicket = ticketRepository.save(priorityTicket);
     }
 
     @Test
@@ -161,7 +208,31 @@ class AdminCheckinControllerTest {
     void getCheckin_staff_success() throws Exception {
         mvc.perform(get("/admin/checkin").sessionAttr("loginAccount", staffAccount))
                 .andExpect(status().isOk())
-                .andExpect(view().name("admin/checkin/index"));
+                .andExpect(view().name("admin/checkin/index"))
+                .andExpect(model().attributeExists("tripsToday"))
+                .andExpect(model().attributeExists("manifest"));
+    }
+
+    @Test
+    @DisplayName("Tra cứu mã vé đơn lẻ -> trả về previewTicket")
+    void getCheckin_previewSingleTicket_success() throws Exception {
+        mvc.perform(get("/admin/checkin")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("ticketCode", "TK_MOCK_CHECKIN"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/checkin/index"))
+                .andExpect(model().attributeExists("previewTicket"));
+    }
+
+    @Test
+    @DisplayName("Tra cứu mã đơn đặt vé BK... -> trả về previewBooking để soát cả đoàn")
+    void getCheckin_previewBookingGroup_success() throws Exception {
+        mvc.perform(get("/admin/checkin")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("ticketCode", "BK_CK_1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/checkin/index"))
+                .andExpect(model().attributeExists("previewBooking"));
     }
 
     @Test
@@ -174,6 +245,29 @@ class AdminCheckinControllerTest {
                 .andExpect(redirectedUrl("/admin/checkin"))
                 .andExpect(flash().attributeExists("successMessage"))
                 .andExpect(flash().attributeExists("checkedInTicket"));
+    }
+
+    @Test
+    @DisplayName("Soát vé cả nhóm qua POST /admin/checkin/group -> thành công")
+    void postCheckin_group_success() throws Exception {
+        mvc.perform(post("/admin/checkin/group")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("ticketCodes", "TK_MOCK_CHECKIN", "TK_MOCK_PRIORITY"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/checkin"))
+                .andExpect(flash().attributeExists("successMessage"));
+    }
+
+    @Test
+    @DisplayName("Từ chối vé ưu đãi qua POST /admin/checkin/reject -> huỷ vé và nhả ghế")
+    void postCheckin_rejectPriority_success() throws Exception {
+        mvc.perform(post("/admin/checkin/reject")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("ticketCode", "TK_MOCK_PRIORITY")
+                        .param("reason", "Không mang CCCD"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/checkin"))
+                .andExpect(flash().attributeExists("errorMessage"));
     }
 
     @Test

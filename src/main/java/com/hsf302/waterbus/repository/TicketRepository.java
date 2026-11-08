@@ -11,5 +11,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Integer> {
     // "BookingId" = field booking -> id của nó: WHERE booking_id = ? ORDER BY id ASC
     List<Ticket> findByBookingIdOrderByIdAsc(Integer bookingId);
 
+    List<Ticket> findByBooking_BookingCodeOrderByIdAsc(String bookingCode);
+
+    List<Ticket> findByTripIdOrderByIdAsc(Integer tripId);
+
     Optional<Ticket> findByTicketCode(String ticketCode);
 }

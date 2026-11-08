@@ -197,11 +197,11 @@ bảng `ticket_scan_log`, bảng `refund`, trip.cancel_reason). Hợp đồng ch
 - [ ] Repository/Service cho entity `Refund`
 
 **Tân (BE3) - còn chờ để khớp giao diện**
-- [ ] `admin/checkin/index.html` gắn data-attribute theo PAGES.md "Soát vé – hợp đồng JS" và dùng fragment `scriptsCheckin`
-- [ ] `GET /admin/checkin?ticketCode=` tra mã vé hoặc mã đơn → modal `data-checkin-preview`; POST xong → `data-checkin-result`
-- [ ] Repository/Service cho entity `TicketScanLog` (ghi mỗi lần VIEW/CHECKIN/REJECT)
-- [ ] Trang `/admin/accounts` (BE + FE) và chặn chỉ ADMIN cho `/admin/revenue`, `/admin/refunds`, `/admin/accounts`
-- [ ] Thêm `data-confirm` cho form soát vé, lưu khuyến mãi/loại vé (`danger` cho nút ẩn/xoá)
+- [x] `admin/checkin/index.html` gắn data-attribute theo PAGES.md "Soát vé – hợp đồng JS" và dùng fragment `scriptsCheckin`
+- [x] `GET /admin/checkin?ticketCode=` tra mã vé hoặc mã đơn → modal `data-checkin-preview`; POST xong → `data-checkin-result`
+- [x] Repository/Service cho entity `TicketScanLog` (ghi mỗi lần VIEW/CHECKIN/REJECT)
+- [x] Trang `/admin/accounts` (BE + FE) và chặn chỉ ADMIN cho `/admin/revenue`, `/admin/refunds`, `/admin/accounts`
+- [x] Thêm `data-confirm` cho form soát vé, lưu khuyến mãi/loại vé (`danger` cho nút ẩn/xoá)
 
 **Trí (BE2) - còn chờ để khớp giao diện**
 - [ ] Huỷ chuyến nhập và lưu `Trip.cancelReason`

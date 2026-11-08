@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -35,6 +36,16 @@ public class BookingForm {
     @Size(max = 30, message = "Mã khuyến mãi tối đa 30 ký tự.")
     private String promoCode;
 
+    // Vé ưu đãi: mỗi ghế 1 họ tên + 1 năm sinh, cùng thứ tự với seatIds (ghế thứ i <-> phần tử thứ i).
+    // Vé thường thì form không gửi 2 ô này -> để null. BookingService.validatePassengers kiểm tra chi tiết.
+    private List<String> passengerNames;
+    private List<Integer> birthYears;
+
+    // Ô tick "Tôi đã đọc chính sách vé". Dùng boolean (không phải Boolean):
+    // không tick thì trình duyệt không gửi gì -> giữ mặc định false -> @AssertTrue báo lỗi.
+    @AssertTrue(message = "Vui lòng xác nhận đã đọc chính sách vé.")
+    private boolean acceptPolicy;
+
     public Integer getTripId() { return tripId; }
     public void setTripId(Integer tripId) { this.tripId = tripId; }
     public Integer getTicketTypeId() { return ticketTypeId; }
@@ -53,6 +64,13 @@ public class BookingForm {
     public void setContactEmail(String contactEmail) { this.contactEmail = clean(contactEmail); }
     public String getPromoCode() { return promoCode; }
     public void setPromoCode(String promoCode) { this.promoCode = clean(promoCode); }
+    public List<String> getPassengerNames() { return passengerNames; }
+    public void setPassengerNames(List<String> passengerNames) { this.passengerNames = passengerNames; }
+    public List<Integer> getBirthYears() { return birthYears; }
+    public void setBirthYears(List<Integer> birthYears) { this.birthYears = birthYears; }
+    // Field kiểu boolean thì getter tên là isXxx (Java Bean), Spring vẫn tự hiểu
+    public boolean isAcceptPolicy() { return acceptPolicy; }
+    public void setAcceptPolicy(boolean acceptPolicy) { this.acceptPolicy = acceptPolicy; }
 
     // Bỏ khoảng trắng 2 đầu; ô để trống -> null.
     // Nhờ vậy ô SĐT trống chỉ báo "Vui lòng nhập số điện thoại." (@Pattern bỏ qua null), không báo thêm lỗi định dạng.

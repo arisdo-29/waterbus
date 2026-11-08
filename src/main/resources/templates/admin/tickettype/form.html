@@ -30,7 +30,10 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin loại vé</h2>
-                    <form th:action="@{/admin/ticket-types/save}" th:object="${ticketType}" method="post" novalidate>
+                    <form th:action="@{/admin/ticket-types/save}" th:object="${ticketType}" method="post" novalidate
+                          th:data-confirm="${ticketType?.id == null ? 'Xác nhận tạo loại vé mới?' : 'Xác nhận lưu thay đổi thông tin loại vé này?'}"
+                          data-confirm-title="Lưu loại vé"
+                          data-confirm-ok="Lưu">
                         <input type="hidden" th:field="*{id}">
 
                         <div class="wb-admin-form-row">

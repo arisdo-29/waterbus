@@ -34,7 +34,10 @@
                         </div>
                     </div>
 
-                    <form th:action="@{/account/profile}" th:object="${updateProfileRequest}" method="post" novalidate>
+                    <form th:action="@{/account/profile}" th:object="${updateProfileRequest}" method="post" novalidate
+                          data-confirm="Xác nhận lưu thay đổi thông tin cá nhân?"
+                          data-confirm-title="Cập nhật hồ sơ"
+                          data-confirm-ok="Lưu thay đổi">
                         <div class="wb-form-row">
                             <label for="email">Địa chỉ Email</label>
                             <input type="email" id="email" class="form-control bg-light" th:value="${account?.email}" readonly disabled>

@@ -109,8 +109,14 @@ public class BookingController {
             try {
                 Booking booking = bookingService.createBooking(form.getTripId(), form.getSeatIds(),
                         form.getTicketTypeId(), form.getFromStationId(), form.getToStationId(), form.getPromoCode(),
-                        accountId, form.getContactName(), form.getContactPhone(), form.getContactEmail());
-                // Thành công -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
+                        accountId, form.getContactName(), form.getContactPhone(), form.getContactEmail(),
+                        form.getPassengerNames(), form.getBirthYears());
+                // Đơn 0 đ đã PAID ngay (không cần trả tiền) -> sang thẳng trang xem vé
+                if ("PAID".equals(booking.getStatus())) {
+                    flash.addFlashAttribute("successMessage", "Đặt vé thành công! Vé của bạn đã sẵn sàng.");
+                    return "redirect:/booking/" + booking.getBookingCode();
+                }
+                // Còn lại -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
                 return "redirect:/payment/" + booking.getBookingCode();
             } catch (IllegalArgumentException ex) {
                 // Lỗi nghiệp vụ (ghế vừa bị đặt, mã KM sai...) -> báo lỗi

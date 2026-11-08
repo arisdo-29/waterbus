@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.FlashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -119,13 +120,20 @@ class PaymentMockTest {
     @Test
     void payButtonRedirectsToTicketPageOrBackToPaymentOnError() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        mvc.perform(post("/payment/" + booking.getBookingCode() + "/mock"))
+        FlashMap paidFlash = mvc.perform(post("/payment/" + booking.getBookingCode() + "/mock"))
                 .andExpect(redirectedUrl("/booking/" + booking.getBookingCode()))
-                .andExpect(flash().attributeExists("successMessage"));
-        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()))
+                .andExpect(flash().attributeExists("successMessage"))
+                .andReturn().getFlashMap();
+        // Lần đầu sau thanh toán (còn flash) -> banner "Đặt vé thành công!"
+        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()).flashAttrs(paidFlash))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(detail).contains("Đặt vé thành công!");
+        // Tải lại / vào xem vé lần sau (hết flash) -> không hiện banner nữa
+        String reload = mvc.perform(get("/booking/" + booking.getBookingCode()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(reload).doesNotContain("Đặt vé thành công!");
 
         // Bấm thanh toán lần 2 -> quay lại trang thanh toán kèm lỗi
         mvc.perform(post("/payment/" + booking.getBookingCode() + "/mock"))

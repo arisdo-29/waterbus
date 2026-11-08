@@ -10,7 +10,10 @@
   </head>
   <body>
     <nav th:replace="~{fragments/layout :: navbar}"></nav>
-    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <!--/* Vừa thanh toán xong (flash successMessage + PAID): banner lớn bên dưới đã báo, không lặp alert */-->
+    <th:block th:unless="${booking?.status == 'PAID' and successMessage != null}">
+      <div th:replace="~{fragments/layout :: alerts}"></div>
+    </th:block>
     <main class="wb-main wb-page-main wb-ticket-page">
       <section class="container wb-page-heading">
         <span class="wb-eyebrow">Vé của bạn</span>
@@ -18,7 +21,8 @@
         <p>Lưu lại mã vé để xuất trình khi lên tàu.</p>
       </section>
       <section class="container wb-section-top">
-        <div class="wb-booking-status" th:classappend="${booking?.status == 'PAID'} ? 'wb-status-paid' : (${booking?.status == 'PENDING'} ? 'wb-status-pending' : 'wb-status-muted')" th:switch="${booking?.status}">
+        <!--/* Banner "Đặt vé thành công" chỉ hiện 1 lần ngay sau thanh toán (flash mất khi tải lại trang) */-->
+        <div th:unless="${booking?.status == 'PAID' and successMessage == null}" class="wb-booking-status" th:classappend="${booking?.status == 'PAID'} ? 'wb-status-paid' : (${booking?.status == 'PENDING'} ? 'wb-status-pending' : 'wb-status-muted')" th:switch="${booking?.status}">
           <div th:case="'PAID'">
             <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
             <div>

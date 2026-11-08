@@ -68,6 +68,14 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | M3 | `GET /admin/routes`, `/new`, `/{id}/edit` | `admin/route/list`, `…/form` | Trí | Khuyên | `routes`: List RouteDTO / `route`: RouteForm (`stationIds` theo thứ tự đã lưu), `stations`: List StationDTO gồm cả bến inactive | POST `/admin/routes/save`: `id`, `code`, `name`, `description`, `isActive`, `stationIds` (lặp theo thứ tự); POST `/{id}/delete` chỉ ngừng hoạt động tuyến |
 | M3 | `GET /admin/promotions…` | `admin/promotion/list`, `…/form` | Tân | Tân | `promotions` / `promotion` | `id`, `code`, `name`, `discountType`, `discountValue`, `maxDiscount`, `minOrderAmount`, `startAt`, `endAt`, `usageLimit`, `isActive` |
 | M3 | `GET /admin/ticket-types…` | `admin/tickettype/list`, `…/form` | Tân | Tân | `ticketTypes` / `ticketType` | `code`, `name`, `price`, `requiresVerification`, `description`, `isActive` |
+| Mới | `GET /admin/revenue` | `admin/revenue/index` (đề xuất) | Trí | Trâm | chưa chốt (Trâm và Trí chốt rồi điền) | |
+| Mới | `GET /admin/refunds…` | `admin/refund/list` (đề xuất) | Trí | Trâm | chưa chốt; dữ liệu từ bảng `refund` (entity `Refund`) | chưa chốt |
+| Mới | `GET /admin/accounts…` | `admin/account/list`, `…/form` (đề xuất) | Tân | Tân | chưa chốt | chưa chốt |
+
+Menu quản trị (`adminSidebar` trong `layout.html`): ADMIN thấy Chuyến tàu, Doanh thu, Hoàn tiền, Tài khoản, Tàu, Bến, Tuyến,
+Khuyến mãi, Loại vé, Soát vé; STAFF thấy Soát vé (đầu danh sách) và Chuyến tàu. Dropdown tài khoản trên navbar của ADMIN
+có thêm "Doanh thu". Ẩn link chỉ là giao diện; BE của từng trang vẫn phải tự chặn quyền (chỉ ADMIN cho 3 URL mới).
+Mục đang mở được tô sáng theo tiền tố URL (VD `/admin/accounts/5/edit` sáng "Tài khoản").
 
 Thông báo sau khi lưu/xoá: BE dùng `RedirectAttributes.addFlashAttribute("successMessage", "...")`,
 FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `layout.html` (Khuyên làm ở M1).

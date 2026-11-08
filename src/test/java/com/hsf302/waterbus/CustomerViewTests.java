@@ -116,6 +116,39 @@ class CustomerViewTests {
         assertThat(render("checkout", model)).contains("data-confirm=\"Đặt 0 vé chuyến").doesNotContain("chuyến null", "null →", "lúc null");
     }
 
+    @Test
+    void adminMenuShowsRevenueRefundsAccountsForAdminAndCheckinFirstForStaff() throws Exception {
+        MockHttpSession admin = new MockHttpSession();
+        admin.setAttribute("loginAccount", account("ADMIN"));
+        String adminMenu = render("sidebar", fixture("PENDING"), get("/__test/views/sidebar").session(admin));
+        int trips = adminMenu.indexOf("data-admin-nav=\"/admin/trips\"");
+        int revenue = adminMenu.indexOf("data-admin-nav=\"/admin/revenue\"");
+        int refunds = adminMenu.indexOf("data-admin-nav=\"/admin/refunds\"");
+        int accounts = adminMenu.indexOf("data-admin-nav=\"/admin/accounts\"");
+        int waterbuses = adminMenu.indexOf("data-admin-nav=\"/admin/waterbuses\"");
+        assertThat(trips).isNotNegative().isLessThan(revenue);
+        assertThat(revenue).isLessThan(refunds);
+        assertThat(refunds).isLessThan(accounts);
+        assertThat(accounts).isLessThan(waterbuses);
+        assertThat(adminMenu).contains("bi-graph-up-arrow", "bi-arrow-counterclockwise", "bi-people",
+                "href=\"/admin/revenue\"", "href=\"/admin/refunds\"", "href=\"/admin/accounts\"");
+        assertThat(adminMenu.split("data-admin-nav=\"/admin/checkin\"", -1)).hasSize(2);
+        assertThat(adminMenu.indexOf("data-admin-nav=\"/admin/checkin\"")).isGreaterThan(waterbuses);
+
+        MockHttpSession staff = new MockHttpSession();
+        staff.setAttribute("loginAccount", account("STAFF"));
+        String staffMenu = render("sidebar", fixture("PENDING"), get("/__test/views/sidebar").session(staff));
+        assertThat(staffMenu.split("data-admin-nav=\"/admin/checkin\"", -1)).hasSize(2);
+        assertThat(staffMenu.indexOf("data-admin-nav=\"/admin/checkin\""))
+                .isLessThan(staffMenu.indexOf("data-admin-nav=\"/admin/trips\""));
+        assertThat(staffMenu).doesNotContain("/admin/revenue", "/admin/refunds", "/admin/accounts", "/admin/waterbuses");
+
+        assertThat(render("navbar", fixture("PENDING"), get("/__test/views/navbar").session(admin)))
+                .contains("href=\"/admin/revenue\"");
+        assertThat(render("navbar", fixture("PENDING"), get("/__test/views/navbar").session(staff)))
+                .contains("href=\"/admin/trips\"").doesNotContain("/admin/revenue");
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"PENDING", "PAID", "EXPIRED", "CANCELLED"})
     void paymentDetailAndHistoryRenderRealDataAndStatuses(String state) throws Exception {
@@ -236,6 +269,8 @@ class CustomerViewTests {
                 case "payment" -> "payment/index";
                 case "detail" -> "booking/detail";
                 case "history" -> "booking/history";
+                case "sidebar" -> "fragments/layout :: adminSidebar";
+                case "navbar" -> "fragments/layout :: navbar";
                 default -> throw new IllegalArgumentException("Unknown fixture view");
             };
             return new ModelAndView(view, (Map<String, Object>) request.getAttribute("fixture"));

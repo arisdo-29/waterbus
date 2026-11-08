@@ -319,16 +319,27 @@
 /* Admin and handoff pages opt into these features through data attributes. */
 (function () {
     function initAdminNavigation() {
-        const path = window.location.pathname;
+        const path = window.location.pathname.replace(/\/+$/, '') || '/';
         const previewSections = {
             trips: 'trip', waterbuses: 'waterbus', stations: 'station',
-            routes: 'route', promotions: 'promotion', 'ticket-types': 'tickettype'
+            routes: 'route', promotions: 'promotion', 'ticket-types': 'tickettype',
+            revenue: 'revenue', refunds: 'refund', accounts: 'account', checkin: 'checkin'
         };
-        document.querySelectorAll('[data-admin-nav]').forEach(function (link) {
-            const target = link.dataset.adminNav;
+        const links = Array.from(document.querySelectorAll('[data-admin-nav]'));
+        // Đường dẫn con (VD /admin/accounts/5/edit) vẫn sáng mục cha; nhiều mục khớp thì lấy mục dài nhất.
+        const matches = function (target) {
             const section = target.split('/').filter(Boolean).pop();
-            const active = path === target || path.startsWith(target + '/') ||
-                path.startsWith('/templates/admin/' + previewSections[section] + '/');
+            return path === target || path.startsWith(target + '/') ||
+                (previewSections[section] !== undefined &&
+                    path.startsWith('/templates/admin/' + previewSections[section] + '/'));
+        };
+        const best = links.map(function (link) {
+            return link.dataset.adminNav.replace(/\/+$/, '');
+        }).filter(matches).sort(function (a, b) {
+            return b.length - a.length;
+        })[0];
+        links.forEach(function (link) {
+            const active = best !== undefined && link.dataset.adminNav.replace(/\/+$/, '') === best;
             link.classList.toggle('is-active', active);
             if (active) {
                 link.setAttribute('aria-current', 'page');

@@ -16,6 +16,14 @@ public interface BookingService {
     /** Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService. */
     Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail);
 
+    /**
+     * Giống hàm trên, thêm họ tên + năm sinh từng hành khách (vé ưu đãi; vé thường truyền null).
+     * Phần tử thứ i của 2 danh sách thuộc ghế thứ i trong seatIds.
+     * Tổng tiền = 0 đ -> đơn PAID + vé VALID ngay, không tạo payment.
+     */
+    Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail,
+                          List<String> passengerNames, List<Integer> birthYears);
+
     /** Tra cứu đơn theo mã. */
     Booking getBookingByCode(String bookingCode);
 

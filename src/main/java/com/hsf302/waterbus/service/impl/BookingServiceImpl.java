@@ -59,8 +59,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional // lưu 1 booking + nhiều ticket: lỗi giữa chừng thì huỷ hết, không lưu nửa vời
+    @Transactional
     public Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail) {
+        // Vé thường: không có họ tên/năm sinh từng hành khách -> gọi hàm đầy đủ với null
+        return createBooking(tripId, seatIds, ticketTypeId, fromStationId, toStationId, promoCode, accountId,
+                contactName, contactPhone, contactEmail, null, null);
+    }
+
+    @Override
+    @Transactional // lưu 1 booking + nhiều ticket: lỗi giữa chừng thì huỷ hết, không lưu nửa vời
+    public Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail,
+                                 List<String> passengerNames, List<Integer> birthYears) {
         // 1. Kiểm tra thông tin khách nhập
         if (isBlank(contactName) || isBlank(contactPhone) || isBlank(contactEmail)) {
             throw new IllegalArgumentException("Vui lòng nhập đầy đủ họ tên, số điện thoại và email.");
@@ -139,7 +148,10 @@ public class BookingServiceImpl implements BookingService {
             promotion = promotionService.getPromotionByCode(promoCode).orElse(null);
         }
 
-        // 7. Lưu booking: trạng thái PENDING, giữ chỗ 10 phút
+        // 7. Lưu booking: trạng thái PENDING, giữ chỗ 10 phút.
+        // Riêng đơn 0 đ (vé ưu đãi miễn phí, hoặc mã KM giảm hết) -> không cần trả tiền -> PAID luôn
+        BigDecimal total = subtotal.subtract(discount);
+        boolean isFree = total.compareTo(BigDecimal.ZERO) == 0;
         String number = newBookingNumber();
         Booking booking = new Booking();
         booking.setBookingCode("BK" + number);
@@ -153,13 +165,18 @@ public class BookingServiceImpl implements BookingService {
         booking.setContactEmail(contactEmail.trim());
         booking.setSubtotal(subtotal);
         booking.setDiscountAmount(discount);
-        booking.setTotalAmount(subtotal.subtract(discount)); // DB bắt buộc: total = subtotal - discount
-        booking.setStatus("PENDING");
+        booking.setTotalAmount(total); // DB bắt buộc: total = subtotal - discount
         booking.setCreatedAt(LocalDateTime.now());
-        booking.setExpiresAt(booking.getCreatedAt().plusMinutes(10));
+        booking.setExpiresAt(booking.getCreatedAt().plusMinutes(10)); // cột NOT NULL nên đơn 0 đ vẫn ghi
+        if (isFree) {
+            booking.setStatus("PAID");
+            booking.setPaidAt(booking.getCreatedAt()); // KHÔNG tạo payment vì không có tiền nào được trả
+        } else {
+            booking.setStatus("PENDING");
+        }
         bookingRepository.save(booking);
 
-        // 8. Mỗi ghế 1 vé HOLD (giữ ghế tới khi thanh toán hoặc hết hạn)
+        // 8. Mỗi ghế 1 vé: HOLD (giữ ghế tới khi thanh toán hoặc hết hạn), đơn 0 đ thì VALID dùng được ngay
         try {
             for (int i = 0; i < seatIds.size(); i++) {
                 Ticket ticket = new Ticket();
@@ -171,7 +188,14 @@ public class BookingServiceImpl implements BookingService {
                 ticket.setFromStation(fromStop.getStation());
                 ticket.setToStation(toStop.getStation());
                 ticket.setPrice(price); // chụp lại giá lúc mua
-                ticket.setStatus("HOLD");
+                ticket.setStatus(isFree ? "VALID" : "HOLD");
+                // Vé ưu đãi: hành khách thứ i ngồi ghế thứ i (vé thường không gửi -> để null)
+                if (passengerNames != null && i < passengerNames.size() && !isBlank(passengerNames.get(i))) {
+                    ticket.setPassengerName(passengerNames.get(i).trim());
+                }
+                if (birthYears != null && i < birthYears.size()) {
+                    ticket.setBirthYear(birthYears.get(i));
+                }
                 ticketRepository.save(ticket);
             }
             // Force the unique active-seat index check before this method returns.
@@ -181,6 +205,11 @@ public class BookingServiceImpl implements BookingService {
                 throw new IllegalArgumentException("Ghế vừa có người đặt. Vui lòng chọn ghế khác.", ex);
             }
             throw ex;
+        }
+
+        // 9. Đơn 0 đ đã coi như thanh toán xong -> có dùng mã KM thì tăng lượt dùng (giống payMock)
+        if (isFree && promotion != null) {
+            promotionService.increaseUsedCount(promotion.getCode());
         }
         return booking;
     }

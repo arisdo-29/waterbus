@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.dto;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 // DTO chuyển dữ liệu Account ra ngoài View và lưu vào Session "loginAccount"
@@ -11,14 +12,20 @@ public class AccountDTO implements Serializable {
     private final String phone;
     private final String role;
     private final String status;
+    private final LocalDateTime createdAt;
 
     public AccountDTO(Integer id, String email, String fullName, String phone, String role, String status) {
+        this(id, email, fullName, phone, role, status, null);
+    }
+
+    public AccountDTO(Integer id, String email, String fullName, String phone, String role, String status, LocalDateTime createdAt) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
         this.phone = phone;
         this.role = role;
         this.status = status;
+        this.createdAt = createdAt;
     }
 
     public Integer getId() {
@@ -43,6 +50,10 @@ public class AccountDTO implements Serializable {
 
     public String getStatus() {
         return status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
     @Override

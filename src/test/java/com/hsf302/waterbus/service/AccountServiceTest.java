@@ -174,6 +174,158 @@ class AccountServiceTest {
     }
 
     @Test
+    void testCreateStaffAccount_Success() {
+        when(accountRepository.existsByEmailIgnoreCase("staff@waterbus.vn")).thenReturn(false);
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> {
+            Account a = i.getArgument(0);
+            a.setId(10);
+            return a;
+        });
+
+        AccountDTO result = accountService.createStaffAccount("staff@waterbus.vn", "Staff@123", "Nhan Vien 1", "0901234567");
+
+        assertNotNull(result);
+        assertEquals(10, result.getId());
+        assertEquals("staff@waterbus.vn", result.getEmail());
+        assertEquals("STAFF", result.getRole());
+        assertEquals("ACTIVE", result.getStatus());
+        assertEquals("Nhan Vien 1", result.getFullName());
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+
+    @Test
+    void testCreateStaffAccount_DuplicateEmail() {
+        when(accountRepository.existsByEmailIgnoreCase("staff@waterbus.vn")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.createStaffAccount("staff@waterbus.vn", "Staff@123", "Nhan Vien 1", "0901234567")
+        );
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testChangeRole_CustomerToStaff_Success() {
+        Account user = new Account();
+        user.setId(2);
+        user.setEmail("user@gmail.com");
+        user.setRole("CUSTOMER");
+
+        when(accountRepository.findById(2)).thenReturn(Optional.of(user));
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
+
+        AccountDTO updated = accountService.changeRole(2, "STAFF", 1); // Admin id = 1
+
+        assertNotNull(updated);
+        assertEquals("STAFF", updated.getRole());
+        assertEquals("STAFF", user.getRole());
+        verify(accountRepository, times(1)).save(user);
+    }
+
+    @Test
+    void testChangeRole_StaffToCustomer_Success() {
+        Account staff = new Account();
+        staff.setId(2);
+        staff.setEmail("staff@waterbus.vn");
+        staff.setRole("STAFF");
+
+        when(accountRepository.findById(2)).thenReturn(Optional.of(staff));
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
+
+        AccountDTO updated = accountService.changeRole(2, "CUSTOMER", 1);
+
+        assertNotNull(updated);
+        assertEquals("CUSTOMER", updated.getRole());
+        assertEquals("CUSTOMER", staff.getRole());
+    }
+
+    @Test
+    void testChangeRole_Self_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.changeRole(1, "CUSTOMER", 1) // tự đổi quyền mình
+        );
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testChangeRole_TargetAdmin_ThrowsException() {
+        Account admin = new Account();
+        admin.setId(2);
+        admin.setRole("ADMIN");
+        when(accountRepository.findById(2)).thenReturn(Optional.of(admin));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.changeRole(2, "STAFF", 1)
+        );
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testChangeRole_PromoteToAdmin_ThrowsException() {
+        Account user = new Account();
+        user.setId(2);
+        user.setRole("CUSTOMER");
+        when(accountRepository.findById(2)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.changeRole(2, "ADMIN", 1)
+        );
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testToggleStatus_LockAndUnlock() {
+        Account user = new Account();
+        user.setId(2);
+        user.setRole("CUSTOMER");
+        user.setStatus("ACTIVE");
+
+        when(accountRepository.findById(2)).thenReturn(Optional.of(user));
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
+
+        // 1. ACTIVE -> LOCKED
+        AccountDTO locked = accountService.toggleStatus(2, 1);
+        assertEquals("LOCKED", locked.getStatus());
+
+        // 2. LOCKED -> ACTIVE
+        AccountDTO unlocked = accountService.toggleStatus(2, 1);
+        assertEquals("ACTIVE", unlocked.getStatus());
+    }
+
+    @Test
+    void testToggleStatus_Self_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.toggleStatus(1, 1) // tự khóa chính mình
+        );
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testToggleStatus_Admin_ThrowsException() {
+        Account admin = new Account();
+        admin.setId(2);
+        admin.setRole("ADMIN");
+        when(accountRepository.findById(2)).thenReturn(Optional.of(admin));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.toggleStatus(2, 1)
+        );
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testResetPassword_Success() {
+        Account user = new Account();
+        user.setId(2);
+        user.setPasswordHash(passwordEncoder.encode("OldPassword123"));
+        when(accountRepository.findById(2)).thenReturn(Optional.of(user));
+
+        accountService.resetPassword(2, "NewPassword999");
+
+        assertTrue(passwordEncoder.matches("NewPassword999", user.getPasswordHash()));
+        verify(accountRepository, times(1)).save(user);
+    }
+
+    @Test
     void testPhoneValidation_SameAsCheckoutRegex() {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator validator = factory.getValidator();

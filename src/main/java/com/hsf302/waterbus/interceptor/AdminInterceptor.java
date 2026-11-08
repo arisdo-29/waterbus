@@ -1,9 +1,12 @@
 package com.hsf302.waterbus.interceptor;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.entity.Account;
+import com.hsf302.waterbus.repository.AccountRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.FlashMap;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -15,6 +18,16 @@ import org.springframework.web.servlet.support.RequestContextUtils;
 @Component
 public class AdminInterceptor implements HandlerInterceptor {
 
+    private final AccountRepository accountRepository;
+
+    public AdminInterceptor() {
+        this.accountRepository = null;
+    }
+
+    public AdminInterceptor(@Autowired(required = false) AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         HttpSession session = request.getSession(false);
@@ -23,6 +36,24 @@ public class AdminInterceptor implements HandlerInterceptor {
         // 1. Chưa đăng nhập -> chuyển hướng về trang đăng nhập
         if (account == null) {
             response.sendRedirect(request.getContextPath() + "/auth/login?error=unauthorized");
+            return false;
+        }
+
+        // Kiểm tra trạng thái tài khoản: Nếu bị khoá trong DB thì tự động đăng xuất
+        if (accountRepository != null && account.getId() != null) {
+            Account dbAccount = accountRepository.findById(account.getId()).orElse(null);
+            if (dbAccount != null && "LOCKED".equalsIgnoreCase(dbAccount.getStatus())) {
+                session.removeAttribute("loginAccount");
+                session.invalidate();
+                sendRedirectWithFlashMessage(request, response, "/auth/login?error=locked",
+                        "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+                return false;
+            }
+        } else if ("LOCKED".equalsIgnoreCase(account.getStatus())) {
+            session.removeAttribute("loginAccount");
+            session.invalidate();
+            sendRedirectWithFlashMessage(request, response, "/auth/login?error=locked",
+                    "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
             return false;
         }
 

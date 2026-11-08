@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chi tiết tài khoản')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chi tiết tài khoản | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div>
+                    <span class="wb-eyebrow">Quản trị tài khoản</span>
+                    <h1 th:text="${account.fullName}">Nguyễn Văn A</h1>
+                    <p>Mã tài khoản: <strong class="wb-mono" th:text="${'#' + account.id}">#1</strong> | Email: <span class="wb-mono" th:text="${account.email}">user@waterbus.vn</span></p>
+                </div>
+                <a class="btn btn-wb-outline" href="/templates/admin/account/list.html" th:href="@{/admin/accounts}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại danh sách</a>
+            </header>
+
+            <div class="row g-4 mb-4">
+                <!-- Thông tin tài khoản -->
+                <div class="col-12 col-lg-5">
+                    <div class="card border-0 shadow-sm p-4 rounded-3 h-100">
+                        <h2 class="h5 fw-bold text-navy mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Thông tin tài khoản</h2>
+                        <ul class="list-group list-group-flush mb-4">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Họ và tên:</span>
+                                <strong th:text="${account.fullName}">Nguyễn Văn A</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Email:</span>
+                                <span class="wb-mono fw-semibold" th:text="${account.email}">user@waterbus.vn</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Số điện thoại:</span>
+                                <span th:text="${account.phone != null ? account.phone : 'Chưa cập nhật'}">0901234567</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Vai trò:</span>
+                                <div>
+                                    <span th:if="${account.role == 'ADMIN'}" class="badge bg-danger"><i class="bi bi-shield-fill me-1"></i>Quản trị viên</span>
+                                    <span th:if="${account.role == 'STAFF'}" class="badge bg-info text-dark"><i class="bi bi-person-badge me-1"></i>Nhân viên</span>
+                                    <span th:if="${account.role == 'CUSTOMER'}" class="badge bg-secondary"><i class="bi bi-person me-1"></i>Khách hàng</span>
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Trạng thái:</span>
+                                <div>
+                                    <span th:if="${account.status == 'ACTIVE'}" class="badge wb-badge-success">Đang hoạt động</span>
+                                    <span th:if="${account.status == 'LOCKED'}" class="badge wb-badge-danger">Đã bị khóa</span>
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Ngày đăng ký:</span>
+                                <span th:text="${account.createdAt != null ? #temporals.format(account.createdAt, 'HH:mm dd/MM/yyyy') : '-'}">08/11/2026 10:00</span>
+                            </li>
+                        </ul>
+
+                        <!-- Đặt lại mật khẩu -->
+                        <div class="border-top pt-3">
+                            <h3 class="h6 fw-bold mb-2"><i class="bi bi-key me-1"></i>Đặt lại mật khẩu</h3>
+                            <form th:action="@{/admin/accounts/{id}/reset-password(id=${account.id})}" method="post" data-confirm="Xác nhận đặt lại mật khẩu mới cho tài khoản này?">
+                                <div class="input-group input-group-sm mb-2">
+                                    <input type="password" name="newPassword" class="form-control" placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)" required minlength="6">
+                                    <button class="btn btn-wb-accent" type="submit">Đặt lại</button>
+                                </div>
+                                <small class="text-muted">Mật khẩu mới sẽ được mã hóa an toàn và áp dụng ngay.</small>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lịch sử đặt vé -->
+                <div class="col-12 col-lg-7">
+                    <div class="card border-0 shadow-sm p-4 rounded-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 class="h5 fw-bold text-navy mb-0"><i class="bi bi-ticket-perforated me-2 text-primary"></i>Lịch sử đặt vé</h2>
+                            <span class="badge bg-light text-navy border" th:text="${#lists.size(bookings) + ' đơn vé'}">0 đơn vé</span>
+                        </div>
+
+                        <div class="table-responsive" th:unless="${#lists.isEmpty(bookings)}">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Thời gian đặt</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end">Xem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="b : ${bookings}">
+                                        <td><strong class="wb-mono text-primary" th:text="${b.bookingCode}">BK0000001</strong></td>
+                                        <td class="small" th:text="${b.createdAt != null ? #temporals.format(b.createdAt, 'dd/MM/yyyy HH:mm') : '-'}">01/01/2026</td>
+                                        <td><strong th:text="${#numbers.formatDecimal(b.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">30.000 đ</strong></td>
+                                        <td>
+                                            <span th:replace="~{fragments/layout :: statusBadge(${b.status})}">Đã thanh toán</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a class="btn btn-sm btn-wb-outline" th:href="@{/booking/{code}(code=${b.bookingCode})}" target="_blank" title="Xem chi tiết đơn trên trang vé">Xem</a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-center py-4 text-muted" th:if="${#lists.isEmpty(bookings)}">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            <p class="mb-0">Tài khoản này chưa có đơn đặt vé nào.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <th:block th:replace="~{fragments/layout :: scripts}">
+        <script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script>
+    </th:block>
+</body>
+</html>

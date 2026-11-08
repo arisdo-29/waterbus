@@ -114,7 +114,9 @@
 
                                     <!-- Khóa / Mở khóa (không áp dụng cho ADMIN hoặc chính mình) -->
                                     <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
-                                        <form th:action="@{/admin/accounts/{id}/toggle-status(id=${acc.id})}" method="post" class="d-inline" th:data-confirm="${acc.status == 'ACTIVE' ? 'Bạn có chắc chắn muốn KHÓA tài khoản này? Người dùng sẽ không thể đăng nhập.' : 'Mở khóa cho tài khoản này?'}">
+                                        <form th:action="@{/admin/accounts/{id}/toggle-status(id=${acc.id})}" method="post" class="d-inline"
+                                              th:data-confirm="${acc.status == 'ACTIVE' ? 'Bạn có chắc chắn muốn KHÓA tài khoản này? Người dùng sẽ không thể đăng nhập.' : 'Mở khóa cho tài khoản này?'}"
+                                              th:data-confirm-variant="${acc.status == 'ACTIVE' ? 'danger' : 'default'}">
                                             <button th:if="${acc.status == 'ACTIVE'}" class="btn btn-sm btn-wb-outline wb-admin-danger" type="submit">Khóa</button>
                                             <button th:if="${acc.status == 'LOCKED'}" class="btn btn-sm btn-wb-outline text-success border-success" type="submit">Mở khóa</button>
                                         </form>

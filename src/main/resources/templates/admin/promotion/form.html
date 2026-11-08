@@ -30,7 +30,10 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin khuyến mãi</h2>
-                    <form th:action="@{/admin/promotions/save}" th:object="${promotion}" method="post" novalidate>
+                    <form th:action="@{/admin/promotions/save}" th:object="${promotion}" method="post" novalidate
+                          th:data-confirm="${promotion?.id == null ? 'Xác nhận tạo mã khuyến mãi mới?' : 'Xác nhận cập nhật thông tin mã khuyến mãi này?'}"
+                          data-confirm-title="Lưu khuyến mãi"
+                          data-confirm-ok="Lưu">
                         <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}">
                             <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
                             <span th:each="err : ${#fields.globalErrors()}" th:text="${err}">Đã có lỗi xảy ra.</span>

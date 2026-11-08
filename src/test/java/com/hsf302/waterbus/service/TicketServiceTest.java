@@ -237,6 +237,43 @@ class TicketServiceTest {
     }
 
     @Test
+    @DisplayName("Vé của chuyến tàu đã bị hủy (CANCELLED) -> ném ngoại lệ IllegalStateException")
+    void checkIn_cancelledTrip_throwsException() {
+        // Cập nhật trip sang CANCELLED
+        Trip trip = validTicket.getTrip();
+        trip.setStatus("CANCELLED");
+        tripRepository.save(trip);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn("TK_VALID_01");
+        });
+        assertTrue(ex.getMessage().contains("Chuyến tàu") && ex.getMessage().contains("đã bị hủy"));
+    }
+
+    @Test
+    @DisplayName("Vé của đơn đặt vé đã bị hủy (CANCELLED) hoặc hoàn tiền (REFUNDED) -> ném ngoại lệ IllegalStateException")
+    void checkIn_cancelledOrRefundedBooking_throwsException() {
+        // 1. Đơn bị CANCELLED
+        Booking booking = validTicket.getBooking();
+        booking.setStatus("CANCELLED");
+        bookingRepository.save(booking);
+
+        IllegalStateException ex1 = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn("TK_VALID_01");
+        });
+        assertTrue(ex1.getMessage().contains("đã bị hủy"));
+
+        // 2. Đơn bị REFUNDED
+        booking.setStatus("REFUNDED");
+        bookingRepository.save(booking);
+
+        IllegalStateException ex2 = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn("TK_VALID_01");
+        });
+        assertTrue(ex2.getMessage().contains("đã được hoàn tiền"));
+    }
+
+    @Test
     @DisplayName("Tra cứu thông tin vé không làm thay đổi trạng thái hay thời gian soát vé")
     void getTicketInfo_success() {
         TicketCheckinDTO info = ticketService.getTicketInfo("TK_VALID_01");

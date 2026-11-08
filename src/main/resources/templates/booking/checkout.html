@@ -92,7 +92,7 @@
                 <span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'POINT', 0, 'COMMA')} + ' đ'">30.000 đ</strong>
               </div>
               <div class="wb-summary-actions">
-                <button class="btn btn-wb-outline" type="button" data-action="back"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại chọn ghế</button><button class="btn btn-wb-accent" type="submit">Đặt vé <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
+                <button class="btn btn-wb-outline" type="button" data-action="back"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại chọn ghế</button><button class="btn btn-wb-accent" type="submit" data-confirm="Xác nhận đặt vé cho chuyến và ghế đã chọn?" th:data-confirm="${'Đặt ' + (seats == null ? 0 : #lists.size(seats)) + ' vé chuyến ' + (trip?.routeName ?: '') + ' (' + (fromStation?.name ?: '') + ' → ' + (toStation?.name ?: '') + ')' + (trip?.departureTime == null ? '' : ' lúc ' + #temporals.format(trip.departureTime, 'HH:mm dd/MM/yyyy')) + ', ghế ' + (seats == null ? '' : #strings.listJoin(seats.![seatCode], ', ')) + '?'}" data-confirm-title="Xác nhận đặt vé" data-confirm-ok="Đặt vé">Đặt vé <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
               </div>
             </aside>
           </div>

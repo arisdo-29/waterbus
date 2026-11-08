@@ -148,3 +148,27 @@ Theo Conventional Commits: `<kieu>(<module>): <mo ta ngan>`
 **Không được có tên AI agent trong commit/PR** (kể cả dòng `Co-Authored-By` hay "Generated with ...").
 Hook `.githooks/commit-msg` chặn ngay trên máy, và job `no-agent-name` trên GitHub chặn PR.
 Chi tiết cho agent: [AGENTS.md](AGENTS.md).
+
+## 8. Pop-up xác nhận
+
+Không dùng `confirm()`/`alert()` của trình duyệt. Mọi trang có fragment `scripts` của `layout.html` đều có sẵn
+modal `confirmModal`; chỉ cần gắn thuộc tính lên `<form>`, nút submit (nút được ưu tiên hơn form) hoặc link `<a>`:
+
+| Thuộc tính | Ý nghĩa |
+|---|---|
+| `data-confirm` | Nội dung hỏi lại (bắt buộc, có thuộc tính này mới hiện pop-up) |
+| `data-confirm-title` | Tiêu đề pop-up, mặc định "Xác nhận thao tác" |
+| `data-confirm-variant="danger"` | Nút Đồng ý màu đỏ, dùng cho xoá/huỷ |
+| `data-confirm-ok` | Chữ trên nút Đồng ý, mặc định "Đồng ý" |
+
+Bấm Đồng ý thì form mới được gửi (đúng nút đã bấm), nút submit bị khoá kèm spinner để không gửi 2 lần.
+Bấm Huỷ hoặc Esc thì không gửi gì.
+
+```html
+<form th:action="@{/admin/trips/{id}/cancel(id=${trip?.id})}" method="post"
+      data-confirm="Huỷ chuyến này? Hãy kiểm tra các vé đã đặt trước khi tiếp tục."
+      data-confirm-title="Huỷ chuyến" data-confirm-variant="danger" data-confirm-ok="Huỷ chuyến">
+    <button class="btn btn-wb-outline" type="submit">Huỷ chuyến</button>
+</form>
+```
+Nội dung có dữ liệu động thì dùng `th:data-confirm="${'Xoá bến ' + station?.name + '?'}"`.

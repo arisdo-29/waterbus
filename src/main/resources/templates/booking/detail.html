@@ -38,7 +38,7 @@
             </div>
             <div class="d-flex flex-wrap gap-2 align-items-center">
               <a class="btn btn-wb-accent" href="/templates/payment/index.html" th:href="@{/payment/{code}(code=${booking?.bookingCode})}">Thanh toán ngay</a>
-              <form action="/templates/booking/detail.html" th:action="@{/booking/{code}/cancel(code=${booking?.bookingCode})}" method="post" data-confirm="Huỷ đơn đặt vé này? Ghế sẽ được nhả cho người khác.">
+              <form action="/templates/booking/detail.html" th:action="@{/booking/{code}/cancel(code=${booking?.bookingCode})}" method="post" data-confirm="Huỷ đơn đặt vé này? Ghế sẽ được nhả cho người khác." data-confirm-title="Huỷ đơn đặt vé" data-confirm-variant="danger" data-confirm-ok="Huỷ đơn">
                 <button class="btn btn-wb-outline" type="submit">Huỷ đơn</button>
               </form>
             </div>

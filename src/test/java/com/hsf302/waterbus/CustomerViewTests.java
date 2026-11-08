@@ -99,6 +99,23 @@ class CustomerViewTests {
                 .doesNotContain("value=\"account@example.test\"");
     }
 
+    @Test
+    void confirmModalIsSharedAndBookingFormsAskBeforeSubmitting() throws Exception {
+        Map<String, Object> model = fixture("PENDING");
+        for (String page : List.of("home", "checkout", "payment", "detail", "history")) {
+            String html = render(page, model);
+            assertThat(html).contains("id=\"wbConfirmModal\"", "data-confirm-modal-ok", ">Huỷ</button>", ">Đồng ý</button>");
+            assertThat(html.indexOf("id=\"wbConfirmModal\"")).isLessThan(html.indexOf("src=\"/js/app.js\""));
+        }
+        assertThat(render("checkout", model)).containsPattern("<button[^>]*type=\"submit\"[^>]*data-confirm=\"Đặt 2 vé chuyến "
+                + "Tuyến thực \\([^\"]*\\)[^\"]*, ghế C7, C8\\?\"");
+        assertThat(render("payment", model)).containsPattern("data-payment-submit[^>]*data-confirm=\"Thanh toán 42.000 đ cho đơn REAL-42\\?\"");
+        assertThat(render("detail", model)).containsPattern("action=\"/booking/REAL-42/cancel\"[^>]*data-confirm-variant=\"danger\"");
+        model.put("seats", List.of());
+        model.put("trip", null);
+        assertThat(render("checkout", model)).contains("data-confirm=\"Đặt 0 vé chuyến").doesNotContain("chuyến null", "null →", "lúc null");
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"PENDING", "PAID", "EXPIRED", "CANCELLED"})
     void paymentDetailAndHistoryRenderRealDataAndStatuses(String state) throws Exception {

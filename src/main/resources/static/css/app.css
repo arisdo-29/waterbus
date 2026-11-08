@@ -260,3 +260,17 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
     .wb-error-actions { flex-direction: column; }
     .wb-error-actions .btn { width: 100%; }
 }
+
+/* Pop-up xác nhận dùng chung (fragment confirmModal) */
+.btn-wb-danger { background: var(--wb-danger); border-color: var(--wb-danger); color: #fff; font-weight: 700; }
+.btn-wb-danger:hover, .btn-wb-danger:focus-visible { background: #B83333; border-color: #B83333; color: #fff; }
+.wb-confirm-modal .modal-content { border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 20px 45px rgba(11, 53, 80, .18); }
+.wb-confirm-modal .modal-header { border-bottom-color: var(--wb-line); }
+.wb-confirm-modal .modal-title { font-size: 1.2rem; margin: 0; }
+.wb-confirm-modal .modal-body p { margin: 0; color: var(--wb-ink); white-space: pre-line; }
+.wb-confirm-modal .modal-footer { border-top-color: var(--wb-line); gap: 8px; }
+.wb-confirm-modal .modal-footer .btn { min-width: 110px; margin: 0; }
+@media (max-width: 575.98px) {
+    .wb-confirm-modal .modal-footer { flex-direction: column-reverse; align-items: stretch; }
+    .wb-confirm-modal .modal-footer .btn { width: 100%; }
+}

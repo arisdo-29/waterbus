@@ -338,25 +338,155 @@
         });
     }
 
+    /*
+     * Pop-up xác nhận dùng chung (modal "confirmModal" trong layout.html).
+     * data-confirm="Nội dung"           đặt trên <form>, nút submit (ưu tiên nút) hoặc <a>
+     * data-confirm-title="Tiêu đề"      mặc định "Xác nhận thao tác"
+     * data-confirm-variant="danger"     nút Đồng ý màu đỏ
+     * data-confirm-ok="Chữ trên nút"    mặc định "Đồng ý"
+     */
     function initConfirmations() {
-        document.addEventListener('submit', function (event) {
-            const form = event.target;
-            const submitter = event.submitter;
-            const message = (submitter && submitter.dataset.confirm) || form.dataset.confirm;
-            if (message && !window.confirm(message)) {
-                event.preventDefault();
+        const modalElement = document.querySelector('[data-confirm-modal]');
+        const titleElement = modalElement && modalElement.querySelector('[data-confirm-modal-title]');
+        const messageElement = modalElement && modalElement.querySelector('[data-confirm-modal-message]');
+        const okButton = modalElement && modalElement.querySelector('[data-confirm-modal-ok]');
+        const cancelButton = modalElement && modalElement.querySelector('[data-confirm-modal-cancel]');
+        const hasModal = Boolean(modalElement && titleElement && messageElement && okButton &&
+            window.bootstrap && window.bootstrap.Modal);
+        const bypass = new WeakSet();
+        let pendingAction = null;
+        let focusDanger = false;
+
+        function isSubmitControl(control) {
+            return (control.tagName === 'BUTTON' || control.tagName === 'INPUT') &&
+                control.type === 'submit' && Boolean(control.form);
+        }
+
+        function readOption(source, fallback, name) {
+            if (source && source.hasAttribute(name)) {
+                return source.getAttribute(name);
             }
-        });
-        document.querySelectorAll('[data-confirm]').forEach(function (control) {
-            if (control.tagName === 'FORM' ||
-                (control.tagName === 'BUTTON' && control.type === 'submit' && control.form) ||
-                (control.tagName === 'INPUT' && control.type === 'submit' && control.form)) {
+            return fallback && fallback.hasAttribute(name) ? fallback.getAttribute(name) : null;
+        }
+
+        function ask(source, fallback, action) {
+            if (!hasModal) {
+                action();
                 return;
             }
-            control.addEventListener('click', function (event) {
-                if (!window.confirm(control.dataset.confirm)) {
-                    event.preventDefault();
+            const danger = readOption(source, fallback, 'data-confirm-variant') === 'danger';
+            titleElement.textContent = readOption(source, fallback, 'data-confirm-title') || 'Xác nhận thao tác';
+            messageElement.textContent = source.getAttribute('data-confirm');
+            okButton.textContent = readOption(source, fallback, 'data-confirm-ok') || 'Đồng ý';
+            okButton.classList.toggle('btn-wb-accent', !danger);
+            okButton.classList.toggle('btn-wb-danger', danger);
+            focusDanger = danger;
+            pendingAction = action;
+            window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        }
+
+        function lockSubmit(form, submitter) {
+            const button = submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+            form.classList.add('is-submitting');
+            form.setAttribute('aria-busy', 'true');
+            if (!button) {
+                return;
+            }
+            // Khoá sau khi trình duyệt đã lấy dữ liệu form, để nút bấm vẫn gửi name/value của nó.
+            window.setTimeout(function () {
+                button.disabled = true;
+                if (button.tagName === 'BUTTON' && !button.querySelector('[data-confirm-spinner]')) {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'spinner-border spinner-border-sm me-2';
+                    spinner.setAttribute('aria-hidden', 'true');
+                    spinner.setAttribute('data-confirm-spinner', '');
+                    button.prepend(spinner);
                 }
+            }, 0);
+        }
+
+        if (hasModal) {
+            okButton.addEventListener('click', function () {
+                const action = pendingAction;
+                pendingAction = null;
+                window.bootstrap.Modal.getOrCreateInstance(modalElement).hide();
+                if (action) {
+                    action();
+                }
+            });
+            modalElement.addEventListener('shown.bs.modal', function () {
+                (focusDanger && cancelButton ? cancelButton : okButton).focus();
+            });
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                pendingAction = null;
+            });
+        }
+
+        document.addEventListener('submit', function (event) {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || event.defaultPrevented) {
+                return;
+            }
+            const submitter = event.submitter && event.submitter.form === form ? event.submitter : null;
+            if (form.classList.contains('is-submitting')) {
+                event.preventDefault();
+                return;
+            }
+            if (bypass.has(form)) {
+                bypass.delete(form);
+                lockSubmit(form, submitter);
+                return;
+            }
+            const source = submitter && submitter.hasAttribute('data-confirm') ? submitter :
+                (form.hasAttribute('data-confirm') ? form : null);
+            if (!source) {
+                return;
+            }
+            event.preventDefault();
+            ask(source, form, function () {
+                bypass.add(form);
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit(submitter || undefined);
+                } else {
+                    form.submit();
+                }
+                bypass.delete(form);
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            const control = event.target.closest('[data-confirm]');
+            if (!control || control.tagName === 'FORM' || isSubmitControl(control) ||
+                control.closest('[data-confirm-modal]')) {
+                return;
+            }
+            if (bypass.has(control)) {
+                bypass.delete(control);
+                return;
+            }
+            event.preventDefault();
+            ask(control, null, function () {
+                bypass.add(control);
+                control.click();
+                bypass.delete(control);
+            });
+        });
+
+        // Quay lại trang bằng nút Back (bfcache): mở khoá form đã gửi trước đó.
+        window.addEventListener('pageshow', function (event) {
+            if (!event.persisted) {
+                return;
+            }
+            document.querySelectorAll('form.is-submitting').forEach(function (form) {
+                form.classList.remove('is-submitting');
+                form.removeAttribute('aria-busy');
+                form.querySelectorAll('[data-confirm-spinner]').forEach(function (spinner) {
+                    const button = spinner.closest('button');
+                    spinner.remove();
+                    if (button) {
+                        button.disabled = false;
+                    }
+                });
             });
         });
     }

@@ -83,7 +83,7 @@ class BookingFormValidationTest {
 
     @Test
     void noSeatOrMissingTripIsRejected() throws Exception {
-        mvc.perform(post("/booking")
+        mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .param("tripId", String.valueOf(tripId))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
                         .param("fromStationId", String.valueOf(s1)).param("toStationId", String.valueOf(s2))
@@ -93,7 +93,7 @@ class BookingFormValidationTest {
                 .andExpect(model().attributeHasFieldErrors("bookingForm", "seatIds"))
                 .andExpect(model().attribute("errorMessage", "Vui lòng chọn ít nhất 1 ghế."));
 
-        mvc.perform(post("/booking") // thiếu tripId (form bị sửa tay) -> 400 như trước
+        mvc.perform(post("/booking").param("acceptPolicy", "true") // thiếu tripId (form bị sửa tay) -> 400 như trước
                         .param("seatIds", String.valueOf(seatId))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
                         .param("fromStationId", String.valueOf(s1)).param("toStationId", String.valueOf(s2))
@@ -125,7 +125,7 @@ class BookingFormValidationTest {
 
     // Form ở trang checkout gửi lên, đủ chuyến/ghế/bến; chỉ thay phần khách tự nhập
     private MockHttpServletRequestBuilder booking(String name, String phone, String email, String promo) {
-        return post("/booking")
+        return post("/booking").param("acceptPolicy", "true")
                 .param("tripId", String.valueOf(tripId)).param("seatIds", String.valueOf(seatId))
                 .param("ticketTypeId", String.valueOf(ticketTypeId))
                 .param("fromStationId", String.valueOf(s1)).param("toStationId", String.valueOf(s2))

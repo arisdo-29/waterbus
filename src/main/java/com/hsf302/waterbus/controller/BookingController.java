@@ -6,6 +6,7 @@ import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.service.BookingService;
+import com.hsf302.waterbus.service.PaymentService;
 import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.StationService;
 import com.hsf302.waterbus.service.TicketTypeService;
@@ -38,12 +39,16 @@ public class BookingController {
     private final StationService stationService;
     private final TicketTypeService ticketTypeService;
     private final RefundService refundService;
+    // Cùng module BE4: lấy thông tin thanh toán cho trang xem vé
+    private final PaymentService paymentService;
 
     public BookingController(BookingService bookingService, StationService stationService,
-                             TicketTypeService ticketTypeService, RefundService refundService) {
+                             TicketTypeService ticketTypeService, PaymentService paymentService,
+                             RefundService refundService) {
         this.bookingService = bookingService;
         this.stationService = stationService;
         this.ticketTypeService = ticketTypeService;
+        this.paymentService = paymentService;
         this.refundService = refundService;
     }
 
@@ -98,6 +103,9 @@ public class BookingController {
             flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
             return "redirect:/trips";
         }
+        // @Valid đã kiểm tra các ô đơn giản (họ tên, SĐT, chính sách...). Vé ưu đãi cần kiểm tra thêm
+        // họ tên + năm sinh từng ghế -> service ghi thêm lỗi vào cùng "errors" để hiện dưới đúng ô
+        bookingService.validatePassengers(form, errors);
         if (errors.hasErrors()) {
             // Nhập sai (trống tên, SĐT sai...) -> chưa gọi service, báo lỗi
             model.addAttribute("errorMessage", errorText(errors));
@@ -109,8 +117,14 @@ public class BookingController {
             try {
                 Booking booking = bookingService.createBooking(form.getTripId(), form.getSeatIds(),
                         form.getTicketTypeId(), form.getFromStationId(), form.getToStationId(), form.getPromoCode(),
-                        accountId, form.getContactName(), form.getContactPhone(), form.getContactEmail());
-                // Thành công -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
+                        accountId, form.getContactName(), form.getContactPhone(), form.getContactEmail(),
+                        form.getPassengerNames(), form.getBirthYears());
+                // Đơn 0 đ đã PAID ngay (không cần trả tiền) -> sang thẳng trang xem vé
+                if ("PAID".equals(booking.getStatus())) {
+                    flash.addFlashAttribute("successMessage", "Đặt vé thành công! Vé của bạn đã sẵn sàng.");
+                    return "redirect:/booking/" + booking.getBookingCode();
+                }
+                // Còn lại -> sang trang thanh toán. Dùng redirect để bấm F5 không tạo đơn lần 2
                 return "redirect:/payment/" + booking.getBookingCode();
             } catch (IllegalArgumentException ex) {
                 // Lỗi nghiệp vụ (ghế vừa bị đặt, mã KM sai...) -> báo lỗi
@@ -139,6 +153,8 @@ public class BookingController {
         model.addAttribute("tickets", bookingService.getTicketsOfBooking(booking.getId()));
         model.addAttribute("refund", refundService.getRefundOfBooking(booking.getId()));
         model.addAttribute("tripCancelReason", bookingService.getTripCancelReason(booking.getId()));
+        // payment: PaymentInfoDTO (method, transactionRef) hoặc null nếu đơn chưa có payment
+        model.addAttribute("payment", paymentService.getPaymentOfBooking(booking.getId()));
         return "booking/detail";
     }
 

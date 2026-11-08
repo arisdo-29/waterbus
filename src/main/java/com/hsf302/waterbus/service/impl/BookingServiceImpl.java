@@ -1,8 +1,10 @@
 package com.hsf302.waterbus.service.impl;
 
 import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.dto.TicketDTO;
+import com.hsf302.waterbus.dto.TicketTypeDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Promotion;
 import com.hsf302.waterbus.entity.RouteStation;
@@ -20,6 +22,7 @@ import com.hsf302.waterbus.service.RouteService;
 import com.hsf302.waterbus.service.TicketTypeService;
 import com.hsf302.waterbus.service.TripService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +30,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.Errors;
 
 // Module: BE4 - Đặt vé & Thanh toán.
 @Service
@@ -58,8 +62,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional // lưu 1 booking + nhiều ticket: lỗi giữa chừng thì huỷ hết, không lưu nửa vời
+    @Transactional
     public Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail) {
+        // Vé thường: không có họ tên/năm sinh từng hành khách -> gọi hàm đầy đủ với null
+        return createBooking(tripId, seatIds, ticketTypeId, fromStationId, toStationId, promoCode, accountId,
+                contactName, contactPhone, contactEmail, null, null);
+    }
+
+    @Override
+    @Transactional // lưu 1 booking + nhiều ticket: lỗi giữa chừng thì huỷ hết, không lưu nửa vời
+    public Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail,
+                                 List<String> passengerNames, List<Integer> birthYears) {
         // 1. Kiểm tra thông tin khách nhập
         if (isBlank(contactName) || isBlank(contactPhone) || isBlank(contactEmail)) {
             throw new IllegalArgumentException("Vui lòng nhập đầy đủ họ tên, số điện thoại và email.");
@@ -138,7 +151,10 @@ public class BookingServiceImpl implements BookingService {
             promotion = promotionService.getPromotionByCode(promoCode).orElse(null);
         }
 
-        // 7. Lưu booking: trạng thái PENDING, giữ chỗ 10 phút
+        // 7. Lưu booking: trạng thái PENDING, giữ chỗ 10 phút.
+        // Riêng đơn 0 đ (vé ưu đãi miễn phí, hoặc mã KM giảm hết) -> không cần trả tiền -> PAID luôn
+        BigDecimal total = subtotal.subtract(discount);
+        boolean isFree = total.compareTo(BigDecimal.ZERO) == 0;
         String number = newBookingNumber();
         Booking booking = new Booking();
         booking.setBookingCode("BK" + number);
@@ -152,13 +168,18 @@ public class BookingServiceImpl implements BookingService {
         booking.setContactEmail(contactEmail.trim());
         booking.setSubtotal(subtotal);
         booking.setDiscountAmount(discount);
-        booking.setTotalAmount(subtotal.subtract(discount)); // DB bắt buộc: total = subtotal - discount
-        booking.setStatus("PENDING");
+        booking.setTotalAmount(total); // DB bắt buộc: total = subtotal - discount
         booking.setCreatedAt(LocalDateTime.now());
-        booking.setExpiresAt(booking.getCreatedAt().plusMinutes(10));
+        booking.setExpiresAt(booking.getCreatedAt().plusMinutes(10)); // cột NOT NULL nên đơn 0 đ vẫn ghi
+        if (isFree) {
+            booking.setStatus("PAID");
+            booking.setPaidAt(booking.getCreatedAt()); // KHÔNG tạo payment vì không có tiền nào được trả
+        } else {
+            booking.setStatus("PENDING");
+        }
         bookingRepository.save(booking);
 
-        // 8. Mỗi ghế 1 vé HOLD (giữ ghế tới khi thanh toán hoặc hết hạn)
+        // 8. Mỗi ghế 1 vé: HOLD (giữ ghế tới khi thanh toán hoặc hết hạn), đơn 0 đ thì VALID dùng được ngay
         try {
             for (int i = 0; i < seatIds.size(); i++) {
                 Ticket ticket = new Ticket();
@@ -170,7 +191,14 @@ public class BookingServiceImpl implements BookingService {
                 ticket.setFromStation(fromStop.getStation());
                 ticket.setToStation(toStop.getStation());
                 ticket.setPrice(price); // chụp lại giá lúc mua
-                ticket.setStatus("HOLD");
+                ticket.setStatus(isFree ? "VALID" : "HOLD");
+                // Vé ưu đãi: hành khách thứ i ngồi ghế thứ i (vé thường không gửi -> để null)
+                if (passengerNames != null && i < passengerNames.size() && !isBlank(passengerNames.get(i))) {
+                    ticket.setPassengerName(passengerNames.get(i).trim());
+                }
+                if (birthYears != null && i < birthYears.size()) {
+                    ticket.setBirthYear(birthYears.get(i));
+                }
                 ticketRepository.save(ticket);
             }
             // Force the unique active-seat index check before this method returns.
@@ -180,6 +208,11 @@ public class BookingServiceImpl implements BookingService {
                 throw new IllegalArgumentException("Ghế vừa có người đặt. Vui lòng chọn ghế khác.", ex);
             }
             throw ex;
+        }
+
+        // 9. Đơn 0 đ đã coi như thanh toán xong -> có dùng mã KM thì tăng lượt dùng (giống payMock)
+        if (isFree && promotion != null) {
+            promotionService.increaseUsedCount(promotion.getCode());
         }
         return booking;
     }
@@ -268,6 +301,65 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public void validatePassengers(BookingForm form, Errors errors) {
+        // Thiếu chuyến/loại vé -> Controller đã tự xử lý trước, ở đây bỏ qua
+        if (form.getTripId() == null || form.getTicketTypeId() == null) {
+            return;
+        }
+        // Chỉ kiểm tra vé ưu đãi (requiresVerification = true). Vé thường -> không cần họ tên, năm sinh
+        TicketTypeDTO ticketType = ticketTypeService.getTicketTypeById(form.getTicketTypeId());
+        if (ticketType == null || !Boolean.TRUE.equals(ticketType.getRequiresVerification())) {
+            return;
+        }
+        BookingTripDTO trip = getTripInfo(form.getTripId());
+        if (trip == null) {
+            return;
+        }
+
+        // 1. Mỗi ghế phải có đúng 1 họ tên và 1 năm sinh (thứ tự giống seatIds)
+        int seatCount = (form.getSeatIds() == null) ? 0 : form.getSeatIds().size();
+        List<String> names = form.getPassengerNames();
+        List<Integer> years = form.getBirthYears();
+        if (names == null || years == null || names.size() != seatCount || years.size() != seatCount) {
+            // Lỗi của cả danh sách -> template hiện ở cuối khung "Thông tin hành khách"
+            errors.rejectValue("passengerNames", "passengers.count",
+                    "Vui lòng nhập họ tên và năm sinh cho từng ghế.");
+            return; // số lượng sai thì không kiểm tra từng ghế được
+        }
+
+        // 2. Kiểm tra từng ghế thứ i: lỗi ghi vào đúng ô passengerNames[i] / birthYears[i]
+        int currentYear = LocalDate.now().getYear();
+        int travelYear = trip.getDepartureTime().getYear(); // tuổi tính theo năm tàu chạy
+        for (int i = 0; i < seatCount; i++) {
+            String name = names.get(i);
+            if (isBlank(name)) {
+                errors.rejectValue("passengerNames[" + i + "]", "passenger.name",
+                        "Vui lòng nhập họ tên hành khách.");
+            } else if (name.trim().length() > 100) {
+                // Cột passenger_name trong DB chỉ chứa 100 ký tự
+                errors.rejectValue("passengerNames[" + i + "]", "passenger.name",
+                        "Họ tên hành khách tối đa 100 ký tự.");
+            }
+
+            Integer year = years.get(i);
+            if (year == null || year < 1900 || year > currentYear) {
+                errors.rejectValue("birthYears[" + i + "]", "passenger.birthYear",
+                        "Năm sinh phải từ 1900 đến " + currentYear + ".");
+                continue; // năm sinh sai thì không tính tuổi nữa
+            }
+            int age = travelYear - year;
+            if ("SENIOR_70".equals(ticketType.getCode()) && age < 70) {
+                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
+                        "Vé người cao tuổi chỉ dành cho hành khách từ 70 tuổi trở lên.");
+            }
+            if ("PRIORITY".equals(ticketType.getCode()) && age < 13) {
+                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
+                        "Vé ưu tiên chỉ dành cho hành khách từ 13 tuổi trở lên.");
+            }
+        }
+    }
+
+    @Override
     public boolean areSeatsAvailable(int tripId, List<Integer> seatIds) {
         // Hỏi TripService (của Trí) từng ghế một, chỉ cần 1 ghế đã bị đặt là trả false
         for (Integer seatId : seatIds) {
@@ -339,8 +431,11 @@ public class BookingServiceImpl implements BookingService {
 
     private TicketDTO toTicketDTO(Ticket t) {
         // Lấy mã ghế và TÊN bến từ các entity liên quan
+        // requiresVerification lấy từ loại vé của chính vé này (cột kiểu Boolean nên so với TRUE để tránh null)
+        boolean requiresVerification = Boolean.TRUE.equals(t.getTicketType().getRequiresVerification());
         return new TicketDTO(t.getTicketCode(), t.getSeat().getSeatCode(), t.getFromStation().getName(),
-                t.getToStation().getName(), t.getPrice(), t.getStatus());
+                t.getToStation().getName(), t.getPrice(), t.getStatus(),
+                t.getPassengerName(), t.getBirthYear(), requiresVerification);
     }
 
     private BookingTripDTO toTripDTO(Trip trip) {

@@ -119,6 +119,11 @@
       <div th:replace="~{fragments/layout :: confirmModal}"></div>
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" th:src="@{/js/bootstrap.bundle.min.js}"></script><script src="/static/js/app.js" th:src="@{/js/app.js}"></script>
     </th:block>
+    <!--/* Chỉ trang soát vé dùng: thư viện quét QR + toàn bộ fragment scripts. Dùng THAY cho "scripts". */-->
+    <th:block th:fragment="scriptsCheckin">
+      <script src="/static/js/html5-qrcode.min.js" th:src="@{/js/html5-qrcode.min.js}"></script>
+      <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    </th:block>
     <th:block th:fragment="statusBadge(status)" th:switch="${status}">
       <span th:case="'PENDING'" class="badge rounded-pill wb-badge-warning">Chờ thanh toán</span><span th:case="'PAID'" class="badge rounded-pill wb-badge-success">Đã thanh toán</span><span th:case="'EXPIRED'" class="badge rounded-pill wb-badge-muted">Hết hạn giữ chỗ</span><span th:case="'CANCELLED'" class="badge rounded-pill wb-badge-danger">Đã huỷ</span><span th:case="'REFUNDED'" class="badge rounded-pill wb-badge-muted">Đã hoàn tiền</span><span th:case="'HOLD'" class="badge rounded-pill wb-badge-warning">Đang giữ chỗ</span><span th:case="'VALID'" class="badge rounded-pill wb-badge-success">Hợp lệ</span><span th:case="'USED'" class="badge rounded-pill wb-badge-muted">Đã sử dụng</span><span th:case="'SCHEDULED'" class="badge rounded-pill wb-badge-info">Đã lên lịch</span><span th:case="'DEPARTED'" class="badge rounded-pill wb-badge-sky">Đã khởi hành</span><span th:case="'COMPLETED'" class="badge rounded-pill wb-badge-muted">Hoàn thành</span><span th:case="'ACTIVE'" class="badge rounded-pill wb-badge-success">Đang hoạt động</span><span th:case="'MAINTENANCE'" class="badge rounded-pill wb-badge-warning">Bảo trì</span><span th:case="'INACTIVE'" class="badge rounded-pill wb-badge-muted">Ngưng hoạt động</span><span th:case="*" class="badge rounded-pill text-bg-secondary" th:text="${status}">Trạng thái</span>
     </th:block>

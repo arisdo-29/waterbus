@@ -322,3 +322,25 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 .wb-method-group .wb-method-option .wb-method-check { visibility: hidden; }
 .wb-method-group .wb-method-option:has(input:checked) .wb-method-check { visibility: visible; }
 .wb-method-group .wb-method-option:has(input:disabled) { cursor: not-allowed; opacity: .6; }
+
+/* Màn soát vé (STAFF) - chọn theo data-attribute, xem docs/PAGES.md "Soát vé – hợp đồng JS" */
+[data-checkin-input] { min-height: 56px; font-family: var(--bs-font-monospace); font-size: 1.5rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+[data-checkin-form] .btn, [data-qr-start], [data-qr-stop], [data-checkin-preview] .btn { min-height: 48px; font-weight: 700; }
+[data-qr-start], [data-qr-stop] { display: inline-flex; align-items: center; justify-content: center; }
+[data-qr-reader] { width: 100%; max-width: 420px; margin: 16px auto 0; overflow: hidden; border: 2px solid var(--wb-blue-700); border-radius: 16px; background: #000; }
+[data-qr-reader] video { display: block; width: 100% !important; height: auto !important; }
+.wb-qr-message { margin: 12px 0 0; color: var(--wb-muted); font-size: 15px; text-align: center; }
+.wb-qr-message:empty { display: none; }
+.wb-qr-message.is-error { color: var(--wb-danger); font-weight: 600; }
+.wb-qr-stop { display: flex; width: 100%; max-width: 420px; margin: 12px auto 0; }
+[data-checkin-preview] [data-checkin-confirm] { min-height: 56px; font-size: 1.15rem; }
+[data-checkin-result] { display: none; }
+.wb-checkin-flash { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: #fff; text-align: center; cursor: pointer; animation: wb-flash-in .15s ease-out; }
+.wb-checkin-flash.is-success { background: rgba(31, 157, 99, .96); }
+.wb-checkin-flash.is-error { background: rgba(214, 69, 69, .96); }
+.wb-checkin-flash > i { font-size: clamp(88px, 28vw, 160px); line-height: 1; }
+.wb-checkin-flash > strong { font-size: clamp(2rem, 9vw, 3.5rem); letter-spacing: .04em; }
+.wb-checkin-flash > p { max-width: 640px; margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.5rem); font-weight: 600; overflow-wrap: anywhere; }
+.wb-checkin-flash.is-hiding { opacity: 0; transition: opacity .2s; }
+@keyframes wb-flash-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wb-checkin-flash { animation: none; } }

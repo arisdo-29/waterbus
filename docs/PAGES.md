@@ -125,3 +125,22 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
   Không coi link ẩn trên navbar hay session trong test là phân quyền. Chưa sẵn sàng phát hành admin.
 - 404/500 dùng error dispatch của Spring Boot và template `error/404`, `error/500` hiện có;
   endpoint gây lỗi 500 chỉ nằm trong test. Không có catch-all controller hoặc global advice mới.
+
+## Soát vé – hợp đồng JS
+
+Template `admin/checkin/index.html` và backend do **Tân** làm; JS (`initCheckin` trong `app.js`), CSS và thư viện
+`static/js/html5-qrcode.min.js` (v2.3.8, Apache-2.0) do **Khuyên** làm. Mục tiêu: mỗi khách 2 thao tác (quét → xác nhận).
+
+| Data-attribute | Gắn vào | Ý nghĩa |
+|---|---|---|
+| `data-checkin-form` | `<form method="get" th:action="@{/admin/checkin}">` tra mã | JS chặn gửi trùng: cùng mã trong 3 giây chỉ gửi 1 lần |
+| `data-checkin-input` | `<input name="ticketCode">` trong form trên (mã vé **hoặc** mã đơn) | Tự focus khi tải trang và sau mỗi lượt; tự viết hoa, bỏ khoảng trắng; Enter là gửi (máy quét USB/Bluetooth dùng được ngay) |
+| `data-qr-start` | `<button type="button">` "Quét QR" | Mở camera sau; đọc được mã thì điền vào ô, tắt camera, gửi form tra mã |
+| `data-qr-reader` | `<div>` rỗng (khung camera) | JS tự ẩn/hiện; nút "Tắt camera" và dòng thông báo do JS tự thêm (hoặc tự đặt `data-qr-stop`, `data-qr-message`) |
+| `data-checkin-preview` | Modal Bootstrap (`class="modal fade"`) server render khi `GET /admin/checkin?ticketCode=...` tìm thấy vé/đơn | JS tự mở; trong modal là `<form method="post" th:action="@{/admin/checkin}">` có hidden `ticketCode`; nút submit gắn **`data-checkin-confirm`** được focus sẵn (bấm 1 lần hoặc Enter). Đóng modal → ô nhập trống, focus lại |
+| `data-checkin-result` | Thẻ rỗng server render sau khi soát (POST xong) | `data-result="success"` hoặc `"error"`, `data-message="Nội dung"` (VD "Vé TK0001 - ghế B3, mời lên tàu"). JS hiện khung to toàn màn hình xanh/đỏ, âm báo, rung, 2 giây sau tự ẩn |
+
+Trang soát vé dùng fragment **`scriptsCheckin`** THAY cho `scripts`:
+`<th:block th:replace="~{fragments/layout :: scriptsCheckin}"></th:block>`.
+Camera chỉ chạy trên `http://localhost` hoặc HTTPS (điện thoại truy cập qua IP LAN sẽ được báo lỗi tiếng Việt, vẫn nhập tay/máy quét được).
+Kiểm tra JS: `node src/test/js/checkin.browser.cjs` (tự sinh trang mẫu đúng hợp đồng trên).

@@ -841,9 +841,300 @@
         });
     }
 
+    /*
+     * Màn soát vé (STAFF) - hợp đồng data-attribute ở docs/PAGES.md "Soát vé – hợp đồng JS".
+     * [data-checkin-form] > [data-checkin-input]; [data-qr-start] + [data-qr-reader];
+     * [data-checkin-preview] (modal xem trước, nút [data-checkin-confirm]);
+     * [data-checkin-result][data-result="success|error"][data-message].
+     */
+    function initCheckin() {
+        const form = document.querySelector('[data-checkin-form]');
+        const input = document.querySelector('[data-checkin-input]');
+        if (!form || !input) {
+            return;
+        }
+        const DEDUP_MS = 3000;
+        const RESULT_MS = 2000;
+        const dedupKey = 'wb-checkin-last';
+        const previewElement = document.querySelector('[data-checkin-preview]');
+        let resultShowing = false;
+
+        function normalize(value) {
+            return String(value || '').replace(/\s+/g, '').toUpperCase();
+        }
+        function focusInput() {
+            if (!previewElement || !previewElement.classList.contains('show')) {
+                input.focus({ preventScroll: true });
+            }
+        }
+        function readLast() {
+            try {
+                return JSON.parse(window.sessionStorage.getItem(dedupKey) || 'null');
+            } catch (e) {
+                return null;
+            }
+        }
+        function writeLast(code) {
+            try {
+                window.sessionStorage.setItem(dedupKey, JSON.stringify({ code: code, at: Date.now() }));
+            } catch (e) {
+                // Trình duyệt chặn storage: bỏ qua, vẫn chặn trùng trong trang bằng biến.
+            }
+        }
+        let lastInPage = null;
+
+        // Ô nhập: viết hoa, bỏ khoảng trắng; máy quét USB/Bluetooth gõ như bàn phím rồi Enter -> form tự gửi.
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('autocapitalize', 'characters');
+        input.setAttribute('spellcheck', 'false');
+        input.addEventListener('input', function () {
+            const clean = normalize(input.value);
+            if (clean !== input.value) {
+                const end = clean.length;
+                input.value = clean;
+                input.setSelectionRange(end, end);
+            }
+        });
+        form.addEventListener('submit', function (event) {
+            const code = normalize(input.value);
+            input.value = code;
+            if (!code) {
+                event.preventDefault();
+                focusInput();
+                return;
+            }
+            const last = lastInPage || readLast();
+            if (last && last.code === code && Date.now() - last.at < DEDUP_MS) {
+                event.preventDefault();
+                input.select();
+                return;
+            }
+            lastInPage = { code: code, at: Date.now() };
+            writeLast(code);
+        });
+
+        // Âm báo bằng Web Audio API: thành công 2 tiếng cao, lỗi 1 tiếng trầm dài.
+        function beep(success) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) {
+                    return;
+                }
+                const ctx = new AudioCtx();
+                const tones = success ? [[880, 0, 0.12], [1320, 0.15, 0.16]] : [[220, 0, 0.45]];
+                const play = function () {
+                    tones.forEach(function (tone) {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = success ? 'sine' : 'square';
+                        osc.frequency.value = tone[0];
+                        gain.gain.setValueAtTime(0.0001, ctx.currentTime + tone[1]);
+                        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + tone[1] + 0.01);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + tone[1] + tone[2]);
+                        osc.connect(gain).connect(ctx.destination);
+                        osc.start(ctx.currentTime + tone[1]);
+                        osc.stop(ctx.currentTime + tone[1] + tone[2] + 0.02);
+                    });
+                    window.setTimeout(function () { ctx.close(); }, 1000);
+                };
+                if (ctx.state === 'suspended') {
+                    ctx.resume().then(play).catch(function () {});
+                } else {
+                    play();
+                }
+            } catch (e) {
+                // Không phát được âm thanh thì chỉ hiển thị.
+            }
+        }
+
+        // Kết quả soát vé: khung to giữa màn hình, tự ẩn sau 2 giây.
+        const resultElement = document.querySelector('[data-checkin-result]');
+        if (resultElement) {
+            const success = resultElement.dataset.result === 'success';
+            const message = resultElement.dataset.message || resultElement.textContent.trim() ||
+                (success ? 'Soát vé thành công' : 'Vé không hợp lệ');
+            const flash = document.createElement('div');
+            flash.className = 'wb-checkin-flash ' + (success ? 'is-success' : 'is-error');
+            flash.setAttribute('role', 'alert');
+            flash.setAttribute('data-checkin-flash', '');
+            const icon = document.createElement('i');
+            icon.className = 'bi ' + (success ? 'bi-check-circle-fill' : 'bi-x-octagon-fill');
+            icon.setAttribute('aria-hidden', 'true');
+            const title = document.createElement('strong');
+            title.textContent = success ? 'HỢP LỆ' : 'KHÔNG HỢP LỆ';
+            const text = document.createElement('p');
+            text.textContent = message;
+            flash.append(icon, title, text);
+            document.body.appendChild(flash);
+            resultShowing = true;
+            beep(success);
+            if (navigator.vibrate) {
+                navigator.vibrate(success ? 120 : [200, 100, 200]);
+            }
+            input.value = '';
+            const hide = function () {
+                if (!resultShowing) {
+                    return;
+                }
+                resultShowing = false;
+                flash.classList.add('is-hiding');
+                window.setTimeout(function () { flash.remove(); }, 200);
+                focusInput();
+            };
+            const timer = window.setTimeout(hide, RESULT_MS);
+            flash.addEventListener('click', function () {
+                window.clearTimeout(timer);
+                hide();
+            });
+            // Lượt kế tiếp bắt đầu (gõ/quét mã mới) thì ẩn ngay.
+            input.addEventListener('input', function () {
+                window.clearTimeout(timer);
+                hide();
+            }, { once: true });
+        }
+
+        // Modal xem trước do server render: tự mở, nút xác nhận tự focus (bấm 1 lần hoặc Enter).
+        if (previewElement && window.bootstrap && window.bootstrap.Modal) {
+            const confirmButton = previewElement.querySelector('[data-checkin-confirm]') ||
+                previewElement.querySelector('button[type="submit"]');
+            previewElement.addEventListener('shown.bs.modal', function () {
+                if (confirmButton) {
+                    confirmButton.focus();
+                }
+            });
+            previewElement.addEventListener('hidden.bs.modal', function () {
+                input.value = '';
+                input.focus();
+            });
+            window.bootstrap.Modal.getOrCreateInstance(previewElement).show();
+        }
+
+        // Quét QR bằng camera sau của điện thoại (thư viện html5-qrcode, nạp qua fragment scriptsCheckin).
+        const qrStart = document.querySelector('[data-qr-start]');
+        const qrReader = document.querySelector('[data-qr-reader]');
+        if (qrStart && qrReader) {
+            qrReader.id = qrReader.id || 'wbQrReader';
+            qrReader.hidden = true;
+            let message = document.querySelector('[data-qr-message]');
+            if (!message) {
+                message = document.createElement('p');
+                message.className = 'wb-qr-message';
+                message.setAttribute('data-qr-message', '');
+                message.setAttribute('aria-live', 'polite');
+                qrReader.after(message);
+            }
+            let stopButton = document.querySelector('[data-qr-stop]');
+            if (!stopButton) {
+                stopButton = document.createElement('button');
+                stopButton.type = 'button';
+                stopButton.className = 'btn btn-wb-outline wb-qr-stop';
+                stopButton.setAttribute('data-qr-stop', '');
+                stopButton.innerHTML = '<i class="bi bi-camera-video-off me-2" aria-hidden="true"></i>Tắt camera';
+                message.after(stopButton);
+            }
+            stopButton.hidden = true;
+            let scanner = null;
+            let scanning = false;
+
+            function setMessage(text, isError) {
+                message.textContent = text || '';
+                message.classList.toggle('is-error', Boolean(isError));
+            }
+            function stopCamera() {
+                const done = function () {
+                    scanning = false;
+                    qrReader.hidden = true;
+                    stopButton.hidden = true;
+                    qrStart.hidden = false;
+                };
+                let stopping = Promise.resolve();
+                if (scanner && scanning) {
+                    try {
+                        stopping = scanner.stop().then(function () {
+                            scanner.clear();
+                        });
+                    } catch (e) {
+                        // Camera chưa kịp chạy: không có gì để dừng.
+                    }
+                }
+                return stopping.catch(function () {}).then(done);
+            }
+            function cameraError(error) {
+                const name = error && (error.name || String(error));
+                if (/NotAllowed|Permission/i.test(name)) {
+                    return 'Chưa có quyền dùng camera. Hãy bấm biểu tượng ổ khoá trên thanh địa chỉ, cho phép Camera rồi thử lại.';
+                }
+                if (/NotFound|DevicesNotFound|OverconstrainedError/i.test(name)) {
+                    return 'Không tìm thấy camera trên thiết bị này. Hãy nhập mã vé bằng tay.';
+                }
+                if (/NotReadable|TrackStart/i.test(name)) {
+                    return 'Camera đang được ứng dụng khác sử dụng. Hãy đóng ứng dụng đó rồi thử lại.';
+                }
+                return 'Không mở được camera. Hãy nhập mã vé bằng tay.';
+            }
+
+            qrStart.addEventListener('click', function () {
+                if (scanning) {
+                    return;
+                }
+                if (!window.isSecureContext) {
+                    setMessage('Camera chỉ hoạt động khi mở trang qua HTTPS hoặc http://localhost. Hãy nhập mã vé bằng tay.', true);
+                    return;
+                }
+                if (typeof window.Html5Qrcode === 'undefined') {
+                    setMessage('Chưa nạp thư viện quét QR (trang cần dùng fragment scriptsCheckin).', true);
+                    return;
+                }
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setMessage('Trình duyệt này không hỗ trợ camera. Hãy nhập mã vé bằng tay.', true);
+                    return;
+                }
+                qrReader.hidden = false;
+                stopButton.hidden = false;
+                qrStart.hidden = true;
+                setMessage('Đưa mã QR trên vé vào giữa khung hình.');
+                scanner = scanner || new window.Html5Qrcode(qrReader.id);
+                scanning = true;
+                scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 240, height: 240 } },
+                    function (decodedText) {
+                        const code = normalize(decodedText);
+                        if (!code) {
+                            return;
+                        }
+                        stopCamera().then(function () {
+                            input.value = code;
+                            setMessage('');
+                            if (typeof form.requestSubmit === 'function') {
+                                form.requestSubmit();
+                            } else {
+                                form.submit();
+                            }
+                        });
+                    },
+                    function () {
+                        // Khung hình chưa có QR: bỏ qua.
+                    }).catch(function (error) {
+                    stopCamera();
+                    setMessage(cameraError(error), true);
+                });
+            });
+            stopButton.addEventListener('click', function () {
+                stopCamera().then(function () {
+                    setMessage('');
+                    focusInput();
+                });
+            });
+        }
+
+        if (!previewElement) {
+            focusInput();
+        }
+    }
+
     function init() {
         initAdminNavigation();
         initConfirmations();
+        initCheckin();
         initRouteEditors();
         initPromotions();
         initAdminSidebar();

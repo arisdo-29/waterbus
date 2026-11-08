@@ -297,9 +297,66 @@
         update();
     }
 
+    /*
+     * Checkout vé ưu đãi: kiểm tra năm sinh từng hành khách (backend vẫn kiểm tra lại).
+     * [data-passenger-section][data-ticket-code][data-travel-year] > input[data-birth-year] + [data-birth-year-error]
+     */
+    function initPassengerForm() {
+        const minAgeByCode = { SENIOR_70: 70, PRIORITY: 13 };
+        document.querySelectorAll('[data-passenger-section]').forEach(function (section) {
+            const code = (section.dataset.ticketCode || '').toUpperCase();
+            const minAge = minAgeByCode[code] || 0;
+            const currentYear = new Date().getFullYear();
+            const travelYear = Number(section.dataset.travelYear) || currentYear;
+            section.querySelectorAll('input[data-birth-year]').forEach(function (input) {
+                const error = input.parentElement.querySelector('[data-birth-year-error]');
+                function check() {
+                    const raw = input.value.trim();
+                    if (!raw) {
+                        return '';
+                    }
+                    const year = Number(raw);
+                    if (!Number.isInteger(year) || year < 1900 || year > currentYear) {
+                        return 'Năm sinh phải từ 1900 đến ' + currentYear + '.';
+                    }
+                    if (minAge && travelYear - year < minAge) {
+                        return 'Loại vé này dành cho hành khách từ ' + minAge + ' tuổi (sinh năm ' +
+                            (travelYear - minAge) + ' trở về trước).';
+                    }
+                    return '';
+                }
+                function show(message) {
+                    if (error) {
+                        error.textContent = message;
+                    }
+                    input.classList.toggle('is-invalid', Boolean(message));
+                }
+                if (error) {
+                    error.id = error.id || input.id + 'Error';
+                    input.setAttribute('aria-describedby', error.id);
+                }
+                input.addEventListener('input', function () {
+                    const message = check();
+                    input.setCustomValidity(message);
+                    if (!message) {
+                        show('');
+                    }
+                });
+                input.addEventListener('blur', function () {
+                    show(check());
+                });
+                input.addEventListener('invalid', function () {
+                    show(check());
+                });
+                input.setCustomValidity(check());
+            });
+        });
+    }
+
     function init() {
         initNavigation();
         initSearchForms();
+        initPassengerForm();
         initSeatSelection();
         initBackButton();
         initCountdown();

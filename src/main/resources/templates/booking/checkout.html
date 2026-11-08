@@ -59,12 +59,29 @@
                   </div>
                   <div class="form-text">Số tiền giảm được tính ở bước thanh toán.</div>
                 </div>
-                <div class="col-12">
-                  <div class="form-check wb-terms-check">
-                    <input class="form-check-input" id="terms" type="checkbox" required><label class="form-check-label" for="terms">Tôi đã đọc: vé không đổi, không hoàn.</label>
-                  </div>
+              </div>
+            </div>
+            <!--/* Vé ưu đãi (requiresVerification): mỗi ghế 1 hành khách, thứ tự passengerNames/birthYears = thứ tự seatIds */-->
+            <div class="wb-card wb-form-card wb-passenger-card" th:if="${ticketType?.requiresVerification}" th:with="currentYear=${#temporals.year(#temporals.createNow())}" data-passenger-section th:data-ticket-code="${ticketType?.code}" th:data-travel-year="${trip?.departureTime != null ? #temporals.year(trip.departureTime) : #temporals.year(#temporals.createNow())}">
+              <span class="wb-eyebrow">Vé ưu đãi</span>
+              <h2>Thông tin hành khách</h2>
+              <div class="wb-verify-note" role="note">
+                <i class="bi bi-person-vcard" aria-hidden="true"></i><span>Mang CCCD / thẻ khuyết tật, thẻ thương binh bản gốc khi lên tàu. Không xuất trình được sẽ phải mua vé thường.</span>
+              </div>
+              <div class="wb-passenger-row" th:each="s, st : ${seats}" data-passenger-row>
+                <span class="wb-chip wb-passenger-seat" th:text="${s?.seatCode}">B3</span>
+                <div class="wb-passenger-field">
+                  <label th:for="${'passengerName' + st.index}" for="passengerName0">Họ tên hành khách</label><input class="form-control" th:classappend="${#fields.hasErrors('passengerNames[' + st.index + ']*')} ? 'is-invalid'" th:id="${'passengerName' + st.index}" id="passengerName0" name="passengerNames" type="text" required maxlength="100" autocomplete="off" value="" th:value="${param.passengerNames != null and param.passengerNames.size() > st.index ? param.passengerNames[st.index] : ''}">
+                  <div class="invalid-feedback" th:each="err : ${#fields.errors('passengerNames[' + st.index + ']*')}" th:text="${err}"></div>
+                </div>
+                <div class="wb-passenger-field wb-passenger-year">
+                  <label th:for="${'birthYear' + st.index}" for="birthYear0">Năm sinh</label><input class="form-control" th:classappend="${#fields.hasErrors('birthYears[' + st.index + ']*')} ? 'is-invalid'" th:id="${'birthYear' + st.index}" id="birthYear0" name="birthYears" type="number" inputmode="numeric" required min="1900" max="2026" th:max="${currentYear}" value="" th:value="${param.birthYears != null and param.birthYears.size() > st.index ? param.birthYears[st.index] : ''}" data-birth-year>
+                  <div class="invalid-feedback" th:each="err : ${#fields.errors('birthYears[' + st.index + ']*')}" th:text="${err}"></div>
+                  <div class="wb-field-error" data-birth-year-error aria-live="polite"></div>
                 </div>
               </div>
+              <!--/* Lỗi chung của cả danh sách (VD số tên không khớp số ghế) */-->
+              <div class="wb-field-error" th:each="err : ${#fields.detailedErrors()}" th:if="${err.fieldName == 'passengerNames' or err.fieldName == 'birthYears'}" th:text="${err.message}"></div>
             </div>
           </div>
           <div class="col-12 col-lg-5">
@@ -91,13 +108,43 @@
               <div class="wb-summary-total">
                 <span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'POINT', 0, 'COMMA')} + ' đ'">30.000 đ</strong>
               </div>
-              <div class="wb-summary-actions">
-                <button class="btn btn-wb-outline" type="button" data-action="back"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại chọn ghế</button><button class="btn btn-wb-accent" type="submit" data-confirm="Xác nhận đặt vé cho chuyến và ghế đã chọn?" th:data-confirm="${'Đặt ' + (seats == null ? 0 : #lists.size(seats)) + ' vé chuyến ' + (trip?.routeName ?: '') + ' (' + (fromStation?.name ?: '') + ' → ' + (toStation?.name ?: '') + ')' + (trip?.departureTime == null ? '' : ' lúc ' + #temporals.format(trip.departureTime, 'HH:mm dd/MM/yyyy')) + ', ghế ' + (seats == null ? '' : #strings.listJoin(seats.![seatCode], ', ')) + '?'}" data-confirm-title="Xác nhận đặt vé" data-confirm-ok="Đặt vé">Đặt vé <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
+              <div class="wb-policy-check">
+                <div class="form-check wb-terms-check">
+                  <input class="form-check-input" th:classappend="${#fields.hasErrors('acceptPolicy*')} ? 'is-invalid'" id="acceptPolicy" name="acceptPolicy" type="checkbox" value="true" required th:checked="${#strings.toString(param.acceptPolicy) == 'true'}"><label class="form-check-label" for="acceptPolicy">Tôi đã đọc và đồng ý: vé đã mua không đổi, không hoàn tiền (trừ khi chuyến bị huỷ bởi nhà vận hành)</label>
+                  <div class="invalid-feedback" th:each="err : ${#fields.errors('acceptPolicy*')}" th:text="${err}"></div>
+                </div>
+                <button class="btn btn-link wb-policy-link" type="button" data-bs-toggle="modal" data-bs-target="#wbPolicyModal"><i class="bi bi-file-text me-1" aria-hidden="true"></i>Xem chính sách đổi, hoàn vé</button>
+              </div>
+              <div class="wb-summary-actions" th:with="freeOrder=${subtotal != null and subtotal.signum() == 0}">
+                <button class="btn btn-wb-outline" type="button" data-action="back"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại chọn ghế</button><button class="btn btn-wb-accent" type="submit" data-confirm="Xác nhận đặt vé cho chuyến và ghế đã chọn?" th:data-confirm="${'Đặt ' + (seats == null ? 0 : #lists.size(seats)) + ' vé chuyến ' + (trip?.routeName ?: '') + ' (' + (fromStation?.name ?: '') + ' → ' + (toStation?.name ?: '') + ')' + (trip?.departureTime == null ? '' : ' lúc ' + #temporals.format(trip.departureTime, 'HH:mm dd/MM/yyyy')) + ', ghế ' + (seats == null ? '' : #strings.listJoin(seats.![seatCode], ', ')) + '?'}" data-confirm-title="Xác nhận đặt vé" data-confirm-ok="Đặt vé" th:data-confirm-ok="${freeOrder ? 'Xác nhận đặt vé' : 'Đặt vé'}" data-checkout-submit><span th:text="${freeOrder ? 'Xác nhận đặt vé' : 'Đặt vé'}">Đặt vé</span> <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
+                <p class="wb-summary-note" th:unless="${freeOrder}"><i class="bi bi-credit-card me-1" aria-hidden="true"></i>Sau khi đặt vé, bạn sẽ được chuyển sang thanh toán.</p>
+                <p class="wb-summary-note" th:if="${freeOrder}"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Đơn 0 đ được xác nhận ngay, không cần thanh toán.</p>
               </div>
             </aside>
           </div>
         </div>
       </form>
+      <div class="modal fade wb-confirm-modal" id="wbPolicyModal" tabindex="-1" aria-labelledby="wbPolicyTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 class="modal-title" id="wbPolicyTitle">Chính sách đổi, hoàn vé</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+              <ul class="wb-policy-list">
+                <li>Vé đã thanh toán <strong>không đổi chuyến, không đổi ghế và không hoàn tiền</strong>.</li>
+                <li>Đơn chưa thanh toán được giữ chỗ trong thời gian hiển thị ở bước thanh toán; quá hạn đơn tự huỷ và ghế được nhả.</li>
+                <li>Nếu <strong>nhà vận hành huỷ chuyến</strong>, đơn đã thanh toán chuyển sang trạng thái "Chờ hoàn tiền" và được hoàn đủ số tiền đã trả.</li>
+                <li>Vé ưu đãi (người từ 70 tuổi, người khuyết tật, thương binh) phải xuất trình giấy tờ gốc khi lên tàu; không xuất trình được sẽ phải mua vé thường.</li>
+              </ul>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-wb-accent" data-bs-dismiss="modal">Đã hiểu</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
     <th:block th:replace="~{fragments/layout :: scripts}">

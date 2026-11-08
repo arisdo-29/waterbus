@@ -52,6 +52,24 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
 (tương tự `contactPhone`, `contactEmail`, `promoCode`). **Giữ `th:value` như hiện tại**, không đổi sang `th:field`, để vẫn
 ưu tiên giá trị vừa nhập và tự điền từ `session.loginAccount` (#26). Lỗi `seatIds` (ô ẩn) chỉ hiện qua `errorMessage`.
 
+**Vé ưu đãi, chính sách, hoàn tiền (FE Khuyên đã làm, chờ BE4 Trâm):**
+
+- Quy tắc: loại vé `requiresVerification = true` (`SENIOR_70`, `PRIORITY`, giá 0 đ) cần họ tên + năm sinh cho **mỗi ghế**.
+  Năm sinh 1900..năm hiện tại; `SENIOR_70`: năm đi − năm sinh ≥ 70; `PRIORITY`: ≥ 13. Không tải ảnh giấy tờ,
+  nhân viên kiểm tra giấy tờ gốc tại bến. Đơn tổng 0 đ được xác nhận ngay (redirect thẳng `/booking/{bookingCode}`, không qua `/payment`).
+  Vé đã thanh toán không đổi, không hoàn; chỉ khi nhà vận hành huỷ chuyến thì đơn đã trả tiền "Chờ hoàn tiền", admin hoàn thủ công → `REFUNDED`.
+- `POST /booking` gửi thêm: `passengerNames` (lặp, đúng thứ tự `seatIds`, chỉ có khi vé ưu đãi), `birthYears` (lặp, cùng thứ tự),
+  `acceptPolicy` (checkbox `value="true"`, bắt buộc). Lỗi gắn vào field `passengerNames[i]` / `birthYears[i]` hiện dưới ô của ghế thứ i;
+  lỗi gắn vào `passengerNames` / `birthYears` (cả danh sách) hiện cuối khung hành khách; lỗi `acceptPolicy` hiện dưới ô tick.
+  Template giữ giá trị đã nhập từ request parameters. `ticketType` của checkout cần có `code`, `requiresVerification`.
+- `booking/detail` thêm model: `refund` (có thể null: `status` PENDING/DONE, `amount`, `reason`, `transactionRef`, `refundedAt`),
+  `tripCancelReason` (có thể null), `payment` (có thể null: `method` MOCK/VNPAY, `transactionRef`);
+  mỗi phần tử `tickets` thêm `passengerName`, `birthYear` (null nếu vé thường), nên có thêm `requiresVerification` (nhãn "Mang giấy tờ gốc";
+  nếu thiếu, FE coi vé có `birthYear` là vé ưu đãi). Booking `REFUNDED` không có `refund` vẫn hiện banner "Đã hoàn tiền" với `totalAmount`.
+- `booking/history`: mỗi phần tử `bookings` thêm `refundStatus` (null / `PENDING` / `DONE`).
+- Field mới trên DTO đã có (`tickets[]`, `bookings[]`) được template đọc qua `${@view.prop(obj, 'tenField')}` (bean `ViewPropertyHelper`):
+  DTO chưa có field thì coi như null, không lỗi 500. Thêm field vào DTO là giao diện tự hiện.
+
 **Trạng thái tích hợp:** các endpoint khách hàng ở bảng trên (tìm chuyến, chọn ghế, checkout, thanh toán, xem vé, huỷ đơn,
 lịch sử đặt vé) đã được triển khai và nối với service/database. `GET /booking` chuyển hướng sang `/my-bookings`.
 

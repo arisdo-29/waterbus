@@ -11,6 +11,7 @@ public class TicketCheckinDTO implements Serializable {
     private final String passengerName;
     private final String passengerPhone;
     private final String tripCode;
+    private final Integer tripId;
     private final String routeName;
     private final String fromStationName;
     private final String toStationName;
@@ -18,19 +19,26 @@ public class TicketCheckinDTO implements Serializable {
     private final String seatCode;
     private final String waterbusName;
     private final String ticketTypeName;
+    private final String ticketTypeCode;
     private final BigDecimal price;
     private final String status;
     private final LocalDateTime checkedInAt;
+    private final Integer birthYear;
+    private final Integer passengerAge;
+    private final Boolean requiresVerification;
 
+    // Full constructor
     public TicketCheckinDTO(String ticketCode, String bookingCode, String passengerName, String passengerPhone,
-                            String tripCode, String routeName, String fromStationName, String toStationName,
+                            String tripCode, Integer tripId, String routeName, String fromStationName, String toStationName,
                             LocalDateTime departureTime, String seatCode, String waterbusName,
-                            String ticketTypeName, BigDecimal price, String status, LocalDateTime checkedInAt) {
+                            String ticketTypeName, String ticketTypeCode, BigDecimal price, String status,
+                            LocalDateTime checkedInAt, Integer birthYear, Integer passengerAge, Boolean requiresVerification) {
         this.ticketCode = ticketCode;
         this.bookingCode = bookingCode;
         this.passengerName = passengerName;
         this.passengerPhone = passengerPhone;
         this.tripCode = tripCode;
+        this.tripId = tripId;
         this.routeName = routeName;
         this.fromStationName = fromStationName;
         this.toStationName = toStationName;
@@ -38,9 +46,23 @@ public class TicketCheckinDTO implements Serializable {
         this.seatCode = seatCode;
         this.waterbusName = waterbusName;
         this.ticketTypeName = ticketTypeName;
+        this.ticketTypeCode = ticketTypeCode;
         this.price = price;
         this.status = status;
         this.checkedInAt = checkedInAt;
+        this.birthYear = birthYear;
+        this.passengerAge = passengerAge;
+        this.requiresVerification = requiresVerification != null ? requiresVerification : false;
+    }
+
+    // Backward-compatible constructor
+    public TicketCheckinDTO(String ticketCode, String bookingCode, String passengerName, String passengerPhone,
+                            String tripCode, String routeName, String fromStationName, String toStationName,
+                            LocalDateTime departureTime, String seatCode, String waterbusName,
+                            String ticketTypeName, BigDecimal price, String status, LocalDateTime checkedInAt) {
+        this(ticketCode, bookingCode, passengerName, passengerPhone, tripCode, null, routeName, fromStationName,
+                toStationName, departureTime, seatCode, waterbusName, ticketTypeName, null, price, status,
+                checkedInAt, null, null, false);
     }
 
     public String getTicketCode() {
@@ -61,6 +83,10 @@ public class TicketCheckinDTO implements Serializable {
 
     public String getTripCode() {
         return tripCode;
+    }
+
+    public Integer getTripId() {
+        return tripId;
     }
 
     public String getRouteName() {
@@ -91,6 +117,10 @@ public class TicketCheckinDTO implements Serializable {
         return ticketTypeName;
     }
 
+    public String getTicketTypeCode() {
+        return ticketTypeCode;
+    }
+
     public BigDecimal getPrice() {
         return price;
     }
@@ -101,5 +131,29 @@ public class TicketCheckinDTO implements Serializable {
 
     public LocalDateTime getCheckedInAt() {
         return checkedInAt;
+    }
+
+    public Integer getBirthYear() {
+        return birthYear;
+    }
+
+    public Integer getPassengerAge() {
+        return passengerAge;
+    }
+
+    public Boolean getRequiresVerification() {
+        return requiresVerification;
+    }
+
+    public boolean isValid() {
+        return "VALID".equalsIgnoreCase(status);
+    }
+
+    public boolean isUsed() {
+        return "USED".equalsIgnoreCase(status);
+    }
+
+    public boolean isCancelled() {
+        return "CANCELLED".equalsIgnoreCase(status);
     }
 }

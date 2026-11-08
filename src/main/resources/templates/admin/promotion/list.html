@@ -66,7 +66,7 @@
                             <td data-label="Thao tác">
                                 <div class="wb-admin-table-actions">
                                     <a class="btn btn-wb-outline" href="/templates/admin/promotion/form.html" th:href="@{/admin/promotions/{id}/edit(id=${promo.id})}">Sửa</a>
-                                    <form th:action="@{/admin/promotions/{id}/delete(id=${promo.id})}" method="post" data-confirm="Bạn có chắc muốn ẩn/xóa mã khuyến mãi này?">
+                                    <form th:action="@{/admin/promotions/{id}/delete(id=${promo.id})}" method="post" data-confirm="Bạn có chắc muốn ẩn/xóa mã khuyến mãi này?" data-confirm-variant="danger">
                                         <button class="btn btn-wb-outline wb-admin-danger" type="submit">Ẩn</button>
                                     </form>
                                 </div>

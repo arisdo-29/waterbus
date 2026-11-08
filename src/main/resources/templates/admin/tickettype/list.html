@@ -59,7 +59,7 @@
                             <td data-label="Thao tác">
                                 <div class="wb-admin-table-actions">
                                     <a class="btn btn-wb-outline" href="/templates/admin/tickettype/form.html" th:href="@{/admin/ticket-types/{id}/edit(id=${tt.id})}">Sửa</a>
-                                    <form th:action="@{/admin/ticket-types/{id}/delete(id=${tt.id})}" method="post" data-confirm="Bạn có chắc muốn ẩn/ngừng bán loại vé này?">
+                                    <form th:action="@{/admin/ticket-types/{id}/delete(id=${tt.id})}" method="post" data-confirm="Bạn có chắc muốn ẩn/ngừng bán loại vé này?" data-confirm-variant="danger">
                                         <button class="btn btn-wb-outline wb-admin-danger" type="submit">Ẩn</button>
                                     </form>
                                 </div>

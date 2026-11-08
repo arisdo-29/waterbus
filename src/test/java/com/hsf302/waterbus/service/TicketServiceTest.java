@@ -288,4 +288,44 @@ class TicketServiceTest {
         assertEquals("VALID", inDb.getStatus());
         assertNull(inDb.getCheckedInAt());
     }
+
+    @Test
+    @DisplayName("Tra cứu đơn cả nhóm (getBookingCheckinInfo) -> trả về thông tin đơn và danh sách vé")
+    void getBookingCheckinInfo_success() {
+        var groupInfo = ticketService.getBookingCheckinInfo("BK_TEST_1", 1, "MANUAL");
+
+        assertNotNull(groupInfo);
+        assertEquals("BK_TEST_1", groupInfo.getBookingCode());
+        assertFalse(groupInfo.getTickets().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Soát vé cả nhóm (checkInGroup) -> các vé hợp lệ được chuyển sang USED")
+    void checkInGroup_success() {
+        var results = ticketService.checkInGroup(java.util.List.of("TK_VALID_01"), 1, "GROUP");
+
+        assertEquals(1, results.size());
+        assertEquals("USED", results.get(0).getStatus());
+        assertNotNull(results.get(0).getCheckedInAt());
+    }
+
+    @Test
+    @DisplayName("Từ chối vé ưu đãi (rejectPriorityTicket) -> chuyển sang CANCELLED và nhả ghế")
+    void rejectPriorityTicket_success() {
+        TicketCheckinDTO rejected = ticketService.rejectPriorityTicket("TK_VALID_01", "Không mang CCCD", 1);
+
+        assertEquals("CANCELLED", rejected.getStatus());
+        Ticket inDb = ticketRepository.findByTicketCode("TK_VALID_01").orElseThrow();
+        assertEquals("CANCELLED", inDb.getStatus());
+    }
+
+    @Test
+    @DisplayName("Lấy danh sách hành khách theo chuyến (getPassengerManifest) -> trả về đầy đủ các vé")
+    void getPassengerManifest_success() {
+        var manifest = ticketService.getPassengerManifest(validTicket.getTrip().getId());
+
+        assertNotNull(manifest);
+        assertFalse(manifest.isEmpty());
+        assertTrue(manifest.stream().anyMatch(t -> "TK_VALID_01".equals(t.getTicketCode())));
+    }
 }

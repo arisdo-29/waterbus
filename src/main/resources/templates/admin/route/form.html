@@ -37,7 +37,7 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin tuyến</h2>
-                    <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/save}" th:object="${route}" method="post">
+                    <form action="/templates/admin/route/list.html" th:action="@{/admin/routes/save}" th:object="${route}" method="post" data-confirm="Lưu tuyến và thứ tự các bến đã chọn?">
                         <input type="hidden" name="id" value="" th:value="${route?.id}">
                         <div class="wb-admin-form-row">
                             <label for="code">Mã tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>

@@ -20,10 +20,18 @@ public class BookingDTO implements Serializable {
     private final LocalDateTime createdAt;
     private final LocalDateTime expiresAt;
     private final LocalDateTime paidAt; // null khi chưa thanh toán
+    private final String refundStatus;
 
     public BookingDTO(Integer id, String bookingCode, String status, String contactName, String contactPhone,
                       String contactEmail, BigDecimal subtotal, BigDecimal discountAmount, BigDecimal totalAmount,
                       LocalDateTime createdAt, LocalDateTime expiresAt, LocalDateTime paidAt) {
+        this(id, bookingCode, status, contactName, contactPhone, contactEmail, subtotal, discountAmount,
+                totalAmount, createdAt, expiresAt, paidAt, null);
+    }
+
+    public BookingDTO(Integer id, String bookingCode, String status, String contactName, String contactPhone,
+                      String contactEmail, BigDecimal subtotal, BigDecimal discountAmount, BigDecimal totalAmount,
+                      LocalDateTime createdAt, LocalDateTime expiresAt, LocalDateTime paidAt, String refundStatus) {
         this.id = id;
         this.bookingCode = bookingCode;
         this.status = status;
@@ -36,6 +44,7 @@ public class BookingDTO implements Serializable {
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
         this.paidAt = paidAt;
+        this.refundStatus = refundStatus;
     }
 
     public Integer getId() {
@@ -84,6 +93,10 @@ public class BookingDTO implements Serializable {
 
     public LocalDateTime getPaidAt() {
         return paidAt;
+    }
+
+    public String getRefundStatus() {
+        return refundStatus;
     }
 
     @Override

@@ -20,4 +20,6 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
 
     // WHERE status = ? AND expires_at < ? -> các đơn đã quá hạn giữ chỗ (BookingExpiryJob dùng)
     List<Booking> findByStatusAndExpiresAtBefore(String status, LocalDateTime time);
+
+    List<Booking> findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(LocalDateTime start, LocalDateTime end);
 }

@@ -37,7 +37,7 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Tạo chuyến tàu</h2>
-                    <form action="/templates/admin/trip/list.html" th:action="@{/admin/trips/save}" th:object="${trip}" method="post">
+                    <form action="/templates/admin/trip/list.html" th:action="@{/admin/trips/save}" th:object="${trip}" method="post" data-confirm="Lưu chuyến tàu với tuyến, tàu và giờ khởi hành đã chọn?">
                         <div class="wb-admin-form-row">
                             <label for="routeId">Tuyến <span class="wb-admin-required" aria-hidden="true">*</span></label>
                             <select class="form-select" id="routeId" th:field="*{routeId}" required>

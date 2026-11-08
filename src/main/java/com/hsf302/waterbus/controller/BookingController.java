@@ -7,6 +7,7 @@ import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PaymentService;
+import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.StationService;
 import com.hsf302.waterbus.service.TicketTypeService;
 import jakarta.servlet.http.HttpSession;
@@ -37,15 +38,18 @@ public class BookingController {
     // Module khác (chỉ đọc để hiển thị trang checkout): tên bến, loại vé
     private final StationService stationService;
     private final TicketTypeService ticketTypeService;
+    private final RefundService refundService;
     // Cùng module BE4: lấy thông tin thanh toán cho trang xem vé
     private final PaymentService paymentService;
 
     public BookingController(BookingService bookingService, StationService stationService,
-                             TicketTypeService ticketTypeService, PaymentService paymentService) {
+                             TicketTypeService ticketTypeService, PaymentService paymentService,
+                             RefundService refundService) {
         this.bookingService = bookingService;
         this.stationService = stationService;
         this.ticketTypeService = ticketTypeService;
         this.paymentService = paymentService;
+        this.refundService = refundService;
     }
 
     // GET /booking: không có trang riêng, chuyển sang lịch sử đặt vé của tài khoản
@@ -147,6 +151,8 @@ public class BookingController {
         model.addAttribute("booking", booking);
         model.addAttribute("trip", bookingService.getTripOfBooking(booking.getId()));
         model.addAttribute("tickets", bookingService.getTicketsOfBooking(booking.getId()));
+        model.addAttribute("refund", refundService.getRefundOfBooking(booking.getId()));
+        model.addAttribute("tripCancelReason", bookingService.getTripCancelReason(booking.getId()));
         // payment: PaymentInfoDTO (method, transactionRef) hoặc null nếu đơn chưa có payment
         model.addAttribute("payment", paymentService.getPaymentOfBooking(booking.getId()));
         return "booking/detail";

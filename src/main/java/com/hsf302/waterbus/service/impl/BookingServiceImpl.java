@@ -14,6 +14,7 @@ import com.hsf302.waterbus.entity.TicketType;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
+import com.hsf302.waterbus.repository.RefundRepository;
 import com.hsf302.waterbus.service.AccountService;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PromotionService;
@@ -39,6 +40,7 @@ public class BookingServiceImpl implements BookingService {
     private final TicketRepository ticketRepository;
     // Module khác: chỉ gọi qua Service, không gọi Repository của họ
     private final TripService tripService;
+    private final RefundRepository refundRepository;
     private final RouteService routeService;
     private final TicketTypeService ticketTypeService;
     private final PromotionService promotionService;
@@ -46,12 +48,13 @@ public class BookingServiceImpl implements BookingService {
 
     // Constructor injection: Spring tự đưa các repository/service vào
     public BookingServiceImpl(BookingRepository bookingRepository, TicketRepository ticketRepository,
-                              TripService tripService, RouteService routeService,
+                              TripService tripService, RouteService routeService, RefundRepository refundRepository,
                               TicketTypeService ticketTypeService, PromotionService promotionService,
                               AccountService accountService) {
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
         this.tripService = tripService;
+        this.refundRepository = refundRepository;
         this.routeService = routeService;
         this.ticketTypeService = ticketTypeService;
         this.promotionService = promotionService;
@@ -269,6 +272,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public String getTripCancelReason(int bookingId) {
+        List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(bookingId);
+        return tickets.isEmpty() ? null : tickets.get(0).getTrip().getCancelReason();
+    }
+
+    @Override
     public List<Seat> getSelectedSeats(int tripId, List<Integer> seatIds) {
         if (seatIds == null) {
             return List.of();
@@ -412,9 +422,11 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingDTO toDTO(Booking b) {
+        String refundStatus = refundRepository.findByBookingId(b.getId())
+                .map(refund -> refund.getStatus()).orElse(null);
         return new BookingDTO(b.getId(), b.getBookingCode(), b.getStatus(), b.getContactName(),
                 b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
-                b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt());
+                b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);
     }
 
     private TicketDTO toTicketDTO(Ticket t) {

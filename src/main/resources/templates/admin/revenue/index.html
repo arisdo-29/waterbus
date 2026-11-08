@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Doanh thu')}">
+    <meta charset="UTF-8">
+    <title>Doanh thu | Saigon Waterbus</title>
+</head>
+<body class="wb-admin">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+<div class="wb-admin-layout">
+    <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
+    <main class="wb-main wb-admin-content">
+        <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+        <header class="wb-admin-head">
+            <div><span class="wb-eyebrow">Quản trị</span><h1>Doanh thu</h1><p>Thống kê tiền thu và vé bán theo khoảng ngày.</p></div>
+        </header>
+
+        <section class="wb-admin-form-card mb-4" aria-label="Lọc doanh thu">
+            <form th:action="@{/admin/revenue}" action="/admin/revenue" method="get" class="row g-3 align-items-end">
+                <div class="col-12 col-sm-5"><label class="form-label" for="revenueFrom">Từ ngày</label><input class="form-control" type="date" id="revenueFrom" name="from" th:value="${from}" required></div>
+                <div class="col-12 col-sm-5"><label class="form-label" for="revenueTo">Đến ngày</label><input class="form-control" type="date" id="revenueTo" name="to" th:value="${to}" required></div>
+                <div class="col-12 col-sm-2"><button class="btn btn-wb-accent w-100" type="submit">Xem</button></div>
+            </form>
+        </section>
+
+        <section aria-label="Tổng quan doanh thu" class="row g-3 mb-4" th:if="${summary != null}">
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Doanh thu</div><strong class="fs-4" th:text="|${#numbers.formatDecimal(summary.totalRevenue, 0, 'POINT', 0, 'COMMA')} đ|">0 đ</strong></div></div>
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Đơn đã thanh toán</div><strong class="fs-4" th:text="${summary.paidBookings}">0</strong></div></div>
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Vé đã bán</div><strong class="fs-4" th:text="${summary.ticketsSold}">0</strong></div></div>
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Vé miễn phí</div><strong class="fs-4" th:text="${summary.freeTickets}">0</strong></div></div>
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Tiền giảm giá</div><strong class="fs-4" th:text="|${#numbers.formatDecimal(summary.totalDiscount, 0, 'POINT', 0, 'COMMA')} đ|">0 đ</strong></div></div>
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Đã hoàn</div><strong class="fs-4" th:text="|${#numbers.formatDecimal(summary.totalRefunded, 0, 'POINT', 0, 'COMMA')} đ|">0 đ</strong></div></div>
+            <div class="col-12 col-sm-6 col-xl-3"><div class="wb-admin-form-card h-100"><div class="text-muted small">Đơn huỷ hoặc hết hạn</div><strong class="fs-4" th:text="${summary.cancelledOrExpiredBookings}">0</strong></div></div>
+        </section>
+
+        <section class="wb-admin-form-card mb-4" aria-label="Biểu đồ doanh thu theo ngày">
+            <h2 class="wb-admin-form-title">Doanh thu theo ngày</h2>
+            <div class="wb-revenue-chart"><canvas id="revenueChart" role="img" aria-label="Biểu đồ cột doanh thu theo ngày"></canvas></div>
+            <div hidden data-revenue-data>
+                <span th:each="day : ${dailyRevenue}" th:attr="data-day=${day.date},data-amount=${day.revenue}"></span>
+            </div>
+            <p class="text-muted mb-0" th:if="${#lists.isEmpty(dailyRevenue)}">Chưa có doanh thu trong khoảng ngày này.</p>
+        </section>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-xl-6" th:each="groups,groupStat : ${ {byRoute, byTicketType, byMethod, byPromotion} }">
+                <section class="wb-admin-table-wrap h-100">
+                    <h2 class="wb-admin-form-title p-3 mb-0" th:text="${{'Theo tuyến', 'Theo loại vé', 'Theo phương thức', 'Theo khuyến mãi'}[groupStat.index]}">Theo tuyến</h2>
+                    <table class="table wb-admin-table mb-0">
+                        <thead><tr><th scope="col">Tên</th><th scope="col" class="text-end">Đơn</th><th scope="col" class="text-end">Vé</th><th scope="col" class="text-end">Doanh thu</th></tr></thead>
+                        <tbody>
+                        <tr th:each="item : ${groups}"><td data-label="Tên" th:text="${item.name}">Tuyến</td><td data-label="Đơn" class="text-end" th:text="${item.bookings}">0</td><td data-label="Vé" class="text-end" th:text="${item.tickets}">0</td><td data-label="Doanh thu" class="text-end" th:text="|${#numbers.formatDecimal(item.revenue, 0, 'POINT', 0, 'COMMA')} đ|">0 đ</td></tr>
+                        <tr th:if="${#lists.isEmpty(groups)}"><td colspan="4" class="text-muted">Chưa có dữ liệu.</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+<button class="wb-admin-backdrop" type="button" data-admin-sidebar-close aria-label="Đóng menu quản trị" hidden></button>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/chart.umd.min.js}" src="/static/js/chart.umd.min.js"></script>
+<script th:src="@{/js/revenue.js}" src="/static/js/revenue.js"></script>
+</body>
+</html>

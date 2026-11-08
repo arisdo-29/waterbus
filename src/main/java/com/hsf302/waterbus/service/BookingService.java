@@ -39,6 +39,8 @@ public interface BookingService {
     /** Chuyến tàu của 1 đơn (mọi vé trong đơn cùng 1 chuyến). Đơn không có vé -> null. */
     BookingTripDTO getTripOfBooking(int bookingId);
 
+    String getTripCancelReason(int bookingId);
+
     /** Trong các ghế khách đã chọn, lấy những ghế vẫn còn trống (trang checkout). */
     List<Seat> getSelectedSeats(int tripId, List<Integer> seatIds);
 

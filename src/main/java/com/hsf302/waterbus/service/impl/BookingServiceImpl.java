@@ -419,8 +419,11 @@ public class BookingServiceImpl implements BookingService {
 
     private TicketDTO toTicketDTO(Ticket t) {
         // Lấy mã ghế và TÊN bến từ các entity liên quan
+        // requiresVerification lấy từ loại vé của chính vé này (cột kiểu Boolean nên so với TRUE để tránh null)
+        boolean requiresVerification = Boolean.TRUE.equals(t.getTicketType().getRequiresVerification());
         return new TicketDTO(t.getTicketCode(), t.getSeat().getSeatCode(), t.getFromStation().getName(),
-                t.getToStation().getName(), t.getPrice(), t.getStatus());
+                t.getToStation().getName(), t.getPrice(), t.getStatus(),
+                t.getPassengerName(), t.getBirthYear(), requiresVerification);
     }
 
     private BookingTripDTO toTripDTO(Trip trip) {

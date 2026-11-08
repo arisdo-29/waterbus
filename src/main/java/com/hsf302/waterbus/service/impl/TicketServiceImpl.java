@@ -58,6 +58,22 @@ public class TicketServiceImpl implements TicketService {
             throw new IllegalStateException("Vé " + ticket.getTicketCode() + " không hợp lệ để soát (trạng thái: " + currentStatus + ")!");
         }
 
+        // Kiểm tra chuyến tàu: từ chối vé của chuyến đã bị huỷ
+        if (ticket.getTrip() != null && "CANCELLED".equalsIgnoreCase(ticket.getTrip().getStatus())) {
+            throw new IllegalStateException("Chuyến tàu " + ticket.getTrip().getTripCode() + " đã bị hủy, không thể soát vé!");
+        }
+
+        // Kiểm tra đơn đặt vé: từ chối vé của đơn đã bị huỷ hoặc đã hoàn tiền
+        if (ticket.getBooking() != null) {
+            String bookingStatus = ticket.getBooking().getStatus();
+            if ("CANCELLED".equalsIgnoreCase(bookingStatus)) {
+                throw new IllegalStateException("Đơn đặt vé " + ticket.getBooking().getBookingCode() + " đã bị hủy, không thể soát vé!");
+            }
+            if ("REFUNDED".equalsIgnoreCase(bookingStatus)) {
+                throw new IllegalStateException("Đơn đặt vé " + ticket.getBooking().getBookingCode() + " đã được hoàn tiền, không thể soát vé!");
+            }
+        }
+
         // Cập nhật trạng thái vé sang USED và đóng dấu thời gian soát vé
         ticket.setStatus("USED");
         ticket.setCheckedInAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));

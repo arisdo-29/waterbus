@@ -20,7 +20,7 @@ public class RegisterRequest implements Serializable {
     @Size(max = 100, message = "Họ và tên tối đa 100 ký tự")
     private String fullName;
 
-    @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "0[0-9]{9}", message = "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.")
     private String phone;
 
     public RegisterRequest() {
@@ -30,7 +30,7 @@ public class RegisterRequest implements Serializable {
         this.email = email;
         this.password = password;
         this.fullName = fullName;
-        this.phone = phone;
+        this.phone = (phone == null || phone.trim().isEmpty()) ? null : phone.trim();
     }
 
     public String getEmail() {
@@ -62,6 +62,6 @@ public class RegisterRequest implements Serializable {
     }
 
     public void setPhone(String phone) {
-        this.phone = phone;
+        this.phone = (phone == null || phone.trim().isEmpty()) ? null : phone.trim();
     }
 }

@@ -53,6 +53,7 @@
                     </td>
                     <td>
                       <span th:replace="~{fragments/layout :: statusBadge(${b?.status})}" class="badge rounded-pill wb-badge-success">Đã thanh toán</span>
+                      <th:block th:unless="${b?.status == 'REFUNDED'}" th:with="refundStatus=${@view.prop(b, 'refundStatus')}"><span th:replace="~{fragments/layout :: refundBadge(${refundStatus})}" class="badge rounded-pill wb-badge-warning">Chờ hoàn tiền</span></th:block>
                     </td>
                     <td class="text-end">
                       <a class="btn btn-sm btn-wb-outline" href="/templates/booking/detail.html" th:href="@{/booking/{code}(code=${b?.bookingCode})}">Xem vé <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
@@ -67,6 +68,7 @@
               <div class="wb-booking-card-top">
                 <strong class="wb-mono" th:text="${b?.bookingCode}">BK0000001</strong>
                             <span th:replace="~{fragments/layout :: statusBadge(${b?.status})}" class="badge rounded-pill wb-badge-success">Đã thanh toán</span>
+                            <th:block th:unless="${b?.status == 'REFUNDED'}" th:with="refundStatus=${@view.prop(b, 'refundStatus')}"><span th:replace="~{fragments/layout :: refundBadge(${refundStatus})}" class="badge rounded-pill wb-badge-warning">Chờ hoàn tiền</span></th:block>
               </div>
               <dl class="wb-booking-card-meta">
                 <div>

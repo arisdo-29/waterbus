@@ -1,9 +1,14 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.dto.RegisterRequest;
+import com.hsf302.waterbus.dto.UpdateProfileRequest;
 import com.hsf302.waterbus.entity.Account;
 import com.hsf302.waterbus.repository.AccountRepository;
 import com.hsf302.waterbus.service.impl.AccountServiceImpl;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -318,5 +323,41 @@ class AccountServiceTest {
 
         assertTrue(passwordEncoder.matches("NewPassword999", user.getPasswordHash()));
         verify(accountRepository, times(1)).save(user);
+    }
+
+    @Test
+    void testPhoneValidation_SameAsCheckoutRegex() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+
+        // 1. Số điện thoại hợp lệ (10 số, bắt đầu bằng 0)
+        RegisterRequest reqValid = new RegisterRequest("test@test.com", "123456", "Test", "0901234567");
+        assertTrue(validator.validate(reqValid).isEmpty());
+
+        // 2. Số điện thoại để trống / null (hợp lệ vì phone là tùy chọn)
+        RegisterRequest reqNull = new RegisterRequest("test@test.com", "123456", "Test", null);
+        assertTrue(validator.validate(reqNull).isEmpty());
+        RegisterRequest reqEmpty = new RegisterRequest("test@test.com", "123456", "Test", "   ");
+        assertTrue(validator.validate(reqEmpty).isEmpty());
+
+        // 3. Số điện thoại không hợp lệ (không bắt đầu bằng 0, 9 số, 11 số, hoặc chứa +84)
+        RegisterRequest reqInvalid1 = new RegisterRequest("test@test.com", "123456", "Test", "090123456");
+        assertFalse(validator.validate(reqInvalid1).isEmpty());
+
+        RegisterRequest reqInvalid2 = new RegisterRequest("test@test.com", "123456", "Test", "09012345678");
+        assertFalse(validator.validate(reqInvalid2).isEmpty());
+
+        RegisterRequest reqInvalid3 = new RegisterRequest("test@test.com", "123456", "Test", "+84901234567");
+        assertFalse(validator.validate(reqInvalid3).isEmpty());
+
+        RegisterRequest reqInvalid4 = new RegisterRequest("test@test.com", "123456", "Test", "1234567890");
+        assertFalse(validator.validate(reqInvalid4).isEmpty());
+
+        // Tương tự với UpdateProfileRequest
+        UpdateProfileRequest profileValid = new UpdateProfileRequest("Test", "0912345678");
+        assertTrue(validator.validate(profileValid).isEmpty());
+
+        UpdateProfileRequest profileInvalid = new UpdateProfileRequest("Test", "091234");
+        assertFalse(validator.validate(profileInvalid).isEmpty());
     }
 }

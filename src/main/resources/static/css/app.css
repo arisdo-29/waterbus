@@ -260,3 +260,87 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
     .wb-error-actions { flex-direction: column; }
     .wb-error-actions .btn { width: 100%; }
 }
+
+/* Pop-up xác nhận dùng chung (fragment confirmModal) */
+.btn-wb-danger { background: var(--wb-danger); border-color: var(--wb-danger); color: #fff; font-weight: 700; }
+.btn-wb-danger:hover, .btn-wb-danger:focus-visible { background: #B83333; border-color: #B83333; color: #fff; }
+.wb-confirm-modal .modal-content { border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 20px 45px rgba(11, 53, 80, .18); }
+.wb-confirm-modal .modal-header { border-bottom-color: var(--wb-line); }
+.wb-confirm-modal .modal-title { font-size: 1.2rem; margin: 0; }
+.wb-confirm-modal .modal-body p { margin: 0; color: var(--wb-ink); white-space: pre-line; }
+.wb-confirm-modal .modal-footer { border-top-color: var(--wb-line); gap: 8px; }
+.wb-confirm-modal .modal-footer .btn { min-width: 110px; margin: 0; }
+@media (max-width: 575.98px) {
+    .wb-confirm-modal .modal-footer { flex-direction: column-reverse; align-items: stretch; }
+    .wb-confirm-modal .modal-footer .btn { width: 100%; }
+}
+
+/* Checkout vé ưu đãi: thông tin hành khách, chính sách */
+.wb-passenger-card { margin-top: 24px; }
+.wb-verify-note { display: flex; gap: 12px; align-items: flex-start; border: 1px solid #F0D684; border-radius: 12px; background: #FFF9E8; color: #5C4500; font-size: 14px; margin-bottom: 20px; padding: 14px 16px; }
+.wb-verify-note > i { color: var(--wb-yellow-600); font-size: 22px; line-height: 1; }
+.wb-passenger-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 140px; gap: 12px 16px; align-items: start; border-top: 1px solid var(--wb-line); padding: 16px 0; }
+.wb-passenger-row:first-of-type { border-top: 0; padding-top: 0; }
+.wb-passenger-seat { margin-top: 32px; min-width: 52px; justify-content: center; }
+.wb-passenger-field label { display: block; margin-bottom: 6px; }
+.wb-field-error { color: var(--wb-danger); font-size: 13px; margin-top: 4px; }
+.wb-field-error:empty { display: none; }
+.wb-policy-check { border-top: 1px solid var(--wb-line); margin-top: 16px; padding-top: 16px; }
+.wb-policy-check .form-check-label { font-size: 14px; }
+.wb-policy-link { padding: 4px 0 0 28px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.wb-summary-note { color: var(--wb-muted); font-size: 13px; text-align: center; margin: 0; }
+.wb-policy-list { display: grid; gap: 10px; margin: 0; padding-left: 20px; }
+@media (max-width: 575.98px) {
+    .wb-passenger-row { grid-template-columns: 1fr; }
+    .wb-passenger-seat { margin-top: 0; justify-self: start; }
+}
+
+/* Trang vé: hoàn tiền, QR mã đơn, hành khách */
+.wb-refund-banner { display: flex; gap: 16px; align-items: flex-start; border: 1px solid; border-radius: 16px; padding: 22px 24px; }
+.wb-refund-banner > i { font-size: 32px; line-height: 1; }
+.wb-refund-banner h2 { font-size: 1.25rem; margin-bottom: 4px; }
+.wb-refund-banner p { margin: 0; color: var(--wb-ink); }
+.wb-refund-banner.is-pending { border-color: #F0D684; background: #FFF9E8; }
+.wb-refund-banner.is-pending > i { color: var(--wb-yellow-600); }
+.wb-refund-banner.is-done { border-color: #B9E8CF; background: #EEFBF4; }
+.wb-refund-banner.is-done > i { color: var(--wb-success); }
+.wb-booking-qr { display: flex; align-items: center; gap: 12px; flex-basis: 100%; border-top: 1px dashed var(--wb-line); padding-top: 14px; }
+.wb-booking-qr small { color: var(--wb-muted); font-size: 14px; font-weight: 600; }
+.wb-booking-code-box:has(.wb-booking-qr) { flex-wrap: wrap; }
+.wb-ticket-passenger { display: flex; gap: 8px; align-items: center; color: var(--wb-ink); margin-top: 14px; }
+.wb-ticket-passenger > i { color: var(--wb-blue-700); }
+.wb-ticket-doc-badge { margin-top: 10px; white-space: normal; text-align: left; }
+@media print {
+    .wb-ticket-doc-badge { border: 1px solid #795B00; }
+}
+
+/* Trang thanh toán: chọn Mô phỏng / VNPay */
+.wb-method-group { border: 0; margin: 0 0 4px; padding: 0; }
+.wb-method-group .wb-method-option { min-height: 80px; border: 2px solid var(--wb-line); background: #fff; margin-bottom: 12px; transition: border-color .15s, background-color .15s; }
+.wb-method-group .wb-method-option:has(input:checked) { border-color: var(--wb-blue-700); background: var(--wb-sky-50); }
+.wb-method-group .wb-method-option:has(input:focus-visible) { outline: 3px solid var(--wb-sky-300); outline-offset: 2px; }
+.wb-method-group .wb-method-option .wb-method-check { visibility: hidden; }
+.wb-method-group .wb-method-option:has(input:checked) .wb-method-check { visibility: visible; }
+.wb-method-group .wb-method-option:has(input:disabled) { cursor: not-allowed; opacity: .6; }
+
+/* Màn soát vé (STAFF) - chọn theo data-attribute, xem docs/PAGES.md "Soát vé – hợp đồng JS" */
+[data-checkin-input] { min-height: 56px; font-family: var(--bs-font-monospace); font-size: 1.5rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+[data-checkin-form] .btn, [data-qr-start], [data-qr-stop], [data-checkin-preview] .btn { min-height: 48px; font-weight: 700; }
+[data-qr-start], [data-qr-stop] { display: inline-flex; align-items: center; justify-content: center; }
+[data-qr-reader] { width: 100%; max-width: 420px; margin: 16px auto 0; overflow: hidden; border: 2px solid var(--wb-blue-700); border-radius: 16px; background: #000; }
+[data-qr-reader] video { display: block; width: 100% !important; height: auto !important; }
+.wb-qr-message { margin: 12px 0 0; color: var(--wb-muted); font-size: 15px; text-align: center; }
+.wb-qr-message:empty { display: none; }
+.wb-qr-message.is-error { color: var(--wb-danger); font-weight: 600; }
+.wb-qr-stop { display: flex; width: 100%; max-width: 420px; margin: 12px auto 0; }
+[data-checkin-preview] [data-checkin-confirm] { min-height: 56px; font-size: 1.15rem; }
+[data-checkin-result] { display: none; }
+.wb-checkin-flash { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: #fff; text-align: center; cursor: pointer; animation: wb-flash-in .15s ease-out; }
+.wb-checkin-flash.is-success { background: rgba(31, 157, 99, .96); }
+.wb-checkin-flash.is-error { background: rgba(214, 69, 69, .96); }
+.wb-checkin-flash > i { font-size: clamp(88px, 28vw, 160px); line-height: 1; }
+.wb-checkin-flash > strong { font-size: clamp(2rem, 9vw, 3.5rem); letter-spacing: .04em; }
+.wb-checkin-flash > p { max-width: 640px; margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.5rem); font-weight: 600; overflow-wrap: anywhere; }
+.wb-checkin-flash.is-hiding { opacity: 0; transition: opacity .2s; }
+@keyframes wb-flash-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wb-checkin-flash { animation: none; } }

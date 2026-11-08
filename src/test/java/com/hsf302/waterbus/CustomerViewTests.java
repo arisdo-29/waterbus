@@ -99,6 +99,134 @@ class CustomerViewTests {
                 .doesNotContain("value=\"account@example.test\"");
     }
 
+    @Test
+    void confirmModalIsSharedAndBookingFormsAskBeforeSubmitting() throws Exception {
+        Map<String, Object> model = fixture("PENDING");
+        for (String page : List.of("home", "checkout", "payment", "detail", "history")) {
+            String html = render(page, model);
+            assertThat(html).contains("id=\"wbConfirmModal\"", "data-confirm-modal-ok", ">Huỷ</button>", ">Đồng ý</button>");
+            assertThat(html.indexOf("id=\"wbConfirmModal\"")).isLessThan(html.indexOf("src=\"/js/app.js\""));
+        }
+        assertThat(render("checkout", model)).containsPattern("<button[^>]*type=\"submit\"[^>]*data-confirm=\"Đặt 2 vé chuyến "
+                + "Tuyến thực \\([^\"]*\\)[^\"]*, ghế C7, C8\\?\"");
+        assertThat(render("payment", model)).containsPattern("data-payment-submit[^>]*data-confirm=\"Thanh toán 42.000 đ qua hình thức mô phỏng\\?\"")
+                .contains("data-payment-amount=\"42.000 đ\"", "name=\"method\" value=\"MOCK\" checked", "name=\"method\" value=\"VNPAY\"",
+                        "data-action-url=\"/payment/REAL-42/mock\"", "data-action-url=\"/payment/REAL-42/vnpay\"");
+        assertThat(render("payment", fixture("PAID"))).containsPattern("value=\"VNPAY\"[^>]*disabled");
+        assertThat(render("detail", model)).containsPattern("action=\"/booking/REAL-42/cancel\"[^>]*data-confirm-variant=\"danger\"");
+        model.put("seats", List.of());
+        model.put("trip", null);
+        assertThat(render("checkout", model)).contains("data-confirm=\"Đặt 0 vé chuyến").doesNotContain("chuyến null", "null →", "lúc null");
+    }
+
+    @Test
+    void checkoutAsksPassengerInfoOnlyForVerifiedTicketsAndKeepsInputsAndErrors() throws Exception {
+        Map<String, Object> standard = fixture("PENDING");
+        String html = render("checkout", standard);
+        assertThat(html).doesNotContain("name=\"passengerNames\"", "data-passenger-section")
+                .containsPattern("name=\"acceptPolicy\"[^>]*value=\"true\"[^>]*required")
+                .contains("không hoàn tiền (trừ khi chuyến bị huỷ bởi nhà vận hành)", "id=\"wbPolicyModal\"",
+                        "data-bs-target=\"#wbPolicyModal\"", "chuyển sang thanh toán", ">Đặt vé</span>");
+
+        Map<String, Object> senior = fixture("PENDING");
+        senior.put("ticketType", Map.of("id", 9, "code", "SENIOR_70", "name", "Người từ 70 tuổi",
+                "price", java.math.BigDecimal.ZERO, "requiresVerification", true));
+        senior.put("subtotal", java.math.BigDecimal.ZERO);
+        org.springframework.validation.BeanPropertyBindingResult errors =
+                new org.springframework.validation.BeanPropertyBindingResult(senior.get("bookingForm"), "bookingForm");
+        errors.addError(new org.springframework.validation.FieldError("bookingForm", "birthYears[1]", "Hành khách ghế C8 chưa đủ 70 tuổi."));
+        errors.addError(new org.springframework.validation.FieldError("bookingForm", "passengerNames", "Thiếu tên hành khách."));
+        errors.addError(new org.springframework.validation.FieldError("bookingForm", "acceptPolicy", "Vui lòng đồng ý chính sách."));
+        senior.put(org.springframework.validation.BindingResult.MODEL_KEY_PREFIX + "bookingForm", errors);
+        html = render("checkout", senior, get("/__test/views/checkout").param("passengerNames", "Bà Một", "Ông Hai")
+                .param("birthYears", "1950", "1990").param("acceptPolicy", "true"));
+        assertThat(html).contains("data-passenger-section", "data-ticket-code=\"SENIOR_70\"",
+                        "Mang CCCD / thẻ khuyết tật, thẻ thương binh bản gốc khi lên tàu.",
+                        "value=\"Bà Một\"", "value=\"Ông Hai\"", "value=\"1950\"", "value=\"1990\"",
+                        "Hành khách ghế C8 chưa đủ 70 tuổi.", "Thiếu tên hành khách.", "Vui lòng đồng ý chính sách.",
+                        ">Xác nhận đặt vé</span>", "data-confirm-ok=\"Xác nhận đặt vé\"", "không cần thanh toán")
+                .doesNotContain("chuyển sang thanh toán")
+                .containsPattern("class=\"[^\"]*is-invalid[^\"]*\" id=\"birthYear1\"")
+                .containsPattern("id=\"acceptPolicy\"[^>]*checked")
+                .containsPattern("name=\"birthYears\"[^>]*min=\"1900\"[^>]*max=\"\\d{4}\"");
+        assertThat(html.split("name=\"passengerNames\"", -1)).hasSize(3);
+    }
+
+    @Test
+    void detailShowsPassengersGroupQrPaymentAndRefundBanners() throws Exception {
+        Map<String, Object> model = fixture("PAID");
+        model.put("tickets", List.of(new HashMap<>(Map.of("ticketCode", "TICKET-91", "seatCode", "C7", "fromStation", "Bến đi",
+                "toStation", "Bến đến", "price", java.math.BigDecimal.ZERO, "status", "VALID",
+                "passengerName", "Bà <Một>", "birthYear", 1950))));
+        model.put("payment", Map.of("method", "VNPAY", "transactionRef", "VNP-778"));
+        String html = render("detail", model);
+        assertThat(html).contains("Bà &lt;Một&gt;", "sinh năm <span>1950</span>", "Mang giấy tờ gốc khi lên tàu",
+                "data-qr-value=\"REAL-42\"", "Đưa nhân viên quét để lên tàu cả nhóm", "VNPay", "VNP-778")
+                .doesNotContain("wb-refund-banner");
+
+        model.put("refund", Map.of("status", "PENDING", "amount", new java.math.BigDecimal("42000")));
+        model.put("tripCancelReason", "Nước lớn");
+        assertThat(render("detail", model)).contains("wb-refund-banner is-pending", "Chuyến đã bị huỷ (lý do: <span>Nước lớn</span>)",
+                "Đơn đang chờ hoàn tiền").doesNotContain("is-done");
+
+        Map<String, Object> refunded = fixture("REFUNDED");
+        refunded.put("refund", Map.of("status", "DONE", "amount", new java.math.BigDecimal("42000"),
+                "refundedAt", LocalDateTime.of(2026, 11, 2, 9, 30), "transactionRef", "HT-001"));
+        html = render("detail", refunded);
+        assertThat(html).contains("wb-refund-banner is-done", "42.000 đ", "09:30 02/11/2026", "HT-001", "Đơn đã hoàn tiền")
+                .doesNotContain("is-pending", "Đưa nhân viên quét", "Mang giấy tờ gốc");
+        refunded.remove("refund");
+        assertThat(render("detail", refunded)).contains("wb-refund-banner is-done", "Đã hoàn <strong>42.000 đ</strong>.");
+    }
+
+    @Test
+    void historyShowsRefundStatusOnTableAndCards() throws Exception {
+        Map<String, Object> model = fixture("PAID");
+        Map<String, Object> pending = new HashMap<>(booking(model));
+        pending.put("bookingCode", "WAIT-1");
+        pending.put("refundStatus", "PENDING");
+        Map<String, Object> done = new HashMap<>(booking(model));
+        done.put("bookingCode", "DONE-1");
+        done.put("refundStatus", "DONE");
+        model.put("bookings", List.of(pending, done, booking(model)));
+        String html = render("history", model);
+        assertThat(html.split("Chờ hoàn tiền", -1)).hasSize(3);
+        assertThat(html.split("</i>Đã hoàn tiền", -1)).hasSize(3);
+    }
+
+    @Test
+    void adminMenuShowsRevenueRefundsAccountsForAdminAndCheckinFirstForStaff() throws Exception {
+        MockHttpSession admin = new MockHttpSession();
+        admin.setAttribute("loginAccount", account("ADMIN"));
+        String adminMenu = render("sidebar", fixture("PENDING"), get("/__test/views/sidebar").session(admin));
+        int trips = adminMenu.indexOf("data-admin-nav=\"/admin/trips\"");
+        int revenue = adminMenu.indexOf("data-admin-nav=\"/admin/revenue\"");
+        int refunds = adminMenu.indexOf("data-admin-nav=\"/admin/refunds\"");
+        int accounts = adminMenu.indexOf("data-admin-nav=\"/admin/accounts\"");
+        int waterbuses = adminMenu.indexOf("data-admin-nav=\"/admin/waterbuses\"");
+        assertThat(trips).isNotNegative().isLessThan(revenue);
+        assertThat(revenue).isLessThan(refunds);
+        assertThat(refunds).isLessThan(accounts);
+        assertThat(accounts).isLessThan(waterbuses);
+        assertThat(adminMenu).contains("bi-graph-up-arrow", "bi-arrow-counterclockwise", "bi-people",
+                "href=\"/admin/revenue\"", "href=\"/admin/refunds\"", "href=\"/admin/accounts\"");
+        assertThat(adminMenu.split("data-admin-nav=\"/admin/checkin\"", -1)).hasSize(2);
+        assertThat(adminMenu.indexOf("data-admin-nav=\"/admin/checkin\"")).isGreaterThan(waterbuses);
+
+        MockHttpSession staff = new MockHttpSession();
+        staff.setAttribute("loginAccount", account("STAFF"));
+        String staffMenu = render("sidebar", fixture("PENDING"), get("/__test/views/sidebar").session(staff));
+        assertThat(staffMenu.split("data-admin-nav=\"/admin/checkin\"", -1)).hasSize(2);
+        assertThat(staffMenu.indexOf("data-admin-nav=\"/admin/checkin\""))
+                .isLessThan(staffMenu.indexOf("data-admin-nav=\"/admin/trips\""));
+        assertThat(staffMenu).doesNotContain("/admin/revenue", "/admin/refunds", "/admin/accounts", "/admin/waterbuses");
+
+        assertThat(render("navbar", fixture("PENDING"), get("/__test/views/navbar").session(admin)))
+                .contains("href=\"/admin/revenue\"");
+        assertThat(render("navbar", fixture("PENDING"), get("/__test/views/navbar").session(staff)))
+                .contains("href=\"/admin/trips\"").doesNotContain("/admin/revenue");
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"PENDING", "PAID", "EXPIRED", "CANCELLED"})
     void paymentDetailAndHistoryRenderRealDataAndStatuses(String state) throws Exception {
@@ -133,6 +261,11 @@ class CustomerViewTests {
                 java.nio.file.Files.writeString(directory.resolve(page + "-" + state + ".html"), render(page, model));
             }
         }
+        Map<String, Object> senior = fixture("PENDING");
+        senior.put("ticketType", Map.of("id", 9, "code", "SENIOR_70", "name", "Người từ 70 tuổi",
+                "price", java.math.BigDecimal.ZERO, "requiresVerification", true));
+        senior.put("subtotal", java.math.BigDecimal.ZERO);
+        java.nio.file.Files.writeString(directory.resolve("checkout-SENIOR.html"), render("checkout", senior));
         for (String value : List.of("missing", "invalid", "elapsed")) {
             Map<String, Object> model = fixture("PENDING");
             booking(model).put("expiresAt", switch (value) {
@@ -195,7 +328,8 @@ class CustomerViewTests {
         model.put("booking", booking);
         model.put("bookings", List.of(booking));
         model.put("seats", List.of(Map.of("id", 91, "seatCode", "C7"), Map.of("id", 92, "seatCode", "C8")));
-        model.put("ticketType", Map.of("id", 8, "name", "Vé thường", "price", new java.math.BigDecimal("22500")));
+        model.put("ticketType", Map.of("id", 8, "code", "STANDARD", "name", "Vé thường", "price", new java.math.BigDecimal("22500"),
+                "requiresVerification", false));
         model.put("bookingForm", new com.hsf302.waterbus.dto.BookingForm()); // controller thật luôn đưa bookingForm vào checkout
         model.put("subtotal", new java.math.BigDecimal("45000"));
         model.put("fromStationId", 11);
@@ -219,6 +353,8 @@ class CustomerViewTests {
                 case "payment" -> "payment/index";
                 case "detail" -> "booking/detail";
                 case "history" -> "booking/history";
+                case "sidebar" -> "fragments/layout :: adminSidebar";
+                case "navbar" -> "fragments/layout :: navbar";
                 default -> throw new IllegalArgumentException("Unknown fixture view");
             };
             return new ModelAndView(view, (Map<String, Object>) request.getAttribute("fixture"));

@@ -4,6 +4,9 @@
 
 1. Tạo database: mở SSMS, chạy `database/WaterbusDB_SQLServer.sql` (tạo `WaterbusDB` + dữ liệu mẫu).
    **Chạy lại script ngay trước buổi demo**: chuyến mẫu chỉ có 7 ngày kể từ ngày chạy script.
+   Sau đó chạy lần lượt các file trong `database/changes/` theo thứ tự ngày (thiếu file thì đặt vé sẽ lỗi `Invalid column name`).
+   Nếu DB đã từng chạy `2026-11-08_db_hanh-khach-soat-ve-hoan-tien.sql`, trước khi chạy lại script chính phải
+   `DROP TABLE IF EXISTS refund; DROP TABLE IF EXISTS ticket_scan_log;` (2 bảng này có khoá ngoại tới bảng chính).
 2. Cấu hình mật khẩu SQL Server: copy `src/main/resources/application-local.properties.example`
    thành `application-local.properties`, sửa `spring.datasource.password` (file này bị gitignore). Chi tiết ở `docs/SETUP.md`.
 3. Chạy: `./mvnw spring-boot:run` (Windows: `mvnw.cmd spring-boot:run`), mở http://localhost:8080.

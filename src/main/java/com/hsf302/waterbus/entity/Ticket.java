@@ -1,8 +1,10 @@
 package com.hsf302.waterbus.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -61,6 +63,15 @@ public class Ticket {
 
     @Column(name = "checked_in_at")
     private LocalDateTime checkedInAt;
+
+    @Size(max = 100)
+    @Nationalized
+    @Column(name = "passenger_name", length = 100)
+    private String passengerName;
+
+    @Min(1900)
+    @Column(name = "birth_year")
+    private Integer birthYear;
 
     public Integer getId() {
         return id;
@@ -148,5 +159,21 @@ public class Ticket {
 
     public void setCheckedInAt(LocalDateTime checkedInAt) {
         this.checkedInAt = checkedInAt;
+    }
+
+    public String getPassengerName() {
+        return passengerName;
+    }
+
+    public void setPassengerName(String passengerName) {
+        this.passengerName = passengerName;
+    }
+
+    public Integer getBirthYear() {
+        return birthYear;
+    }
+
+    public void setBirthYear(Integer birthYear) {
+        this.birthYear = birthYear;
     }
 }

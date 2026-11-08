@@ -3,6 +3,7 @@ package com.hsf302.waterbus.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
 /** Bảng [trip] - module phụ trách: BE2 - Tàu, Ghế & Chuyến. Khớp với database/WaterbusDB_SQLServer.sql */
@@ -41,6 +42,11 @@ public class Trip {
     @NotNull
     @Column(name = "status", nullable = false, length = 20)
     private String status = "SCHEDULED";
+
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "cancel_reason", length = 255)
+    private String cancelReason;
 
     public Integer getId() {
         return id;
@@ -96,5 +102,13 @@ public class Trip {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
     }
 }

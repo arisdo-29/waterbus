@@ -1,8 +1,10 @@
 package com.hsf302.waterbus.service.impl;
 
 import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.dto.TicketDTO;
+import com.hsf302.waterbus.dto.TicketTypeDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Promotion;
 import com.hsf302.waterbus.entity.RouteStation;
@@ -19,6 +21,7 @@ import com.hsf302.waterbus.service.RouteService;
 import com.hsf302.waterbus.service.TicketTypeService;
 import com.hsf302.waterbus.service.TripService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +29,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.Errors;
 
 // Module: BE4 - Đặt vé & Thanh toán.
 @Service
@@ -255,6 +259,65 @@ public class BookingServiceImpl implements BookingService {
     public BookingTripDTO getTripInfo(int tripId) {
         // Dùng hợp đồng của Trí: null nếu không có chuyến hoặc chuyến không còn SCHEDULED
         return tripService.getBookableTrip(tripId);
+    }
+
+    @Override
+    public void validatePassengers(BookingForm form, Errors errors) {
+        // Thiếu chuyến/loại vé -> Controller đã tự xử lý trước, ở đây bỏ qua
+        if (form.getTripId() == null || form.getTicketTypeId() == null) {
+            return;
+        }
+        // Chỉ kiểm tra vé ưu đãi (requiresVerification = true). Vé thường -> không cần họ tên, năm sinh
+        TicketTypeDTO ticketType = ticketTypeService.getTicketTypeById(form.getTicketTypeId());
+        if (ticketType == null || !Boolean.TRUE.equals(ticketType.getRequiresVerification())) {
+            return;
+        }
+        BookingTripDTO trip = getTripInfo(form.getTripId());
+        if (trip == null) {
+            return;
+        }
+
+        // 1. Mỗi ghế phải có đúng 1 họ tên và 1 năm sinh (thứ tự giống seatIds)
+        int seatCount = (form.getSeatIds() == null) ? 0 : form.getSeatIds().size();
+        List<String> names = form.getPassengerNames();
+        List<Integer> years = form.getBirthYears();
+        if (names == null || years == null || names.size() != seatCount || years.size() != seatCount) {
+            // Lỗi của cả danh sách -> template hiện ở cuối khung "Thông tin hành khách"
+            errors.rejectValue("passengerNames", "passengers.count",
+                    "Vui lòng nhập họ tên và năm sinh cho từng ghế.");
+            return; // số lượng sai thì không kiểm tra từng ghế được
+        }
+
+        // 2. Kiểm tra từng ghế thứ i: lỗi ghi vào đúng ô passengerNames[i] / birthYears[i]
+        int currentYear = LocalDate.now().getYear();
+        int travelYear = trip.getDepartureTime().getYear(); // tuổi tính theo năm tàu chạy
+        for (int i = 0; i < seatCount; i++) {
+            String name = names.get(i);
+            if (isBlank(name)) {
+                errors.rejectValue("passengerNames[" + i + "]", "passenger.name",
+                        "Vui lòng nhập họ tên hành khách.");
+            } else if (name.trim().length() > 100) {
+                // Cột passenger_name trong DB chỉ chứa 100 ký tự
+                errors.rejectValue("passengerNames[" + i + "]", "passenger.name",
+                        "Họ tên hành khách tối đa 100 ký tự.");
+            }
+
+            Integer year = years.get(i);
+            if (year == null || year < 1900 || year > currentYear) {
+                errors.rejectValue("birthYears[" + i + "]", "passenger.birthYear",
+                        "Năm sinh phải từ 1900 đến " + currentYear + ".");
+                continue; // năm sinh sai thì không tính tuổi nữa
+            }
+            int age = travelYear - year;
+            if ("SENIOR_70".equals(ticketType.getCode()) && age < 70) {
+                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
+                        "Vé người cao tuổi chỉ dành cho hành khách từ 70 tuổi trở lên.");
+            }
+            if ("PRIORITY".equals(ticketType.getCode()) && age < 13) {
+                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
+                        "Vé ưu tiên chỉ dành cho hành khách từ 13 tuổi trở lên.");
+            }
+        }
     }
 
     @Override

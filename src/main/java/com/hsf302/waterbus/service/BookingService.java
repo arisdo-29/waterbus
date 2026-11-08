@@ -1,12 +1,14 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.validation.Errors;
 
 // Module: BE4 - Đặt vé & Thanh toán
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
@@ -37,6 +39,12 @@ public interface BookingService {
 
     /** Thông tin chuyến để hiển thị trên trang checkout (qua TripService.getBookableTrip). Không tìm thấy hoặc chuyến không còn SCHEDULED -> null. */
     BookingTripDTO getTripInfo(int tripId);
+
+    /**
+     * Vé ưu đãi (loại vé requiresVerification = true): kiểm tra họ tên + năm sinh của từng ghế.
+     * Sai ở đâu thì ghi lỗi vào đúng ô đó trong errors (VD "birthYears[1]"). Vé thường -> không kiểm tra gì.
+     */
+    void validatePassengers(BookingForm form, Errors errors);
 
     /** true nếu TẤT CẢ ghế đã chọn còn trống (kiểm tra từng ghế bằng TripService.isSeatAvailable). */
     boolean areSeatsAvailable(int tripId, List<Integer> seatIds);

@@ -95,6 +95,9 @@ public class BookingController {
             flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
             return "redirect:/trips";
         }
+        // @Valid đã kiểm tra các ô đơn giản (họ tên, SĐT, chính sách...). Vé ưu đãi cần kiểm tra thêm
+        // họ tên + năm sinh từng ghế -> service ghi thêm lỗi vào cùng "errors" để hiện dưới đúng ô
+        bookingService.validatePassengers(form, errors);
         if (errors.hasErrors()) {
             // Nhập sai (trống tên, SĐT sai...) -> chưa gọi service, báo lỗi
             model.addAttribute("errorMessage", errorText(errors));

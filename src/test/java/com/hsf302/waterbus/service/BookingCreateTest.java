@@ -138,7 +138,7 @@ class BookingCreateTest {
         doReturn(List.of(staleAvailability)).when(tripServiceSpy).getAvailableSeats(tripId);
 
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        String html = mvc.perform(post("/booking")
+        String html = mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
@@ -172,7 +172,7 @@ class BookingCreateTest {
     @Test
     void postBookingRedirectsToPaymentWhenSuccessful() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        String location = mvc.perform(post("/booking")
+        String location = mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1), String.valueOf(seatA2))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
@@ -196,7 +196,7 @@ class BookingCreateTest {
         AccountDTO loginAccount = new AccountDTO(accountId, "lan@example.com", "Lan", "0901234567", "CUSTOMER", "ACTIVE");
 
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        mvc.perform(post("/booking")
+        mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .sessionAttr("loginAccount", loginAccount) // giả lập đã đăng nhập
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1))
@@ -216,7 +216,7 @@ class BookingCreateTest {
                 "", null, "Nguoi khac", "0907654321", "khac@example.com");
 
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        String html = mvc.perform(post("/booking")
+        String html = mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1), String.valueOf(seatA2))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))

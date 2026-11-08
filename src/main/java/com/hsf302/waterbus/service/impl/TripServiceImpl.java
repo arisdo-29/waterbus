@@ -5,14 +5,19 @@ import com.hsf302.waterbus.dto.AdminTripForm;
 import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
+import com.hsf302.waterbus.dto.TripManifestDTO;
+import com.hsf302.waterbus.dto.TicketCheckinDTO;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.SeatRepository;
 import com.hsf302.waterbus.repository.TripRepository;
 import com.hsf302.waterbus.service.RouteService;
+import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.TripService;
+import com.hsf302.waterbus.service.TicketService;
 import com.hsf302.waterbus.service.WaterbusService;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -28,13 +33,18 @@ public class TripServiceImpl implements TripService {
     private final SeatRepository seatRepository;
     private final RouteService routeService;
     private final WaterbusService waterbusService;
+    private final TicketService ticketService;
+    private final RefundService refundService;
 
     public TripServiceImpl(TripRepository tripRepository, SeatRepository seatRepository,
-                           RouteService routeService, WaterbusService waterbusService) {
+                           RouteService routeService, WaterbusService waterbusService,
+                           TicketService ticketService, RefundService refundService) {
         this.tripRepository = tripRepository;
         this.seatRepository = seatRepository;
         this.routeService = routeService;
         this.waterbusService = waterbusService;
+        this.ticketService = ticketService;
+        this.refundService = refundService;
     }
 
     @Override
@@ -42,8 +52,37 @@ public class TripServiceImpl implements TripService {
     public List<AdminTripDTO> getTripsForAdmin() {
         return tripRepository.findAllForAdmin().stream()
                 .map(trip -> new AdminTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                        trip.getWaterbus().getName(), trip.getDepartureTime(), trip.getArrivalTime(), trip.getStatus()))
+                        trip.getWaterbus().getName(), trip.getDepartureTime(), trip.getArrivalTime(), trip.getStatus(),
+                        ticketService.getPassengerManifest(trip.getId()).stream()
+                                .filter(ticket -> ticket.isValid() || ticket.isUsed()).count()))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdminTripDTO> getTodayTrips() {
+        LocalDate today = LocalDate.now();
+        return tripRepository.findDepartingBetween(today.atStartOfDay(), today.plusDays(1).atStartOfDay())
+                .stream().filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .map(trip -> new AdminTripDTO(trip.getId(), trip.getTripCode(),
+                        trip.getRoute().getName(), trip.getWaterbus().getName(),
+                        trip.getDepartureTime(), trip.getArrivalTime(), trip.getStatus()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TripManifestDTO getManifest(int tripId) {
+        if (!tripRepository.existsById(tripId)) {
+            throw new IllegalArgumentException("Không tìm thấy chuyến tàu.");
+        }
+        List<TicketCheckinDTO> passengers = ticketService.getPassengerManifest(tripId).stream()
+                .filter(ticket -> ticket.isValid() || ticket.isUsed())
+                .sorted(Comparator.comparing(TicketCheckinDTO::getSeatCode)
+                        .thenComparing(TicketCheckinDTO::getTicketCode))
+                .toList();
+        return new TripManifestDTO(passengers, passengers.stream().filter(TicketCheckinDTO::isUsed).count(),
+                passengers.size());
     }
 
     @Override
@@ -81,13 +120,22 @@ public class TripServiceImpl implements TripService {
 
     @Override
     @Transactional
-    public void cancelTrip(int tripId) {
+    public void cancelTrip(int tripId, String reason) {
+        String trimmedReason = reason == null ? "" : reason.trim();
+        if (trimmedReason.isEmpty() || trimmedReason.length() > 255) {
+            throw new IllegalArgumentException("Lý do huỷ chuyến phải có từ 1 đến 255 ký tự.");
+        }
         var trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chuyến tàu."));
         if (!"SCHEDULED".equals(trip.getStatus())) {
             throw new IllegalArgumentException("Chỉ có thể huỷ chuyến đang ở trạng thái Đã lên lịch.");
         }
+        if (!trip.getDepartureTime().isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Không thể huỷ chuyến đã khởi hành.");
+        }
+        trip.setCancelReason(trimmedReason);
         trip.setStatus("CANCELLED");
+        refundService.createForCancelledTrip(tripId, trimmedReason);
     }
 
     private String nextTripCode(AdminTripForm form) {
@@ -107,7 +155,7 @@ public class TripServiceImpl implements TripService {
             return List.of();
         }
         return tripRepository.searchTrips(fromStationId, toStationId,
-                date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+                date.atStartOfDay(), date.plusDays(1).atStartOfDay(), LocalDateTime.now());
     }
 
     @Override
@@ -125,6 +173,7 @@ public class TripServiceImpl implements TripService {
     public BookingTripDTO getBookableTrip(int tripId) {
         return tripRepository.findById(tripId)
                 .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .filter(trip -> trip.getDepartureTime().isAfter(LocalDateTime.now()))
                 .map(trip -> new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
                         trip.getDepartureTime(), trip.getArrivalTime()))
                 .orElse(null);

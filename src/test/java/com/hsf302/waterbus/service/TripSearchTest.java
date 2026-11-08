@@ -84,6 +84,21 @@ class TripSearchTest {
     }
 
     @Test
+    void hidesDepartedTripsTodayAndRejectsDirectSeatPage() {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        LocalDateTime now = LocalDateTime.now();
+        trip("TEST_SEARCH_PAST", routeId, busId, now.minusMinutes(5), "SCHEDULED");
+        trip("TEST_SEARCH_FUTURE", routeId, busId, now.plusHours(1), "SCHEDULED");
+
+        assertEquals(List.of("TEST_SEARCH_FUTURE"),
+                tripService.searchTrips(firstStationId, lastStationId, LocalDate.now()).stream()
+                        .map(Trip::getTripCode).toList());
+        assertNull(tripService.getBookableTrip(id("trip", "trip_code", "TEST_SEARCH_PAST")));
+        assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_SEARCH_FUTURE")) != null);
+    }
+
+    @Test
     void suppliesResultPageModelWithActualSeatCount() {
         ExtendedModelMap model = new ExtendedModelMap();
         assertEquals("trip/index", tripController.index(null, null, null, model));

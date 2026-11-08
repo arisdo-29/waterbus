@@ -152,3 +152,8 @@
     .wb-admin .wb-admin-form-actions .btn { flex: 1 1 100%; }
     .wb-admin .wb-route-stop-row { gap: 8px; }
 }
+.wb-revenue-chart {
+    position: relative;
+    height: 300px;
+    min-width: 0;
+}

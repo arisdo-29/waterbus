@@ -47,7 +47,7 @@
                             <td data-label="Trạng thái"><span th:replace="~{fragments/layout :: statusBadge(${station?.isActive == true ? 'ACTIVE' : 'INACTIVE'})}" class="badge rounded-pill wb-badge-success">Đang hoạt động</span></td>
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
                                 <a class="btn btn-wb-outline" href="/templates/admin/station/form.html" th:href="@{/admin/stations/{id}/edit(id=${station?.id})}">Sửa</a>
-                                <form action="/templates/admin/station/list.html" th:action="@{/admin/stations/{id}/delete(id=${station?.id})}" method="post" data-confirm="Ẩn bến bến này?">
+                                <form action="/templates/admin/station/list.html" th:action="@{/admin/stations/{id}/delete(id=${station?.id})}" method="post" data-confirm="Ẩn bến này?" th:attr="data-confirm=|Ẩn bến ${station.name}? Bến sẽ không còn trong danh sách chọn cho tuyến mới.|" data-confirm-variant="danger">
                                     <button class="btn btn-wb-outline wb-admin-danger" type="submit">Ẩn bến</button>
                                 </form>
                             </div></td>

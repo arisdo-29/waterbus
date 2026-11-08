@@ -37,7 +37,7 @@
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin bến</h2>
-                    <form action="/templates/admin/station/list.html" th:action="@{/admin/stations/save}" th:object="${station}" method="post">
+                    <form action="/templates/admin/station/list.html" th:action="@{/admin/stations/save}" th:object="${station}" method="post" data-confirm="Lưu thông tin bến với các giá trị đã nhập?">
                         <input type="hidden" name="id" value="" th:value="${station?.id}">
                         <div class="wb-admin-form-row">
                             <label for="code">Mã bến <span class="wb-admin-required" aria-hidden="true">*</span></label>

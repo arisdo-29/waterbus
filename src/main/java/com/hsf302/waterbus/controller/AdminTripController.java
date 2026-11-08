@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -71,9 +72,10 @@ public class AdminTripController {
     }
 
     @PostMapping("/{id}/cancel")
-    public String cancel(@PathVariable int id, RedirectAttributes flash) {
+    public String cancel(@PathVariable int id, @RequestParam(required = false) String reason,
+                         RedirectAttributes flash) {
         try {
-            tripService.cancelTrip(id);
+            tripService.cancelTrip(id, reason);
             flash.addFlashAttribute("successMessage", "Đã huỷ chuyến tàu.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());

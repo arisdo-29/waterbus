@@ -14,11 +14,17 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
 
     boolean existsByTripCode(String tripCode);
 
+    @Query("SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus "
+            + "WHERE t.departureTime >= :start AND t.departureTime < :end ORDER BY t.departureTime, t.id")
+    List<Trip> findDepartingBetween(@Param("start") LocalDateTime start,
+                                    @Param("end") LocalDateTime end);
+
     @Query("""
             SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus
             WHERE t.status = 'SCHEDULED' AND t.route.isActive = true
               AND t.waterbus.status = 'ACTIVE'
               AND t.departureTime >= :start AND t.departureTime < :end
+              AND t.departureTime > :now
               AND EXISTS (
                   SELECT departure.id FROM RouteStation departure, RouteStation arrival
                   WHERE departure.route = t.route AND arrival.route = t.route
@@ -31,5 +37,6 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
     List<Trip> searchTrips(@Param("fromStationId") int fromStationId,
                            @Param("toStationId") int toStationId,
                            @Param("start") LocalDateTime start,
-                           @Param("end") LocalDateTime end);
+                           @Param("end") LocalDateTime end,
+                           @Param("now") LocalDateTime now);
 }

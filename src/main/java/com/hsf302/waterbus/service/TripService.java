@@ -5,6 +5,7 @@ import com.hsf302.waterbus.dto.AdminTripDTO;
 import com.hsf302.waterbus.dto.AdminTripForm;
 import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
+import com.hsf302.waterbus.dto.TripManifestDTO;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
 import java.time.LocalDate;
@@ -15,9 +16,13 @@ import java.util.List;
 public interface TripService {
     List<AdminTripDTO> getTripsForAdmin();
 
+    List<AdminTripDTO> getTodayTrips();
+
+    TripManifestDTO getManifest(int tripId);
+
     void createAdminTrip(AdminTripForm form);
 
-    void cancelTrip(int tripId);
+    void cancelTrip(int tripId, String reason);
 
     /** Tìm chuyến đi qua bến đi rồi tới bến đến trong ngày (màn hình tìm chuyến). */
     List<Trip> searchTrips(int fromStationId, int toStationId, LocalDate date);

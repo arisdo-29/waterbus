@@ -117,10 +117,8 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
   Đây là giá trị chưa cấu hình giờ, không phải thời gian di chuyển được tính; không thay đổi TripService hoặc chuyến hiện có.
   Dịch thứ tự tạm lên vùng số dương chưa dùng trước khi lưu thứ tự cuối để giữ unique `(route_id, stop_order)`.
   Chỉ xóa membership bỏ khỏi tuyến vì schema không có FK tới route_station; không xóa route/station hoặc cascade.
-- **Cần Trí:** `templates/admin/station/form.html`, `templates/admin/route/form.html` chưa có lỗi dưới từng field:
-  thêm `th:object` và `th:errors` tương ứng với BindingResult `station`/`route`, giữ tên field/action.
-  `templates/admin/route/list.html` cần đổi nhãn nút/xác nhận “Xoá” sang “Ngừng hoạt động” cho đúng hành vi;
-  URL POST `/{id}/delete` vẫn giữ nguyên. Các template admin được giữ nguyên trong phần BE1 này.
+- Trí đã thêm `th:object`/`th:errors` cho `admin/station/form.html`, `admin/route/form.html` và đổi nút tuyến sang
+  “Ngừng hoạt động” (URL POST `/{id}/delete` giữ nguyên) - kiểm tra lại 08/11/2026.
 - **Cần Tân #33:** endpoint admin chưa được xác minh bảo vệ truy cập, cần Tân tích hợp #33.
   Không coi link ẩn trên navbar hay session trong test là phân quyền. Chưa sẵn sàng phát hành admin.
 - 404/500 dùng error dispatch của Spring Boot và template `error/404`, `error/500` hiện có;

@@ -313,3 +313,12 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 @media print {
     .wb-ticket-doc-badge { border: 1px solid #795B00; }
 }
+
+/* Trang thanh toán: chọn Mô phỏng / VNPay */
+.wb-method-group { border: 0; margin: 0 0 4px; padding: 0; }
+.wb-method-group .wb-method-option { min-height: 80px; border: 2px solid var(--wb-line); background: #fff; margin-bottom: 12px; transition: border-color .15s, background-color .15s; }
+.wb-method-group .wb-method-option:has(input:checked) { border-color: var(--wb-blue-700); background: var(--wb-sky-50); }
+.wb-method-group .wb-method-option:has(input:focus-visible) { outline: 3px solid var(--wb-sky-300); outline-offset: 2px; }
+.wb-method-group .wb-method-option .wb-method-check { visibility: hidden; }
+.wb-method-group .wb-method-option:has(input:checked) .wb-method-check { visibility: visible; }
+.wb-method-group .wb-method-option:has(input:disabled) { cursor: not-allowed; opacity: .6; }

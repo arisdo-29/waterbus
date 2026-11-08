@@ -92,3 +92,32 @@ hoặc `errorMessage` là fragment `alerts` tự hiện.
 | `qrcode.min.js` | Vẽ mã QR cho từng vé ở trang `/booking/{mã}` |
 
 Không dùng: Thymeleaf Layout Dialect (fragment đã đủ), SweetAlert2 (alert Bootstrap đã đủ), Flatpickr (ô `type="date"` đã đủ).
+
+## 6. Thanh toán VNPay Sandbox
+
+Trang `/payment/{mã đơn}` có 2 lựa chọn: **Thanh toán mô phỏng** (demo, không cần cấu hình) và **VNPay**
+(form gửi `POST /payment/{mã đơn}/vnpay`, BE4 chuyển hướng sang cổng VNPay, cổng trả về `GET /payment/vnpay-return`).
+
+1. Đăng ký tài khoản test tại https://sandbox.vnpayment.vn/devreg/ để nhận `TmnCode` và `HashSecret` qua email.
+2. Ghi vào `src/main/resources/application-local.properties` (file bị gitignore, **không commit**).
+   Tên khoá chính xác do BE4 (Trâm) chốt; dạng dự kiến:
+   ```properties
+   vnpay.tmn-code=MA_TMN_CUA_BAN
+   vnpay.hash-secret=CHUOI_BI_MAT_CUA_BAN
+   vnpay.pay-url=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+   vnpay.return-url=http://localhost:8080/payment/vnpay-return
+   ```
+3. Thẻ test (ngân hàng NCB) theo tài liệu VNPay Sandbox - **kiểm tra lại trên sandbox.vnpayment.vn nếu đổi**:
+
+   | Trường | Giá trị |
+   |---|---|
+   | Ngân hàng | NCB |
+   | Số thẻ | 9704198526191432198 |
+   | Tên chủ thẻ | NGUYEN VAN A |
+   | Ngày phát hành | 07/15 |
+   | Mật khẩu OTP | 123456 |
+
+4. Thành công → về `/booking/{mã đơn}` kèm thông báo xanh, trang vé hiện "Phương thức: VNPay" và mã giao dịch.
+   Thất bại/huỷ → về `/payment/{mã đơn}` kèm thông báo đỏ, vẫn chọn lại được nếu còn hạn giữ chỗ.
+
+Buổi demo không có mạng hoặc chưa cấu hình VNPay: dùng **Thanh toán mô phỏng**.

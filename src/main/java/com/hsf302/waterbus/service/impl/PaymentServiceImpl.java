@@ -9,6 +9,7 @@ import com.hsf302.waterbus.repository.TicketRepository;
 import com.hsf302.waterbus.service.PaymentService;
 import com.hsf302.waterbus.service.PromotionService;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,13 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Đơn đã hết thời gian giữ chỗ. Vui lòng đặt vé lại.");
         }
 
+        // Chuyến phải còn SCHEDULED (admin có thể đã huỷ chuyến trong lúc khách chưa trả tiền).
+        // Mọi vé của 1 đơn đều cùng 1 chuyến, nên chỉ cần xem chuyến của vé đầu tiên.
+        List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(bookingId);
+        if (tickets.isEmpty() || !"SCHEDULED".equals(tickets.get(0).getTrip().getStatus())) {
+            throw new IllegalArgumentException("Chuyến tàu đã bị huỷ hoặc không còn nhận thanh toán.");
+        }
+
         // 1. Tạo payment SUCCESS (thanh toán giả lập, không gọi cổng thanh toán thật)
         Payment payment = new Payment();
         payment.setBooking(booking);
@@ -61,8 +69,8 @@ public class PaymentServiceImpl implements PaymentService {
         booking.setPaidAt(now);
         bookingRepository.save(booking);
 
-        // 3. Vé đang giữ chỗ (HOLD) -> vé dùng được (VALID)
-        for (Ticket ticket : ticketRepository.findByBookingIdOrderByIdAsc(bookingId)) {
+        // 3. Vé đang giữ chỗ (HOLD) -> vé dùng được (VALID). Dùng lại danh sách vé đã lấy ở trên
+        for (Ticket ticket : tickets) {
             if ("HOLD".equals(ticket.getStatus())) {
                 ticket.setStatus("VALID");
                 ticketRepository.save(ticket);

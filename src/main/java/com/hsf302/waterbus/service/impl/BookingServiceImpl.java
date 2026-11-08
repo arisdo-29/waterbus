@@ -89,6 +89,12 @@ public class BookingServiceImpl implements BookingService {
         if (trip == null || !"SCHEDULED".equals(trip.getStatus())) {
             throw new IllegalArgumentException("Chuyến tàu này không còn nhận đặt vé.");
         }
+        // Ngừng bán online khi chỉ còn 10 phút (hoặc ít hơn) là tàu chạy, hoặc tàu đã chạy rồi:
+        // giờ chạy phải SAU mốc "bây giờ + 10 phút" thì mới cho đặt
+        LocalDateTime stopSellingAt = LocalDateTime.now().plusMinutes(10);
+        if (!trip.getDepartureTime().isAfter(stopSellingAt)) {
+            throw new IllegalArgumentException("Chuyến tàu sắp khởi hành, đã ngừng bán vé online.");
+        }
 
         // 4. Bến: cả 2 bến phải nằm trên tuyến của chuyến, bến đi đứng trước bến đến (RouteService của Khuyên)
         RouteStation fromStop = null;

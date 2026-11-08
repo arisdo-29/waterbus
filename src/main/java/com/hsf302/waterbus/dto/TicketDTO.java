@@ -13,15 +13,24 @@ public class TicketDTO implements Serializable {
     private final String toStation;
     private final BigDecimal price;
     private final String status;
+    // Vé ưu đãi: họ tên + năm sinh hành khách (vé thường -> null)
+    private final String passengerName;
+    private final Integer birthYear;
+    // true = loại vé cần xác minh -> trang vé hiện nhãn "Mang giấy tờ gốc"
+    private final boolean requiresVerification;
 
     public TicketDTO(String ticketCode, String seatCode, String fromStation, String toStation,
-                     BigDecimal price, String status) {
+                     BigDecimal price, String status,
+                     String passengerName, Integer birthYear, boolean requiresVerification) {
         this.ticketCode = ticketCode;
         this.seatCode = seatCode;
         this.fromStation = fromStation;
         this.toStation = toStation;
         this.price = price;
         this.status = status;
+        this.passengerName = passengerName;
+        this.birthYear = birthYear;
+        this.requiresVerification = requiresVerification;
     }
 
     public String getTicketCode() {
@@ -46,6 +55,19 @@ public class TicketDTO implements Serializable {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getPassengerName() {
+        return passengerName;
+    }
+
+    public Integer getBirthYear() {
+        return birthYear;
+    }
+
+    // Field boolean -> getter tên isXxx; template đọc là ticket.requiresVerification
+    public boolean isRequiresVerification() {
+        return requiresVerification;
     }
 
     @Override

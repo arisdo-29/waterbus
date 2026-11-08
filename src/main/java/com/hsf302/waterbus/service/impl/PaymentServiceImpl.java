@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service.impl;
 
+import com.hsf302.waterbus.dto.PaymentInfoDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Payment;
 import com.hsf302.waterbus.entity.Ticket;
@@ -82,5 +83,13 @@ public class PaymentServiceImpl implements PaymentService {
             promotionService.increaseUsedCount(booking.getPromotion().getCode());
         }
         return payment;
+    }
+
+    @Override
+    public PaymentInfoDTO getPaymentOfBooking(int bookingId) {
+        // Có payment -> đổi sang DTO nhỏ (chỉ method + transactionRef). Không có -> null (đơn chưa trả / đơn 0 đ)
+        return paymentRepository.findByBookingId(bookingId)
+                .map(payment -> new PaymentInfoDTO(payment.getMethod(), payment.getTransactionRef()))
+                .orElse(null);
     }
 }

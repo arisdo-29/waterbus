@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Thêm nhân viên mới')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thêm nhân viên mới | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div>
+                    <span class="wb-eyebrow">Quản trị tài khoản</span>
+                    <h1>Thêm nhân viên mới</h1>
+                    <p>Tạo tài khoản với vai trò Nhân viên (STAFF) để thực hiện công tác soát vé tại bến.</p>
+                </div>
+                <a class="btn btn-wb-outline" href="/templates/admin/account/list.html" th:href="@{/admin/accounts}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Quay lại danh sách</a>
+            </header>
+            <div class="wb-admin-form-layout">
+                <section class="wb-admin-form-card">
+                    <h2 class="wb-admin-form-title">Thông tin nhân viên</h2>
+                    <form th:action="@{/admin/accounts/create}" th:object="${createStaffRequest}" method="post" novalidate>
+
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="bi bi-info-circle me-1"></i> Tài khoản được tạo sẽ có vai trò mặc định là <strong>Nhân viên (STAFF)</strong> và ở trạng thái <strong>Đang hoạt động</strong>.
+                        </div>
+
+                        <div class="wb-admin-form-row">
+                            <label for="email">Địa chỉ Email <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="email" type="email" th:field="*{email}" required maxlength="100" placeholder="VD: nhanvien@waterbus.vn" th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Email không hợp lệ</div>
+                        </div>
+
+                        <div class="wb-admin-form-row">
+                            <label for="fullName">Họ và tên nhân viên <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="fullName" type="text" th:field="*{fullName}" required maxlength="100" placeholder="VD: Nguyễn Văn An" th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Họ và tên không được để trống</div>
+                        </div>
+
+                        <div class="wb-admin-form-row">
+                            <label for="phone">Số điện thoại liên hệ</label>
+                            <input class="form-control" id="phone" type="tel" th:field="*{phone}" maxlength="15" placeholder="VD: 0901234567" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Số điện thoại không hợp lệ</div>
+                            <small class="form-text text-muted">Gồm 10 chữ số và bắt đầu bằng số 0.</small>
+                        </div>
+
+                        <div class="wb-admin-form-row">
+                            <label for="password">Mật khẩu ban đầu <span class="wb-admin-required" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="password" type="password" th:field="*{password}" required minlength="6" maxlength="50" placeholder="Ít nhất 6 ký tự" th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Mật khẩu phải từ 6 đến 50 ký tự</div>
+                            <small class="form-text text-muted">Nhân viên có thể đổi lại mật khẩu sau khi đăng nhập.</small>
+                        </div>
+
+                        <div class="wb-admin-form-actions">
+                            <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-1"></i>Tạo tài khoản</button>
+                            <a class="btn btn-wb-outline" href="/templates/admin/account/list.html" th:href="@{/admin/accounts}">Hủy bỏ</a>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </main>
+    </div>
+    <th:block th:replace="~{fragments/layout :: scripts}">
+        <script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script>
+    </th:block>
+</body>
+</html>

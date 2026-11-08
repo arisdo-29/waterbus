@@ -102,4 +102,18 @@ class AdminInterceptorTest {
         assertTrue(result);
         verify(response, never()).sendRedirect(anyString());
     }
+
+    @Test
+    void testPreHandle_LockedAccount_InvalidatesSessionAndRedirectsToLogin() throws Exception {
+        when(request.getSession(false)).thenReturn(session);
+        AccountDTO lockedStaff = new AccountDTO(4, "locked@waterbus.vn", "Locked User", "0900000004", "STAFF", "LOCKED");
+        when(session.getAttribute("loginAccount")).thenReturn(lockedStaff);
+
+        boolean result = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(result);
+        verify(session, times(1)).removeAttribute("loginAccount");
+        verify(session, times(1)).invalidate();
+        verify(response, times(1)).sendRedirect("/auth/login?error=locked");
+    }
 }

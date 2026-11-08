@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quản lý tài khoản')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý tài khoản | Saigon Waterbus</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="/static/css/admin.css" th:href="@{/css/admin.css}">
+</head>
+<body class="wb-admin">
+    <nav th:replace="~{fragments/layout :: navbar}" class="navbar wb-navbar">
+        <div class="container"><a class="navbar-brand wb-brand" href="/" th:href="@{/}"><img src="/static/img/logo.svg" th:src="@{/img/logo.svg}" alt="Saigon Waterbus"></a></div>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="wb-admin-layout">
+        <aside th:replace="~{fragments/layout :: adminSidebar}" class="wb-admin-sidebar"></aside>
+        <main class="wb-main wb-admin-content">
+            <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+            <header class="wb-admin-head">
+                <div>
+                    <span class="wb-eyebrow">Quản trị</span>
+                    <h1>Tài khoản người dùng</h1>
+                    <p>Quản lý danh sách người dùng, nhân viên và phân quyền trong hệ thống.</p>
+                </div>
+                <a class="btn btn-wb-accent" href="/templates/admin/account/form.html" th:href="@{/admin/accounts/create}"><i class="bi bi-person-plus me-2" aria-hidden="true"></i>Thêm nhân viên</a>
+            </header>
+
+            <!-- Thanh tìm kiếm & bộ lọc -->
+            <section class="card border-0 shadow-sm p-3 mb-4 rounded-3">
+                <form method="get" th:action="@{/admin/accounts}" class="row g-2 align-items-center">
+                    <div class="col-12 col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                            <input type="text" name="keyword" class="form-control border-start-0" placeholder="Tìm theo email, họ tên, số điện thoại..." th:value="${keyword}">
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <select name="role" class="form-select">
+                            <option value="ALL" th:selected="${currentRole == 'ALL'}">-- Tất cả vai trò --</option>
+                            <option value="CUSTOMER" th:selected="${currentRole == 'CUSTOMER'}">Khách hàng (CUSTOMER)</option>
+                            <option value="STAFF" th:selected="${currentRole == 'STAFF'}">Nhân viên (STAFF)</option>
+                            <option value="ADMIN" th:selected="${currentRole == 'ADMIN'}">Quản trị viên (ADMIN)</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select name="status" class="form-select">
+                            <option value="ALL" th:selected="${currentStatus == 'ALL'}">-- Trạng thái --</option>
+                            <option value="ACTIVE" th:selected="${currentStatus == 'ACTIVE'}">Hoạt động (ACTIVE)</option>
+                            <option value="LOCKED" th:selected="${currentStatus == 'LOCKED'}">Đã khóa (LOCKED)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-wb-accent w-100">Lọc</button>
+                        <a href="/admin/accounts" th:href="@{/admin/accounts}" class="btn btn-wb-outline" title="Đặt lại"><i class="bi bi-arrow-counterclockwise"></i></a>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Bảng danh sách tài khoản -->
+            <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(accounts)}">
+                <table class="table wb-admin-table">
+                    <caption class="visually-hidden">Danh sách tài khoản</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Email &amp; Họ tên</th>
+                            <th scope="col">Số điện thoại</th>
+                            <th scope="col">Vai trò</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col">Ngày tạo</th>
+                            <th scope="col" class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="acc : ${accounts}">
+                            <td data-label="ID"><span class="wb-mono text-muted" th:text="${'#' + acc.id}">#1</span></td>
+                            <td data-label="Email & Họ tên">
+                                <a th:href="@{/admin/accounts/{id}(id=${acc.id})}" class="fw-bold text-decoration-none" th:text="${acc.fullName}">Nguyễn Văn A</a>
+                                <small class="text-muted d-block wb-mono" th:text="${acc.email}">user@waterbus.vn</small>
+                            </td>
+                            <td data-label="Số điện thoại">
+                                <span th:text="${acc.phone != null ? acc.phone : '-'}">0901234567</span>
+                            </td>
+                            <td data-label="Vai trò">
+                                <span th:if="${acc.role == 'ADMIN'}" class="badge rounded-pill bg-danger"><i class="bi bi-shield-fill me-1"></i>Quản trị viên</span>
+                                <span th:if="${acc.role == 'STAFF'}" class="badge rounded-pill bg-info text-dark"><i class="bi bi-person-badge me-1"></i>Nhân viên</span>
+                                <span th:if="${acc.role == 'CUSTOMER'}" class="badge rounded-pill bg-secondary"><i class="bi bi-person me-1"></i>Khách hàng</span>
+                            </td>
+                            <td data-label="Trạng thái">
+                                <span th:if="${acc.status == 'ACTIVE'}" class="badge rounded-pill wb-badge-success">Hoạt động</span>
+                                <span th:if="${acc.status == 'LOCKED'}" class="badge rounded-pill wb-badge-danger">Đã khóa</span>
+                            </td>
+                            <td data-label="Ngày tạo" class="small text-muted">
+                                <span th:text="${acc.createdAt != null ? #temporals.format(acc.createdAt, 'dd/MM/yyyy HH:mm') : '-'}">01/01/2026 08:00</span>
+                            </td>
+                            <td data-label="Thao tác">
+                                <div class="wb-admin-table-actions">
+                                    <a class="btn btn-sm btn-wb-outline" th:href="@{/admin/accounts/{id}(id=${acc.id})}" title="Xem chi tiết & lịch sử đặt vé">Chi tiết</a>
+
+                                    <!-- Đổi quyền (CUSTOMER <-> STAFF), không áp dụng cho ADMIN hoặc chính mình -->
+                                    <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
+                                        <form th:if="${acc.role == 'CUSTOMER'}" th:action="@{/admin/accounts/{id}/change-role(id=${acc.id})}" method="post" class="d-inline" data-confirm="Cấp quyền Nhân viên (STAFF) cho tài khoản này?">
+                                            <input type="hidden" name="role" value="STAFF">
+                                            <button class="btn btn-sm btn-wb-outline text-primary border-primary" type="submit">Cấp quyền Staff</button>
+                                        </form>
+                                        <form th:if="${acc.role == 'STAFF'}" th:action="@{/admin/accounts/{id}/change-role(id=${acc.id})}" method="post" class="d-inline" data-confirm="Hạ vai trò của tài khoản này xuống Khách hàng (CUSTOMER)?">
+                                            <input type="hidden" name="role" value="CUSTOMER">
+                                            <button class="btn btn-sm btn-wb-outline text-secondary" type="submit">Hạ về Khách</button>
+                                        </form>
+                                    </th:block>
+
+                                    <!-- Khóa / Mở khóa (không áp dụng cho ADMIN hoặc chính mình) -->
+                                    <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
+                                        <form th:action="@{/admin/accounts/{id}/toggle-status(id=${acc.id})}" method="post" class="d-inline" th:data-confirm="${acc.status == 'ACTIVE' ? 'Bạn có chắc chắn muốn KHÓA tài khoản này? Người dùng sẽ không thể đăng nhập.' : 'Mở khóa cho tài khoản này?'}">
+                                            <button th:if="${acc.status == 'ACTIVE'}" class="btn btn-sm btn-wb-outline wb-admin-danger" type="submit">Khóa</button>
+                                            <button th:if="${acc.status == 'LOCKED'}" class="btn btn-sm btn-wb-outline text-success border-success" type="submit">Mở khóa</button>
+                                        </form>
+                                    </th:block>
+
+                                    <span th:if="${acc.role == 'ADMIN'}" class="badge bg-light text-muted border">Cố định</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Phân trang -->
+                <nav th:if="${page.totalPages > 1}" class="d-flex justify-content-between align-items-center mt-3 px-2" aria-label="Phân trang tài khoản">
+                    <small class="text-muted">Hiển thị trang <span th:text="${page.number + 1}">1</span> / <span th:text="${page.totalPages}">1</span> (Tổng <span th:text="${page.totalElements}">10</span> tài khoản)</small>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" th:classappend="${page.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/accounts(page=${page.number - 1}, keyword=${keyword}, role=${currentRole}, status=${currentStatus})}">Trước</a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, page.totalPages - 1)}" th:classappend="${i == page.number} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/accounts(page=${i}, keyword=${keyword}, role=${currentRole}, status=${currentStatus})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${page.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/accounts(page=${page.number + 1}, keyword=${keyword}, role=${currentRole}, status=${currentStatus})}">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            </section>
+
+            <!-- Trạng thái trống -->
+            <section class="wb-admin-table-wrap wb-admin-empty" th:if="${#lists.isEmpty(accounts)}">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                <h2>Không tìm thấy tài khoản nào</h2>
+                <p>Thử tìm kiếm với từ khóa khác hoặc điều chỉnh lại bộ lọc.</p>
+                <a class="btn btn-wb-outline" href="/admin/accounts" th:href="@{/admin/accounts}">Xem tất cả</a>
+            </section>
+        </main>
+    </div>
+    <th:block th:replace="~{fragments/layout :: scripts}">
+        <script src="/static/js/bootstrap.bundle.min.js"></script><script src="/static/js/app.js"></script>
+    </th:block>
+</body>
+</html>

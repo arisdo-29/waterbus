@@ -21,7 +21,9 @@ Người: **Khuyên** (BE1) · **Trí** (BE2) · **Tân** (BE3) · **Trâm** (BE
 | M1 | `GET /trips/{id}/seats?fromStationId=&toStationId=` | `trip/seats` | Trí | Trí | `trip`, `seats` (mỗi ghế: `id`, `seatCode`, `seatRow`, `seatCol`, `available`), `ticketTypes`, `fromStationId`, `toStationId` | → `POST /booking/checkout`: `tripId`, `seatIds` (nhiều checkbox), `ticketTypeId`, `fromStationId`, `toStationId` |
 | M1 | `POST /booking/checkout` | `booking/checkout` | Khuyên | Trâm | `trip`, `seats` (ghế đã chọn), `ticketType`, `subtotal`, `fromStation`, `toStation`, `fromStationId`, `toStationId`; tài khoản từ session `loginAccount` (M2) | → `POST /booking`: `tripId`, `ticketTypeId`, `fromStationId`, `toStationId`, `seatIds` (nhiều input cùng tên), `contactName`, `contactPhone`, `contactEmail`, `promoCode` |
 | M1 | `POST /booking` | redirect `/payment/{bookingCode}` | - | Trâm | lỗi validate → render lại `booking/checkout` với `errorMessage`, đầy đủ model checkout và request parameters đã nhập. M4: form bind vào **`bookingForm`** (`BookingForm`) + BindingResult; lỗi từng ô ở field `contactName`, `contactPhone`, `contactEmail`, `promoCode`, `seatIds` (xem ghi chú validate bên dưới) | |
-| M1 | `GET /payment/{bookingCode}` | `payment/index` | Khuyên | Trâm | `booking` (`bookingCode`, `status`, `subtotal`, `discountAmount`, `totalAmount`, `expiresAt`), `trip`, `tickets` | → `POST /payment/{bookingCode}/mock` (nút "Thanh toán") |
+| M1 | `GET /payment/{bookingCode}` | `payment/index` | Khuyên | Trâm | `booking` (`bookingCode`, `status`, `subtotal`, `discountAmount`, `totalAmount`, `expiresAt`), `trip`, `tickets` | radio `method` (`MOCK` / `VNPAY`): JS đổi action → `POST /payment/{bookingCode}/mock` hoặc `POST /payment/{bookingCode}/vnpay` (form có thêm field `method`) |
+| M5 | `POST /payment/{bookingCode}/vnpay` | redirect sang cổng VNPay | - | Trâm | Đơn không còn `PENDING`/quá hạn → redirect `/payment/{bookingCode}` + flash `errorMessage` | |
+| M5 | `GET /payment/vnpay-return` | redirect | - | Trâm | Thành công → `/booking/{bookingCode}` + flash `successMessage`; thất bại/huỷ → `/payment/{bookingCode}` + flash `errorMessage` | tham số `vnp_*` do VNPay gửi về |
 | M1 | `GET /booking/{bookingCode}` | `booking/detail` | Khuyên | Trâm | `booking` (`bookingCode`, `status`, `contactName`, `contactPhone`, `contactEmail`, `totalAmount`, `createdAt`, `paidAt`), `trip`, `tickets` (mỗi vé: `ticketCode`, `seatCode`, `fromStation`, `toStation`, `price`, `status`) | |
 | M4 | `POST /booking/{bookingCode}/cancel` | redirect `/booking/{bookingCode}` | Khuyên (nút "Huỷ đơn" trên `booking/detail`) | Trâm | flash `successMessage` = "Đã huỷ đơn." hoặc `errorMessage` (không tìm thấy đơn / đơn không còn `PENDING` / không phải đơn của tài khoản đang đăng nhập) | Nút **chỉ hiện khi `booking.status == 'PENDING'`**; `<form method="post">` tới `/booking/{bookingCode}/cancel`, không cần field |
 | M2 | `GET /auth/login` | `auth/login` | Tân | Tân | `errorMessage` (nếu sai) | → `POST /auth/login`: `email`, `password` |
@@ -52,6 +54,24 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
 (tương tự `contactPhone`, `contactEmail`, `promoCode`). **Giữ `th:value` như hiện tại**, không đổi sang `th:field`, để vẫn
 ưu tiên giá trị vừa nhập và tự điền từ `session.loginAccount` (#26). Lỗi `seatIds` (ô ẩn) chỉ hiện qua `errorMessage`.
 
+**Vé ưu đãi, chính sách, hoàn tiền (FE Khuyên đã làm, chờ BE4 Trâm):**
+
+- Quy tắc: loại vé `requiresVerification = true` (`SENIOR_70`, `PRIORITY`, giá 0 đ) cần họ tên + năm sinh cho **mỗi ghế**.
+  Năm sinh 1900..năm hiện tại; `SENIOR_70`: năm đi − năm sinh ≥ 70; `PRIORITY`: ≥ 13. Không tải ảnh giấy tờ,
+  nhân viên kiểm tra giấy tờ gốc tại bến. Đơn tổng 0 đ được xác nhận ngay (redirect thẳng `/booking/{bookingCode}`, không qua `/payment`).
+  Vé đã thanh toán không đổi, không hoàn; chỉ khi nhà vận hành huỷ chuyến thì đơn đã trả tiền "Chờ hoàn tiền", admin hoàn thủ công → `REFUNDED`.
+- `POST /booking` gửi thêm: `passengerNames` (lặp, đúng thứ tự `seatIds`, chỉ có khi vé ưu đãi), `birthYears` (lặp, cùng thứ tự),
+  `acceptPolicy` (checkbox `value="true"`, bắt buộc). Lỗi gắn vào field `passengerNames[i]` / `birthYears[i]` hiện dưới ô của ghế thứ i;
+  lỗi gắn vào `passengerNames` / `birthYears` (cả danh sách) hiện cuối khung hành khách; lỗi `acceptPolicy` hiện dưới ô tick.
+  Template giữ giá trị đã nhập từ request parameters. `ticketType` của checkout cần có `code`, `requiresVerification`.
+- `booking/detail` thêm model: `refund` (có thể null: `status` PENDING/DONE, `amount`, `reason`, `transactionRef`, `refundedAt`),
+  `tripCancelReason` (có thể null), `payment` (có thể null: `method` MOCK/VNPAY, `transactionRef`);
+  mỗi phần tử `tickets` thêm `passengerName`, `birthYear` (null nếu vé thường), nên có thêm `requiresVerification` (nhãn "Mang giấy tờ gốc";
+  nếu thiếu, FE coi vé có `birthYear` là vé ưu đãi). Booking `REFUNDED` không có `refund` vẫn hiện banner "Đã hoàn tiền" với `totalAmount`.
+- `booking/history`: mỗi phần tử `bookings` thêm `refundStatus` (null / `PENDING` / `DONE`).
+- Field mới trên DTO đã có (`tickets[]`, `bookings[]`) được template đọc qua `${@view.prop(obj, 'tenField')}` (bean `ViewPropertyHelper`):
+  DTO chưa có field thì coi như null, không lỗi 500. Thêm field vào DTO là giao diện tự hiện.
+
 **Trạng thái tích hợp:** các endpoint khách hàng ở bảng trên (tìm chuyến, chọn ghế, checkout, thanh toán, xem vé, huỷ đơn,
 lịch sử đặt vé) đã được triển khai và nối với service/database. `GET /booking` chuyển hướng sang `/my-bookings`.
 
@@ -68,6 +88,14 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | M3 | `GET /admin/routes`, `/new`, `/{id}/edit` | `admin/route/list`, `…/form` | Trí | Khuyên | `routes`: List RouteDTO / `route`: RouteForm (`stationIds` theo thứ tự đã lưu), `stations`: List StationDTO gồm cả bến inactive | POST `/admin/routes/save`: `id`, `code`, `name`, `description`, `isActive`, `stationIds` (lặp theo thứ tự); POST `/{id}/delete` chỉ ngừng hoạt động tuyến |
 | M3 | `GET /admin/promotions…` | `admin/promotion/list`, `…/form` | Tân | Tân | `promotions` / `promotion` | `id`, `code`, `name`, `discountType`, `discountValue`, `maxDiscount`, `minOrderAmount`, `startAt`, `endAt`, `usageLimit`, `isActive` |
 | M3 | `GET /admin/ticket-types…` | `admin/tickettype/list`, `…/form` | Tân | Tân | `ticketTypes` / `ticketType` | `code`, `name`, `price`, `requiresVerification`, `description`, `isActive` |
+| Mới | `GET /admin/revenue` | `admin/revenue/index` (đề xuất) | Trí | Trâm | chưa chốt (Trâm và Trí chốt rồi điền) | |
+| Mới | `GET /admin/refunds…` | `admin/refund/list` (đề xuất) | Trí | Trâm | chưa chốt; dữ liệu từ bảng `refund` (entity `Refund`) | chưa chốt |
+| Mới | `GET /admin/accounts…` | `admin/account/list`, `…/form` (đề xuất) | Tân | Tân | chưa chốt | chưa chốt |
+
+Menu quản trị (`adminSidebar` trong `layout.html`): ADMIN thấy Chuyến tàu, Doanh thu, Hoàn tiền, Tài khoản, Tàu, Bến, Tuyến,
+Khuyến mãi, Loại vé, Soát vé; STAFF thấy Soát vé (đầu danh sách) và Chuyến tàu. Dropdown tài khoản trên navbar của ADMIN
+có thêm "Doanh thu". Ẩn link chỉ là giao diện; BE của từng trang vẫn phải tự chặn quyền (chỉ ADMIN cho 3 URL mới).
+Mục đang mở được tô sáng theo tiền tố URL (VD `/admin/accounts/5/edit` sáng "Tài khoản").
 
 Thông báo sau khi lưu/xoá: BE dùng `RedirectAttributes.addFlashAttribute("successMessage", "...")`,
 FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `layout.html` (Khuyên làm ở M1).
@@ -89,11 +117,28 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
   Đây là giá trị chưa cấu hình giờ, không phải thời gian di chuyển được tính; không thay đổi TripService hoặc chuyến hiện có.
   Dịch thứ tự tạm lên vùng số dương chưa dùng trước khi lưu thứ tự cuối để giữ unique `(route_id, stop_order)`.
   Chỉ xóa membership bỏ khỏi tuyến vì schema không có FK tới route_station; không xóa route/station hoặc cascade.
-- **Cần Trí:** `templates/admin/station/form.html`, `templates/admin/route/form.html` chưa có lỗi dưới từng field:
-  thêm `th:object` và `th:errors` tương ứng với BindingResult `station`/`route`, giữ tên field/action.
-  `templates/admin/route/list.html` cần đổi nhãn nút/xác nhận “Xoá” sang “Ngừng hoạt động” cho đúng hành vi;
-  URL POST `/{id}/delete` vẫn giữ nguyên. Các template admin được giữ nguyên trong phần BE1 này.
+- Trí đã thêm `th:object`/`th:errors` cho `admin/station/form.html`, `admin/route/form.html` và đổi nút tuyến sang
+  “Ngừng hoạt động” (URL POST `/{id}/delete` giữ nguyên) - kiểm tra lại 08/11/2026.
 - **Cần Tân #33:** endpoint admin chưa được xác minh bảo vệ truy cập, cần Tân tích hợp #33.
   Không coi link ẩn trên navbar hay session trong test là phân quyền. Chưa sẵn sàng phát hành admin.
 - 404/500 dùng error dispatch của Spring Boot và template `error/404`, `error/500` hiện có;
   endpoint gây lỗi 500 chỉ nằm trong test. Không có catch-all controller hoặc global advice mới.
+
+## Soát vé – hợp đồng JS
+
+Template `admin/checkin/index.html` và backend do **Tân** làm; JS (`initCheckin` trong `app.js`), CSS và thư viện
+`static/js/html5-qrcode.min.js` (v2.3.8, Apache-2.0) do **Khuyên** làm. Mục tiêu: mỗi khách 2 thao tác (quét → xác nhận).
+
+| Data-attribute | Gắn vào | Ý nghĩa |
+|---|---|---|
+| `data-checkin-form` | `<form method="get" th:action="@{/admin/checkin}">` tra mã | JS chặn gửi trùng: cùng mã trong 3 giây chỉ gửi 1 lần |
+| `data-checkin-input` | `<input name="ticketCode">` trong form trên (mã vé **hoặc** mã đơn) | Tự focus khi tải trang và sau mỗi lượt; tự viết hoa, bỏ khoảng trắng; Enter là gửi (máy quét USB/Bluetooth dùng được ngay) |
+| `data-qr-start` | `<button type="button">` "Quét QR" | Mở camera sau; đọc được mã thì điền vào ô, tắt camera, gửi form tra mã |
+| `data-qr-reader` | `<div>` rỗng (khung camera) | JS tự ẩn/hiện; nút "Tắt camera" và dòng thông báo do JS tự thêm (hoặc tự đặt `data-qr-stop`, `data-qr-message`) |
+| `data-checkin-preview` | Modal Bootstrap (`class="modal fade"`) server render khi `GET /admin/checkin?ticketCode=...` tìm thấy vé/đơn | JS tự mở; trong modal là `<form method="post" th:action="@{/admin/checkin}">` có hidden `ticketCode`; nút submit gắn **`data-checkin-confirm`** được focus sẵn (bấm 1 lần hoặc Enter). Đóng modal → ô nhập trống, focus lại |
+| `data-checkin-result` | Thẻ rỗng server render sau khi soát (POST xong) | `data-result="success"` hoặc `"error"`, `data-message="Nội dung"` (VD "Vé TK0001 - ghế B3, mời lên tàu"). JS hiện khung to toàn màn hình xanh/đỏ, âm báo, rung, 2 giây sau tự ẩn |
+
+Trang soát vé dùng fragment **`scriptsCheckin`** THAY cho `scripts`:
+`<th:block th:replace="~{fragments/layout :: scriptsCheckin}"></th:block>`.
+Camera chỉ chạy trên `http://localhost` hoặc HTTPS (điện thoại truy cập qua IP LAN sẽ được báo lỗi tiếng Việt, vẫn nhập tay/máy quét được).
+Kiểm tra JS: `node src/test/js/checkin.browser.cjs` (tự sinh trang mẫu đúng hợp đồng trên).

@@ -38,7 +38,7 @@
             </div>
             <div class="d-flex flex-wrap gap-2 align-items-center">
               <a class="btn btn-wb-accent" href="/templates/payment/index.html" th:href="@{/payment/{code}(code=${booking?.bookingCode})}">Thanh toán ngay</a>
-              <form action="/templates/booking/detail.html" th:action="@{/booking/{code}/cancel(code=${booking?.bookingCode})}" method="post" data-confirm="Huỷ đơn đặt vé này? Ghế sẽ được nhả cho người khác.">
+              <form action="/templates/booking/detail.html" th:action="@{/booking/{code}/cancel(code=${booking?.bookingCode})}" method="post" data-confirm="Huỷ đơn đặt vé này? Ghế sẽ được nhả cho người khác." data-confirm-title="Huỷ đơn đặt vé" data-confirm-variant="danger" data-confirm-ok="Huỷ đơn">
                 <button class="btn btn-wb-outline" type="submit">Huỷ đơn</button>
               </form>
             </div>
@@ -57,6 +57,13 @@
               <p>Đơn vé này không còn hiệu lực.</p>
             </div>
           </div>
+          <div th:case="'REFUNDED'" class="wb-status-muted">
+            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+            <div>
+              <h2>Đơn đã hoàn tiền</h2>
+              <p>Chuyến đã bị huỷ bởi nhà vận hành và tiền vé đã được hoàn lại.</p>
+            </div>
+          </div>
           <div th:case="*" class="wb-status-muted">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
             <div>
@@ -66,14 +73,42 @@
           </div>
         </div>
       </section>
+      <!--/* Hoàn tiền khi nhà vận hành huỷ chuyến: refund PENDING -> vàng; refund DONE hoặc booking REFUNDED -> xanh */-->
+      <section class="container wb-section-top" th:if="${refund != null or booking?.status == 'REFUNDED'}">
+        <div class="wb-refund-banner is-pending" th:if="${refund?.status == 'PENDING'}" role="status">
+          <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+          <div>
+            <h2>Chuyến đã bị huỷ</h2>
+            <p>
+              <th:block th:if="${tripCancelReason != null}">Chuyến đã bị huỷ (lý do: <span th:text="${tripCancelReason}">Thời tiết xấu</span>). </th:block><th:block th:unless="${tripCancelReason != null}">Chuyến đã bị huỷ bởi nhà vận hành. </th:block>Đơn đang chờ hoàn tiền<th:block th:if="${refund?.amount != null}"> <strong th:text="${#numbers.formatDecimal(refund.amount, 0, 'POINT', 0, 'COMMA')} + ' đ'">30.000 đ</strong></th:block>.
+            </p>
+          </div>
+        </div>
+        <div class="wb-refund-banner is-done" th:if="${refund?.status == 'DONE' or (refund?.status != 'PENDING' and booking?.status == 'REFUNDED')}" role="status">
+          <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+          <div>
+            <h2>Đã hoàn tiền</h2>
+            <p>
+              Đã hoàn <strong th:text="${#numbers.formatDecimal(refund?.amount ?: booking?.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">30.000 đ</strong><th:block th:if="${refund?.refundedAt != null}"> lúc <span th:text="${#temporals.format(refund.refundedAt, 'HH:mm dd/MM/yyyy')}">10:00 25/10/2026</span></th:block><th:block th:if="${refund?.transactionRef != null}">, mã giao dịch <span class="wb-mono" th:text="${refund.transactionRef}">VCB123456</span></th:block>.
+              <th:block th:if="${tripCancelReason != null}"><br>Lý do huỷ chuyến: <span th:text="${tripCancelReason}">Thời tiết xấu</span></th:block>
+            </p>
+          </div>
+        </div>
+      </section>
       <section class="container wb-section-top">
         <div class="wb-booking-code-box wb-card">
           <span>Mã đơn</span><strong class="wb-mono" th:text="${booking?.bookingCode}">BK0000002</strong><button class="btn btn-wb-outline" type="button" data-copy-code="BK0000002" th:data-copy-code="${booking?.bookingCode}"><i class="bi bi-copy me-2" aria-hidden="true"></i><span data-copy-label>Sao chép</span></button>
+          <!--/* QR mã đơn: nhân viên quét 1 lần để soát cả nhóm (chỉ khi đơn đã thanh toán) */-->
+          <div class="wb-booking-qr" th:if="${booking?.status == 'PAID'}">
+            <div class="wb-ticket-qr" data-qr-value="BK0000002" th:attr="data-qr-value=${booking?.bookingCode}"></div>
+            <small>Đưa nhân viên quét để lên tàu cả nhóm</small>
+          </div>
         </div>
       </section>
       <section class="container wb-section-top">
         <div class="wb-ticket-list">
-          <article class="wb-printed-ticket wb-card" th:each="ticket : ${tickets}">
+          <!--/* passengerName/birthYear đọc qua @view.prop: DTO chưa có field thì coi như null, không lỗi */-->
+          <article class="wb-printed-ticket wb-card" th:each="ticket : ${tickets}" th:with="passengerName=${@view.prop(ticket, 'passengerName')}, birthYear=${@view.prop(ticket, 'birthYear')}, priorityTicket=${@view.prop(ticket, 'requiresVerification') == true or birthYear != null}">
             <div class="wb-printed-ticket-main">
               <div class="wb-ticket-main-head">
                 <div>
@@ -93,6 +128,10 @@
                 <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 <div><strong th:text="${ticket?.toStation}">Thanh Đa</strong><small>Điểm đến</small></div>
               </div>
+              <div class="wb-ticket-passenger" th:if="${passengerName != null or birthYear != null}">
+                <i class="bi bi-person" aria-hidden="true"></i><span><strong th:text="${passengerName}">Trần Văn Bình</strong><th:block th:if="${birthYear != null}"> · sinh năm <span th:text="${birthYear}">1950</span></th:block></span>
+              </div>
+              <span class="badge rounded-pill wb-badge-warning wb-ticket-doc-badge" th:if="${priorityTicket}"><i class="bi bi-person-vcard me-1" aria-hidden="true"></i>Mang giấy tờ gốc khi lên tàu</span>
             </div>
             <div class="wb-printed-ticket-side">
               <div><span>Ghế</span><strong th:text="${ticket?.seatCode}">B3</strong></div>
@@ -144,6 +183,14 @@
                 <div>
                   <dt>Thanh toán lúc</dt>
                   <dd th:text="${#temporals.format(booking?.paidAt, 'HH:mm dd/MM/yyyy')}">09:13 19/10/2026</dd>
+                </div>
+                <div th:if="${payment?.method != null}">
+                  <dt>Phương thức</dt>
+                  <dd th:switch="${payment.method}"><span th:case="'MOCK'">Mô phỏng (demo)</span><span th:case="'VNPAY'">VNPay</span><span th:case="'MOMO'">MoMo</span><span th:case="*" th:text="${payment.method}">VNPay</span></dd>
+                </div>
+                <div th:if="${payment?.transactionRef != null}">
+                  <dt>Mã giao dịch</dt>
+                  <dd class="wb-mono" th:text="${payment.transactionRef}">14123456</dd>
                 </div>
               </dl>
             </div>

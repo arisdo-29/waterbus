@@ -6,6 +6,7 @@ import jakarta.persistence.EntityManager;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // BE4: thanh toán VNPay Sandbox. Không gọi VNPay thật: test tự tạo dữ liệu "VNPay trả về"
@@ -90,6 +92,46 @@ class VnPayPaymentTest {
         assertThat(params).hasSize(13);
         assertThat(hash).isEqualTo(VnPayServiceImpl.hmacSHA512("TESTSECRET", query)); // chữ ký đúng
         assertThat(count("payment")).isZero(); // tạo link không ghi gì vào DB
+    }
+
+    @Test
+    void allowedBankCodeIsSentAndSigned() {
+        for (String bankCode : List.of("VNPAYQR", "VNBANK")) {
+            String url = vnPayService.createPaymentUrl(booking.getBookingCode(), "127.0.0.1", bankCode);
+            String query = url.substring(url.indexOf('?') + 1, url.indexOf("&vnp_SecureHash="));
+            String hash = url.substring(url.indexOf("&vnp_SecureHash=") + "&vnp_SecureHash=".length());
+            Map<String, String> params = parseQuery(query);
+
+            assertThat(params.get("vnp_BankCode")).isEqualTo(bankCode);
+            assertThat(params).hasSize(14); // 13 tham số cũ + vnp_BankCode
+            // vnp_BankCode nằm trong phần được ký -> ai sửa mã trên URL thì VNPay báo sai chữ ký
+            assertThat(hash).isEqualTo(VnPayServiceImpl.hmacSHA512("TESTSECRET", query));
+        }
+    }
+
+    @Test
+    void emptyOrUnknownBankCodeIsNotSent() {
+        // Arrays.asList (không dùng List.of) vì List.of không cho chứa null
+        for (String bankCode : Arrays.asList(null, "", "ABC", "vnpayqr")) {
+            String url = vnPayService.createPaymentUrl(booking.getBookingCode(), "127.0.0.1", bankCode);
+            assertThat(url).as("bankCode = %s", bankCode).doesNotContain("vnp_BankCode");
+        }
+    }
+
+    @Test
+    void vnPayButtonPassesBankCodeToPaymentUrl() throws Exception {
+        // Giống form trang thanh toán: bankCode nằm trên URL action, kèm field method
+        String qrUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay?bankCode=VNPAYQR").param("method", "VNPAY"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn().getResponse().getRedirectedUrl();
+        assertThat(qrUrl).startsWith("https://sandbox.vnpayment.vn/").contains("&vnp_BankCode=VNPAYQR&");
+
+        String plainUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn().getResponse().getRedirectedUrl();
+        assertThat(plainUrl).startsWith("https://sandbox.vnpayment.vn/").doesNotContain("vnp_BankCode");
+
+        assertThat(count("payment")).isZero(); // chỉ tạo link, chưa ghi gì
     }
 
     @Test

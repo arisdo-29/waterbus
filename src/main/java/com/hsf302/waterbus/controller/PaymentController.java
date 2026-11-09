@@ -74,8 +74,11 @@ public class PaymentController {
     }
 
     // POST /payment/BK12345678/vnpay -> chọn "VNPay" trên trang thanh toán (form gửi kèm field method, không cần đọc)
+    // bankCode (không bắt buộc, nằm trên URL action): VNPAYQR = mở thẳng màn hình QR, VNBANK = mở thẳng trang thẻ ATM,
+    // bỏ trống -> VNPay hiện trang cho khách tự chọn phương thức
     @PostMapping("/{bookingCode}/vnpay")
-    public String payVnPay(@PathVariable String bookingCode, HttpServletRequest request, RedirectAttributes flash) {
+    public String payVnPay(@PathVariable String bookingCode, @RequestParam(required = false) String bankCode,
+                           HttpServletRequest request, RedirectAttributes flash) {
         Booking booking = bookingService.getBookingByCode(bookingCode);
         if (booking == null) {
             // Giống payMock: sai mã đơn -> về trang chủ
@@ -89,7 +92,7 @@ public class PaymentController {
         }
         try {
             // IP của khách (VNPay bắt buộc gửi kèm)
-            String url = vnPayService.createPaymentUrl(booking.getBookingCode(), request.getRemoteAddr());
+            String url = vnPayService.createPaymentUrl(booking.getBookingCode(), request.getRemoteAddr(), bankCode);
             // "redirect:" + địa chỉ đầy đủ https://... -> trình duyệt tự chuyển sang trang VNPay
             return "redirect:" + url;
         } catch (IllegalArgumentException ex) {

@@ -33,35 +33,58 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional // ghi 4 bảng (payment, booking, ticket, promotion): lỗi giữa chừng thì huỷ hết
+    @Transactional
     public Payment payMock(int bookingId) {
+        // Thanh toán giả lập: không gọi cổng thật, mã giao dịch tự đặt là MOCK-<mã đơn>
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt vé."));
+        return confirmPaid(bookingId, "MOCK", "MOCK-" + booking.getBookingCode());
+    }
 
+    @Override
+    @Transactional(readOnly = true) // chỉ đọc; vẫn cần transaction để đọc được chuyến (quan hệ LAZY) của vé
+    public String getCannotPayReason(int bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) {
+            return "Không tìm thấy đơn đặt vé.";
+        }
         // Chỉ thanh toán đơn đang chờ (PENDING) và còn trong 10 phút giữ chỗ
         if (!"PENDING".equals(booking.getStatus())) {
-            throw new IllegalArgumentException("Đơn này không còn chờ thanh toán.");
+            return "Đơn này không còn chờ thanh toán.";
         }
-        LocalDateTime now = LocalDateTime.now();
-        if (booking.getExpiresAt().isBefore(now)) {
-            throw new IllegalArgumentException("Đơn đã hết thời gian giữ chỗ. Vui lòng đặt vé lại.");
+        if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return "Đơn đã hết thời gian giữ chỗ. Vui lòng đặt vé lại.";
         }
-
         // Chuyến phải còn SCHEDULED (admin có thể đã huỷ chuyến trong lúc khách chưa trả tiền).
         // Mọi vé của 1 đơn đều cùng 1 chuyến, nên chỉ cần xem chuyến của vé đầu tiên.
         List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(bookingId);
         if (tickets.isEmpty() || !"SCHEDULED".equals(tickets.get(0).getTrip().getStatus())) {
-            throw new IllegalArgumentException("Chuyến tàu đã bị huỷ hoặc không còn nhận thanh toán.");
+            return "Chuyến tàu đã bị huỷ hoặc không còn nhận thanh toán.";
         }
+        return null; // không có lý do nào để chặn -> thanh toán được
+    }
 
-        // 1. Tạo payment SUCCESS (thanh toán giả lập, không gọi cổng thanh toán thật)
-        Payment payment = new Payment();
-        payment.setBooking(booking);
-        payment.setMethod("MOCK");
+    @Override
+    @Transactional // ghi 4 bảng (payment, booking, ticket, promotion): lỗi giữa chừng thì huỷ hết
+    public Payment confirmPaid(int bookingId, String method, String transactionRef) {
+        String reason = getCannotPayReason(bookingId);
+        if (reason != null) {
+            throw new IllegalArgumentException(reason);
+        }
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(); // đã kiểm tra ở trên nên chắc chắn có
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Payment SUCCESS. DB chỉ cho mỗi đơn 1 payment -> đã có thì cập nhật, chưa có thì tạo mới
+        Payment payment = paymentRepository.findByBookingId(bookingId).orElse(null);
+        if (payment == null) {
+            payment = new Payment();
+            payment.setBooking(booking);
+            payment.setCreatedAt(now);
+        }
+        payment.setMethod(method);
         payment.setAmount(booking.getTotalAmount());
         payment.setStatus("SUCCESS");
-        payment.setTransactionRef("MOCK-" + booking.getBookingCode());
-        payment.setCreatedAt(now);
+        payment.setTransactionRef(transactionRef);
         payment.setPaidAt(now);
         paymentRepository.save(payment);
 
@@ -70,8 +93,8 @@ public class PaymentServiceImpl implements PaymentService {
         booking.setPaidAt(now);
         bookingRepository.save(booking);
 
-        // 3. Vé đang giữ chỗ (HOLD) -> vé dùng được (VALID). Dùng lại danh sách vé đã lấy ở trên
-        for (Ticket ticket : tickets) {
+        // 3. Vé đang giữ chỗ (HOLD) -> vé dùng được (VALID)
+        for (Ticket ticket : ticketRepository.findByBookingIdOrderByIdAsc(bookingId)) {
             if ("HOLD".equals(ticket.getStatus())) {
                 ticket.setStatus("VALID");
                 ticketRepository.save(ticket);

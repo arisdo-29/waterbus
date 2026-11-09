@@ -142,6 +142,17 @@ class PaymentMockTest {
         mvc.perform(post("/payment/SAIMA123/mock")).andExpect(redirectedUrl("/"));
     }
 
+    @Test
+    void vnPayWithoutConfigGoesBackToPaymentPage() throws Exception {
+        // Test này không khai báo vnpay.tmn-code / vnpay.hash-secret -> giống máy chưa cấu hình VNPay
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
+                .andExpect(flash().attribute("errorMessage",
+                        "VNPay chưa được cấu hình trên máy chủ. Vui lòng chọn Thanh toán mô phỏng."));
+        assertThat(count("payment")).isZero(); // không ghi gì
+    }
+
     private int id(String table, String codeColumn, String code) {
         return jdbc.queryForObject("SELECT id FROM " + table + " WHERE " + codeColumn + " = ?", Integer.class, code);
     }

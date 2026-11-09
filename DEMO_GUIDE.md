@@ -100,13 +100,15 @@ Trang `/payment/{mã đơn}` có 2 lựa chọn: **Thanh toán mô phỏng** (de
 
 1. Đăng ký tài khoản test tại https://sandbox.vnpayment.vn/devreg/ để nhận `TmnCode` và `HashSecret` qua email.
 2. Ghi vào `src/main/resources/application-local.properties` (file bị gitignore, **không commit**).
-   Tên khoá chính xác do BE4 (Trâm) chốt; dạng dự kiến:
+   Chỉ cần điền 2 khoá:
    ```properties
    vnpay.tmn-code=MA_TMN_CUA_BAN
    vnpay.hash-secret=CHUOI_BI_MAT_CUA_BAN
-   vnpay.pay-url=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-   vnpay.return-url=http://localhost:8080/payment/vnpay-return
    ```
+   `vnpay.pay-url` và `vnpay.return-url` đã có giá trị mặc định trong `VnPayConfig`
+   (`https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` và `http://localhost:8080/payment/vnpay-return`);
+   chỉ khai báo lại khi chạy cổng khác 8080 hoặc dùng cổng VNPay khác.
+   Thiếu `tmn-code` hoặc `hash-secret` thì app vẫn chạy, nút VNPay báo "VNPay chưa được cấu hình trên máy chủ".
 3. Thẻ test (ngân hàng NCB) theo tài liệu VNPay Sandbox - **kiểm tra lại trên sandbox.vnpayment.vn nếu đổi**:
 
    | Trường | Giá trị |

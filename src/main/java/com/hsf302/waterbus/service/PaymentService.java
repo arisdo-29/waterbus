@@ -10,6 +10,18 @@ public interface PaymentService {
     /** Thanh toán giả lập: payment SUCCESS, booking PAID, vé HOLD -> VALID. */
     Payment payMock(int bookingId);
 
+    /**
+     * Đơn có thanh toán được không? Được -> null. Không được -> câu lỗi để hiện cho khách
+     * (không tìm thấy đơn / đơn không còn PENDING / hết hạn giữ chỗ / chuyến không còn SCHEDULED).
+     */
+    String getCannotPayReason(int bookingId);
+
+    /**
+     * Ghi nhận đơn đã được trả tiền (dùng chung cho MOCK và VNPAY): payment SUCCESS, booking PAID,
+     * vé HOLD -> VALID, tăng lượt dùng mã KM. Đơn không thanh toán được -> IllegalArgumentException.
+     */
+    Payment confirmPaid(int bookingId, String method, String transactionRef);
+
     /** Thông tin thanh toán của 1 đơn cho trang xem vé (phương thức, mã giao dịch). Đơn chưa có payment -> null. */
     PaymentInfoDTO getPaymentOfBooking(int bookingId);
 }

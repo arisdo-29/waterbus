@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class VnPayServiceImpl implements VnPayService {
 
     // VNPay dùng ngày giờ dạng 20261109143005 (năm tháng ngày giờ phút giây, 14 chữ số)
     private static final DateTimeFormatter VNPAY_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+    // Chỉ cho chọn sẵn 2 phương thức: VNPAYQR = màn hình mã QR, VNBANK = thẻ ATM / tài khoản ngân hàng nội địa
+    private static final Set<String> ALLOWED_BANK_CODES = Set.of("VNPAYQR", "VNBANK");
 
     private final VnPayConfig config;
     private final BookingService bookingService;
@@ -47,7 +51,7 @@ public class VnPayServiceImpl implements VnPayService {
     }
 
     @Override
-    public String createPaymentUrl(String bookingCode, String clientIp) {
+    public String createPaymentUrl(String bookingCode, String clientIp, String bankCode) {
         if (!config.isConfigured()) {
             throw new IllegalArgumentException("VNPay chưa được cấu hình trên máy chủ. Vui lòng chọn Thanh toán mô phỏng.");
         }
@@ -81,6 +85,11 @@ public class VnPayServiceImpl implements VnPayService {
         params.put("vnp_IpAddr", toIpv4(clientIp));
         params.put("vnp_CreateDate", now.format(VNPAY_TIME));
         params.put("vnp_ExpireDate", booking.getExpiresAt().format(VNPAY_TIME)); // hết giữ chỗ thì link cũng hết hạn
+        // Tham số thứ 14 (không bắt buộc): chọn sẵn phương thức. Phải kiểm null TRƯỚC,
+        // vì Set.of(...).contains(null) ném NullPointerException. Mã lạ/rỗng -> không gửi.
+        if (bankCode != null && ALLOWED_BANK_CODES.contains(bankCode)) {
+            params.put("vnp_BankCode", bankCode);
+        }
 
         // Ký dữ liệu để VNPay biết link do chính mình tạo, không bị ai sửa giữa đường
         String query = buildQuery(params);

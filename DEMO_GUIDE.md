@@ -121,5 +121,10 @@ Trang `/payment/{mã đơn}` có 2 lựa chọn: **Thanh toán mô phỏng** (de
 
 4. Thành công → về `/booking/{mã đơn}` kèm thông báo xanh, trang vé hiện "Phương thức: VNPay" và mã giao dịch.
    Thất bại/huỷ → về `/payment/{mã đơn}` kèm thông báo đỏ, vẫn chọn lại được nếu còn hạn giữ chỗ.
+5. Chọn sẵn phương thức: nút VNPay gửi kèm `bankCode` trên URL (`VNPAYQR` mở thẳng màn hình mã QR,
+   `VNBANK` mở thẳng trang nhập thẻ ATM nội địa; không có `bankCode` thì VNPay hiện trang cho khách tự chọn).
+   **Mã QR trên Sandbox chỉ để trình chiếu, không quét bằng app ngân hàng thật.**
+   Khi demo: chọn QR để mở màn hình mã QR cho giảng viên xem → bấm **Huỷ** trên VNPay (về trang thanh toán, báo đỏ)
+   → chọn lại **thẻ ATM** và trả bằng thẻ NCB ở bảng trên.
 
 Buổi demo không có mạng hoặc chưa cấu hình VNPay: dùng **Thanh toán mô phỏng**.

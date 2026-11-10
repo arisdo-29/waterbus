@@ -18,6 +18,7 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -194,6 +195,49 @@ class TripSearchTest {
                 .anyMatch(result -> "TEST_BOARD_FUTURE".equals(result.getTripCode())));
         assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_BOARD_FUTURE"),
                 middleStationId, lastStationId) != null);
+    }
+
+    @Test
+    void stopsOnlineSalesTenMinutesBeforeBoardingAtSelectedStop() throws Exception {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 20 WHERE route_id = ? AND station_id = ?",
+                routeId, middleStationId);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 40 WHERE route_id = ? AND station_id = ?",
+                routeId, lastStationId);
+
+        LocalDateTime now = LocalDateTime.now();
+        trip("TEST_CUTOFF_FIRST", routeId, busId, now.plusMinutes(9), "SCHEDULED");
+        trip("TEST_OPEN_FIRST", routeId, busId, now.plusMinutes(12), "SCHEDULED");
+        trip("TEST_CUTOFF_MID", routeId, busId, now.minusMinutes(11), "SCHEDULED");
+        trip("TEST_OPEN_MID", routeId, busId, now.minusMinutes(8), "SCHEDULED");
+
+        List<String> firstStopCodes = tripService.searchTrips(firstStationId, lastStationId, now.toLocalDate())
+                .stream().map(Trip::getTripCode).toList();
+        assertFalse(firstStopCodes.contains("TEST_CUTOFF_FIRST"));
+        assertTrue(firstStopCodes.contains("TEST_OPEN_FIRST"));
+        assertNull(tripService.getBookableTrip(id("trip", "trip_code", "TEST_CUTOFF_FIRST")));
+        assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_OPEN_FIRST")) != null);
+
+        LocalDate boardingDate = now.minusMinutes(8).plusMinutes(20).toLocalDate();
+        List<String> middleStopCodes = tripService.searchTrips(middleStationId, lastStationId, boardingDate)
+                .stream().map(Trip::getTripCode).toList();
+        assertFalse(middleStopCodes.contains("TEST_CUTOFF_MID"));
+        assertTrue(middleStopCodes.contains("TEST_OPEN_MID"));
+        assertNull(tripService.getBookableTrip(id("trip", "trip_code", "TEST_CUTOFF_MID"),
+                middleStationId, lastStationId));
+        assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_OPEN_MID"),
+                middleStationId, lastStationId) != null);
+
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc.perform(get("/trips/" + id("trip", "trip_code", "TEST_CUTOFF_MID") + "/seats")
+                        .param("fromStationId", String.valueOf(middleStationId))
+                        .param("toStationId", String.valueOf(lastStationId)))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(get("/trips/" + id("trip", "trip_code", "TEST_OPEN_MID") + "/seats")
+                        .param("fromStationId", String.valueOf(middleStationId))
+                        .param("toStationId", String.valueOf(lastStationId)))
+                .andExpect(status().isOk());
     }
 
     private void stop(int routeId, int stationId, int order) {

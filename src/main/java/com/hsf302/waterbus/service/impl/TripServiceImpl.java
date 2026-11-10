@@ -158,7 +158,7 @@ public class TripServiceImpl implements TripService {
         if (date == null || fromStationId <= 0 || toStationId <= 0 || fromStationId == toStationId) {
             return List.of();
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime stopSellingAt = LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES);
         List<Trip> matches = new ArrayList<>();
         Map<Integer, Segment> segments = new HashMap<>();
         for (var route : routeService.getActiveRoutes()) {
@@ -169,7 +169,8 @@ public class TripServiceImpl implements TripService {
             LocalDateTime start = date.atStartOfDay().minusMinutes(segment.departureMinutes());
             LocalDateTime end = date.plusDays(1).atStartOfDay().minusMinutes(segment.departureMinutes());
             tripRepository.searchTripsForRoute(route.getId(), start, end).stream()
-                    .filter(trip -> trip.getDepartureTime().plusMinutes(segment.departureMinutes()).isAfter(now))
+                    .filter(trip -> trip.getDepartureTime().plusMinutes(segment.departureMinutes())
+                            .isAfter(stopSellingAt))
                     .forEach(matches::add);
         }
         matches.sort(Comparator.comparing((Trip trip) -> trip.getDepartureTime()
@@ -215,7 +216,8 @@ public class TripServiceImpl implements TripService {
     public BookingTripDTO getBookableTrip(int tripId) {
         return tripRepository.findById(tripId)
                 .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
-                .filter(trip -> trip.getDepartureTime().isAfter(LocalDateTime.now()))
+                .filter(trip -> trip.getDepartureTime()
+                        .isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES)))
                 .map(trip -> new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
                         trip.getDepartureTime(), trip.getArrivalTime()))
                 .orElse(null);
@@ -232,7 +234,9 @@ public class TripServiceImpl implements TripService {
                     Segment segment = segmentForRoute(trip.getRoute().getId(), fromStationId, toStationId);
                     if (segment == null) return null;
                     LocalDateTime boardingTime = trip.getDepartureTime().plusMinutes(segment.departureMinutes());
-                    if (!boardingTime.isAfter(LocalDateTime.now())) return null;
+                    if (!boardingTime.isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES))) {
+                        return null;
+                    }
                     return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
                             boardingTime, trip.getDepartureTime().plusMinutes(segment.arrivalMinutes()));
                 })

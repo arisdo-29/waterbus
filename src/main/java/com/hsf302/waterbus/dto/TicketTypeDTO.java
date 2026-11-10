@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.TicketType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -43,6 +44,33 @@ public class TicketTypeDTO implements Serializable {
         this.requiresVerification = requiresVerification != null ? requiresVerification : false;
         this.description = description;
         this.isActive = isActive != null ? isActive : true;
+    }
+
+    public static TicketTypeDTO fromEntity(TicketType tt) {
+        if (tt == null) {
+            return null;
+        }
+        return new TicketTypeDTO(
+                tt.getId(),
+                tt.getCode(),
+                tt.getName(),
+                tt.getPrice(),
+                tt.getRequiresVerification(),
+                tt.getDescription(),
+                tt.getIsActive()
+        );
+    }
+
+    public TicketType toEntity() {
+        TicketType tt = new TicketType();
+        tt.setId(this.id);
+        tt.setCode(this.code);
+        tt.setName(this.name);
+        tt.setPrice(this.price);
+        tt.setRequiresVerification(this.requiresVerification != null ? this.requiresVerification : false);
+        tt.setDescription(this.description);
+        tt.setIsActive(this.isActive != null ? this.isActive : true);
+        return tt;
     }
 
     public Integer getId() {

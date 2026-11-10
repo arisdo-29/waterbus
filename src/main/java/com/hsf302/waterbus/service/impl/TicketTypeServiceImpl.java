@@ -9,7 +9,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Module: BE3 - Tài khoản, Loại vé & Khuyến mãi.
 @Service
 public class TicketTypeServiceImpl implements TicketTypeService {
 
@@ -34,14 +33,14 @@ public class TicketTypeServiceImpl implements TicketTypeService {
     @Override
     public List<TicketTypeDTO> getAllTicketTypes() {
         return ticketTypeRepository.findAll().stream()
-                .map(this::toDTO)
+                .map(TicketTypeDTO::fromEntity)
                 .toList();
     }
 
     @Override
     public TicketTypeDTO getTicketTypeById(int id) {
         return ticketTypeRepository.findById(id)
-                .map(this::toDTO)
+                .map(TicketTypeDTO::fromEntity)
                 .orElse(null);
     }
 
@@ -80,14 +79,6 @@ public class TicketTypeServiceImpl implements TicketTypeService {
     }
 
     private TicketTypeDTO toDTO(TicketType tt) {
-        return new TicketTypeDTO(
-                tt.getId(),
-                tt.getCode(),
-                tt.getName(),
-                tt.getPrice(),
-                tt.getRequiresVerification(),
-                tt.getDescription(),
-                tt.getIsActive()
-        );
+        return TicketTypeDTO.fromEntity(tt);
     }
 }

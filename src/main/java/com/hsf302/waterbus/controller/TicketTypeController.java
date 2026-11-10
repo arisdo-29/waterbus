@@ -9,8 +9,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// Module: BE3 - Tài khoản, Loại vé & Khuyến mãi. Mọi URL của controller này bắt đầu bằng /admin/ticket-types
-// View đặt trong templates/admin/tickettype/ (giao diện: Tân)
 @Controller
 @RequestMapping("/admin/ticket-types")
 public class TicketTypeController {

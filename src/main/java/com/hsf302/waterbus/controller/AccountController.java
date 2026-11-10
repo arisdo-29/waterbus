@@ -15,14 +15,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// Module BE3: Quản lý thông tin tài khoản cá nhân /account/**
 @Controller
 @RequestMapping("/account")
 public class AccountController {
 
     private final AccountService accountService;
 
-    // Constructor Injection
     public AccountController(AccountService accountService) {
         this.accountService = accountService;
     }
@@ -66,7 +64,6 @@ public class AccountController {
                     request.getFullName(),
                     request.getPhone()
             );
-            // Cập nhật lại session với thông tin mới
             session.setAttribute("loginAccount", updated);
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật thông tin thành công!");
             return "redirect:/account/profile";

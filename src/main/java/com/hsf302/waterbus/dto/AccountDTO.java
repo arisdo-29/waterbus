@@ -1,10 +1,11 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Account;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-// DTO chuyển dữ liệu Account ra ngoài View và lưu vào Session "loginAccount"
 public class AccountDTO implements Serializable {
     private final Integer id;
     private final String email;
@@ -26,6 +27,39 @@ public class AccountDTO implements Serializable {
         this.role = role;
         this.status = status;
         this.createdAt = createdAt;
+    }
+
+    public static AccountDTO fromEntity(Account account) {
+        if (account == null) {
+            return null;
+        }
+        return new AccountDTO(
+                account.getId(),
+                account.getEmail(),
+                account.getFullName(),
+                account.getPhone(),
+                account.getRole(),
+                account.getStatus(),
+                account.getCreatedAt()
+        );
+    }
+
+    public Account toEntity() {
+        Account account = new Account();
+        account.setId(this.id);
+        account.setEmail(this.email);
+        account.setFullName(this.fullName);
+        account.setPhone(this.phone);
+        if (this.role != null) {
+            account.setRole(this.role);
+        }
+        if (this.status != null) {
+            account.setStatus(this.status);
+        }
+        if (this.createdAt != null) {
+            account.setCreatedAt(this.createdAt);
+        }
+        return account;
     }
 
     public Integer getId() {

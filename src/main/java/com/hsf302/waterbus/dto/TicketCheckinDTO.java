@@ -1,10 +1,15 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Booking;
+import com.hsf302.waterbus.entity.Ticket;
+import com.hsf302.waterbus.entity.TicketType;
+import com.hsf302.waterbus.entity.Trip;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// DTO chứa thông tin chi tiết vé dùng cho luồng Soát vé (Staff Check-in)
 public class TicketCheckinDTO implements Serializable {
     private final String ticketCode;
     private final String bookingCode;
@@ -63,6 +68,65 @@ public class TicketCheckinDTO implements Serializable {
         this(ticketCode, bookingCode, passengerName, passengerPhone, tripCode, null, routeName, fromStationName,
                 toStationName, departureTime, seatCode, waterbusName, ticketTypeName, null, price, status,
                 checkedInAt, null, null, false);
+    }
+
+    public static TicketCheckinDTO fromEntity(Ticket ticket) {
+        if (ticket == null) {
+            return null;
+        }
+
+        Booking booking = ticket.getBooking();
+        Trip trip = ticket.getTrip();
+        TicketType ticketType = ticket.getTicketType();
+
+        String routeName = (trip != null && trip.getRoute() != null) ? trip.getRoute().getName() : "";
+        String waterbusName = (ticket.getSeat() != null && ticket.getSeat().getWaterbus() != null)
+                ? ticket.getSeat().getWaterbus().getName() : "";
+        String seatCode = (ticket.getSeat() != null) ? ticket.getSeat().getSeatCode() : "";
+        String fromStationName = (ticket.getFromStation() != null) ? ticket.getFromStation().getName() : "";
+        String toStationName = (ticket.getToStation() != null) ? ticket.getToStation().getName() : "";
+        String ticketTypeName = (ticketType != null) ? ticketType.getName() : "";
+        String ticketTypeCode = (ticketType != null) ? ticketType.getCode() : "";
+        boolean requiresVerification = (ticketType != null) && Boolean.TRUE.equals(ticketType.getRequiresVerification());
+
+        String bookingCode = (booking != null) ? booking.getBookingCode() : "";
+        String passengerName = ticket.getPassengerName();
+        if (passengerName == null || passengerName.isBlank()) {
+            passengerName = (booking != null) ? booking.getContactName() : "";
+        }
+        String passengerPhone = (booking != null) ? booking.getContactPhone() : "";
+        String tripCode = (trip != null) ? trip.getTripCode() : "";
+        Integer tripId = (trip != null) ? trip.getId() : null;
+        LocalDateTime departureTime = (trip != null) ? trip.getDepartureTime() : null;
+
+        Integer birthYear = ticket.getBirthYear();
+        Integer passengerAge = null;
+        if (birthYear != null) {
+            passengerAge = LocalDate.now().getYear() - birthYear;
+        }
+
+        return new TicketCheckinDTO(
+                ticket.getTicketCode(),
+                bookingCode,
+                passengerName,
+                passengerPhone,
+                tripCode,
+                tripId,
+                routeName,
+                fromStationName,
+                toStationName,
+                departureTime,
+                seatCode,
+                waterbusName,
+                ticketTypeName,
+                ticketTypeCode,
+                ticket.getPrice(),
+                ticket.getStatus(),
+                ticket.getCheckedInAt(),
+                birthYear,
+                passengerAge,
+                requiresVerification
+        );
     }
 
     public String getTicketCode() {

@@ -35,7 +35,6 @@ public class TicketServiceImpl implements TicketService {
     private final AccountRepository accountRepository;
     private final TicketScanLogRepository ticketScanLogRepository;
 
-    // Constructor Injection
     public TicketServiceImpl(TicketRepository ticketRepository,
                              BookingRepository bookingRepository,
                              AccountRepository accountRepository,
@@ -82,39 +81,16 @@ public class TicketServiceImpl implements TicketService {
                 });
 
         List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(booking.getId());
-        List<TicketCheckinDTO> ticketDTOs = new ArrayList<>();
-        Trip trip = null;
-        for (Ticket t : tickets) {
-            ticketDTOs.add(mapToDTO(t));
-            if (trip == null && t.getTrip() != null) {
-                trip = t.getTrip();
-            }
-        }
+        Trip trip = tickets.stream().map(Ticket::getTrip).filter(java.util.Objects::nonNull).findFirst().orElse(null);
 
-        String routeName = (trip != null && trip.getRoute() != null) ? trip.getRoute().getName() : "";
         String fromStationName = (!tickets.isEmpty() && tickets.get(0).getFromStation() != null)
                 ? tickets.get(0).getFromStation().getName() : "";
         String toStationName = (!tickets.isEmpty() && tickets.get(0).getToStation() != null)
                 ? tickets.get(0).getToStation().getName() : "";
-        String tripCode = (trip != null) ? trip.getTripCode() : "";
-        Integer tripId = (trip != null) ? trip.getId() : null;
-        LocalDateTime departureTime = (trip != null) ? trip.getDepartureTime() : null;
 
-        logScan(null, trimmed, trip, staffAccountId, "VIEW", "SUCCESS", source, "Tra cứu đơn thành công: " + ticketDTOs.size() + " vé");
+        logScan(null, trimmed, trip, staffAccountId, "VIEW", "SUCCESS", source, "Tra cứu đơn thành công: " + tickets.size() + " vé");
 
-        return new BookingCheckinDTO(
-                booking.getBookingCode(),
-                booking.getContactName(),
-                booking.getContactPhone(),
-                tripCode,
-                tripId,
-                routeName,
-                fromStationName,
-                toStationName,
-                departureTime,
-                booking.getStatus(),
-                ticketDTOs
-        );
+        return BookingCheckinDTO.fromEntity(booking, trip, tickets, fromStationName, toStationName);
     }
 
     @Override
@@ -301,58 +277,6 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private TicketCheckinDTO mapToDTO(Ticket ticket) {
-        Booking booking = ticket.getBooking();
-        Trip trip = ticket.getTrip();
-        TicketType ticketType = ticket.getTicketType();
-
-        String routeName = (trip != null && trip.getRoute() != null) ? trip.getRoute().getName() : "";
-        String waterbusName = (ticket.getSeat() != null && ticket.getSeat().getWaterbus() != null)
-                ? ticket.getSeat().getWaterbus().getName() : "";
-        String seatCode = (ticket.getSeat() != null) ? ticket.getSeat().getSeatCode() : "";
-        String fromStationName = (ticket.getFromStation() != null) ? ticket.getFromStation().getName() : "";
-        String toStationName = (ticket.getToStation() != null) ? ticket.getToStation().getName() : "";
-        String ticketTypeName = (ticketType != null) ? ticketType.getName() : "";
-        String ticketTypeCode = (ticketType != null) ? ticketType.getCode() : "";
-        boolean requiresVerification = (ticketType != null) && Boolean.TRUE.equals(ticketType.getRequiresVerification());
-
-        String bookingCode = (booking != null) ? booking.getBookingCode() : "";
-        // Tên hành khách ưu tiên lấy từ ticket.getPassengerName(), nếu null lấy booking.getContactName()
-        String passengerName = ticket.getPassengerName();
-        if (passengerName == null || passengerName.isBlank()) {
-            passengerName = (booking != null) ? booking.getContactName() : "";
-        }
-        String passengerPhone = (booking != null) ? booking.getContactPhone() : "";
-        String tripCode = (trip != null) ? trip.getTripCode() : "";
-        Integer tripId = (trip != null) ? trip.getId() : null;
-        LocalDateTime departureTime = (trip != null) ? trip.getDepartureTime() : null;
-
-        Integer birthYear = ticket.getBirthYear();
-        Integer passengerAge = null;
-        if (birthYear != null) {
-            passengerAge = LocalDate.now().getYear() - birthYear;
-        }
-
-        return new TicketCheckinDTO(
-                ticket.getTicketCode(),
-                bookingCode,
-                passengerName,
-                passengerPhone,
-                tripCode,
-                tripId,
-                routeName,
-                fromStationName,
-                toStationName,
-                departureTime,
-                seatCode,
-                waterbusName,
-                ticketTypeName,
-                ticketTypeCode,
-                ticket.getPrice(),
-                ticket.getStatus(),
-                ticket.getCheckedInAt(),
-                birthYear,
-                passengerAge,
-                requiresVerification
-        );
+        return TicketCheckinDTO.fromEntity(ticket);
     }
 }

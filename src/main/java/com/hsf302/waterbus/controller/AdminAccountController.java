@@ -17,8 +17,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
-// Module: BE3 (Tân) - Quản lý tài khoản (Admin Account Management)
-// Endpoint: /admin/accounts/** (chỉ vai trò ADMIN được phép truy cập, bảo vệ bởi AdminInterceptor)
 @Controller
 @RequestMapping("/admin/accounts")
 public class AdminAccountController {
@@ -89,7 +87,7 @@ public class AdminAccountController {
         }
 
         List<BookingDTO> bookings = bookingService.getBookingsOfAccount(id);
-        model.addAttribute("account", accountService.toDTO(account));
+        model.addAttribute("account", AccountDTO.fromEntity(account));
         model.addAttribute("bookings", bookings);
         return "admin/account/detail";
     }

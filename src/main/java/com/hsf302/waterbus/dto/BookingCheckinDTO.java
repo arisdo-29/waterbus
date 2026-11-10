@@ -1,12 +1,13 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Booking;
+import com.hsf302.waterbus.entity.Ticket;
+import com.hsf302.waterbus.entity.Trip;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * DTO chứa thông tin đơn và danh sách vé để soát theo nhóm/đơn (Group Check-in).
- */
 public class BookingCheckinDTO implements Serializable {
     private final String bookingCode;
     private final String contactName;
@@ -35,6 +36,32 @@ public class BookingCheckinDTO implements Serializable {
         this.departureTime = departureTime;
         this.status = status;
         this.tickets = tickets;
+    }
+
+    public static BookingCheckinDTO fromEntity(Booking booking, Trip trip, List<Ticket> tickets, String fromStationName, String toStationName) {
+        if (booking == null) {
+            return null;
+        }
+        List<TicketCheckinDTO> ticketDTOs = (tickets == null) ? List.of() :
+                tickets.stream().map(TicketCheckinDTO::fromEntity).toList();
+        String routeName = (trip != null && trip.getRoute() != null) ? trip.getRoute().getName() : "";
+        String tripCode = (trip != null) ? trip.getTripCode() : "";
+        Integer tripId = (trip != null) ? trip.getId() : null;
+        LocalDateTime departureTime = (trip != null) ? trip.getDepartureTime() : null;
+
+        return new BookingCheckinDTO(
+                booking.getBookingCode(),
+                booking.getContactName(),
+                booking.getContactPhone(),
+                tripCode,
+                tripId,
+                routeName,
+                fromStationName != null ? fromStationName : "",
+                toStationName != null ? toStationName : "",
+                departureTime,
+                booking.getStatus(),
+                ticketDTOs
+        );
     }
 
     public String getBookingCode() {

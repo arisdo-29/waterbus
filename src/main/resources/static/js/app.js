@@ -137,45 +137,6 @@
                 window.location.reload();
             });
         });
-        document.querySelectorAll('[data-action="back"]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                window.history.back();
-            });
-        });
-    }
-
-    function lockPaymentMethods(form) {
-        form.querySelectorAll('input[name="method"]').forEach(function (input) {
-            input.disabled = true;
-        });
-    }
-
-    /*
-     * Trang thanh toán: radio name="method" có data-action-url (URL POST) và data-method-label.
-     * Đổi lựa chọn -> đổi action của form và nội dung pop-up xác nhận của nút thanh toán.
-     */
-    function initPaymentMethods() {
-        document.querySelectorAll('[data-payment-form]').forEach(function (form) {
-            const methods = Array.from(form.querySelectorAll('input[name="method"][data-action-url]'));
-            const submit = form.querySelector('[data-payment-submit]');
-            if (!methods.length) {
-                return;
-            }
-            function update() {
-                const selected = methods.find(function (input) {
-                    return input.checked;
-                }) || methods[0];
-                form.action = selected.dataset.actionUrl;
-                if (submit) {
-                    submit.dataset.confirm = 'Thanh toán ' + (form.dataset.paymentAmount || '') + ' qua ' +
-                        (selected.dataset.methodLabel || selected.value) + '?';
-                }
-            }
-            methods.forEach(function (input) {
-                input.addEventListener('change', update);
-            });
-            update();
-        });
     }
 
     function initCountdown() {
@@ -197,7 +158,6 @@
                 submit.disabled = true;
             }
             if (paymentForm) {
-                lockPaymentMethods(paymentForm);
             }
             return;
         }
@@ -220,7 +180,6 @@
                 }
                 if (paymentForm) {
                     paymentForm.classList.add('is-expired');
-                    lockPaymentMethods(paymentForm);
                 }
                 return false;
             }
@@ -395,7 +354,6 @@
         initNavigation();
         initSearchForms();
         initPassengerForm();
-        initPaymentMethods();
         initSeatSelection();
         initBackButton();
         initCountdown();

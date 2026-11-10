@@ -89,8 +89,11 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | M3 | `GET /admin/promotions…` | `admin/promotion/list`, `…/form` | Tân | Tân | `promotions` / `promotion` | `id`, `code`, `name`, `discountType`, `discountValue`, `maxDiscount`, `minOrderAmount`, `startAt`, `endAt`, `usageLimit`, `isActive` |
 | M3 | `GET /admin/ticket-types…` | `admin/tickettype/list`, `…/form` | Tân | Tân | `ticketTypes` / `ticketType` | `code`, `name`, `price`, `requiresVerification`, `description`, `isActive` |
 | M5 | `GET /admin/revenue?from=yyyy-MM-dd&to=yyyy-MM-dd` (chỉ ADMIN, `AdminInterceptor` đã chặn STAFF) | `admin/revenue/index` | Trí | Trí | `from`, `to`: LocalDate đã áp dụng mặc định (không truyền → 7 ngày gần nhất: `to` = hôm nay, `from` = hôm nay − 6 ngày; `from` > `to` → `errorMessage` và dùng lại mặc định); `errorMessage` (có thể null); `summary`: RevenueSummaryDTO (`totalRevenue`, `paidBookings`, `ticketsSold`, `freeTickets`, `totalDiscount`, `totalRefunded`, `cancelledOrExpiredBookings`); `dailyRevenue`: List DailyRevenueDTO (`date`, `revenue`, `bookings`; đủ mọi ngày trong khoảng, ngày không có đơn = 0 để vẽ biểu đồ); `byRoute`, `byTicketType`, `byMethod`, `byPromotion`: List RevenueGroupDTO (`name`, `bookings`, `tickets`, `revenue`; sắp xếp `revenue` giảm dần). Cách tính: cộng payment `SUCCESS` theo `Payment.paidAt`, trừ refund `DONE` theo `Refund.refundedAt`; `summary.totalRevenue` bằng tổng `dailyRevenue.revenue`. Vé miễn phí (đơn 0 đ, không có payment) đếm vào `freeTickets` theo `Booking.createdAt` | Form GET `/admin/revenue`: `from`, `to` (`input type="date"`) |
-| M5 | `GET /admin/refunds?status=` | `admin/refund/list` | Trí | Trâm | `refunds`: List RefundAdminDTO (`id`, `bookingCode`, `amount`, `status`, `reason`, `transactionRef`, `refundedAt`); `statusFilter`: `PENDING`, `DONE` hoặc rỗng | GET `status` (rỗng = tất cả); POST `/admin/refunds/{id}/complete`: `transactionRef`, `refundedAt` (`datetime-local`), `note` |
-| Mới | `GET /admin/accounts…` | `admin/account/list`, `…/form` (đề xuất) | Tân | Tân | chưa chốt | chưa chốt |
+| M5 | `GET /admin/refunds?status=` | `admin/refund/list` | Trí | Trí | `refunds`: List RefundAdminDTO (`id`, `bookingCode`, `amount`, `status`, `reason`, `transactionRef`, `refundedAt`); `statusFilter`: `PENDING`, `DONE` hoặc rỗng | GET `status` (rỗng = tất cả); POST `/admin/refunds/{id}/complete` (nút "Xác nhận đã hoàn tiền", không còn tham số `transactionRef`, `refundedAt`, `note`; hoàn tiền thật xử lý ngoài hệ thống) |
+| Mới | `GET /admin/accounts…` | `admin/account/list`, `…/form`, `…/detail` | Trí | Tân | chưa chốt | chưa chốt |
+| M5 | `GET /admin/checkin` | `admin/checkin/index` | Trí | Tân | xem mục "Soát vé – hợp đồng JS" | xem mục "Soát vé – hợp đồng JS" |
+| M2 | `GET/POST /account/profile` | `account/profile` | Trí | Tân | `account` (AccountDTO), `updateProfileRequest` | `fullName`, `phone` |
+| M2 | `GET/POST /account/change-password` | `account/change-password` | Trí | Tân | `changePasswordRequest`, `errorMessage` | `currentPassword`, `newPassword`, `confirmPassword` |
 
 Menu quản trị (`adminSidebar` trong `layout.html`): ADMIN thấy Chuyến tàu, Doanh thu, Hoàn tiền, Tài khoản, Tàu, Bến, Tuyến,
 Khuyến mãi, Loại vé, Soát vé; STAFF thấy Soát vé (đầu danh sách) và Chuyến tàu. Dropdown tài khoản trên navbar của ADMIN
@@ -126,7 +129,7 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
 
 ## Soát vé – hợp đồng JS
 
-Template `admin/checkin/index.html` và backend do **Tân** làm; JS (`initCheckin` trong `app.js`), CSS và thư viện
+Template `admin/checkin/index.html` do **Trí** giữ, backend do **Tân** làm; JS (`initCheckin` trong `app.js`), CSS và thư viện
 `static/js/html5-qrcode.min.js` (v2.3.8, Apache-2.0) do **Khuyên** làm. Mục tiêu: mỗi khách 2 thao tác (quét → xác nhận).
 
 | Data-attribute | Gắn vào | Ý nghĩa |

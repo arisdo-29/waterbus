@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -36,6 +37,7 @@ class VnPayPaymentTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private BookingService bookingService;
     @Autowired private VnPayService vnPayService;
+    @Autowired private PaymentService paymentService;
     @Autowired private EntityManager entityManager;
     @Autowired private WebApplicationContext context;
 
@@ -216,6 +218,50 @@ class VnPayPaymentTest {
         assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
                 .containsExactly("HOLD", "HOLD");
         assertThat(promotionUsedCount()).isZero();
+    }
+
+    @Test
+    void usedUpPromotionShowsMessageInsteadOfErrorPage() throws Exception {
+        useUpPromotion();
+
+        // Bấm nút VNPay -> không sang VNPay, quay lại trang thanh toán kèm lời báo
+        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
+                .andExpect(flash().attribute("errorMessage",
+                        "Mã khuyến mãi TEST10 đã hết lượt sử dụng. Vui lòng đặt vé lại không dùng mã này."));
+        // confirmPaid cũng chặn bằng IllegalArgumentException (controller bắt được), không để lỗi DB văng ra
+        assertThatThrownBy(() -> paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("hết lượt sử dụng");
+        entityManager.flush();
+
+        assertThat(bookingStatus()).isEqualTo("PENDING");
+        assertThat(count("payment")).isZero();
+        assertThat(promotionUsedCount()).isEqualTo(1); // không bị cộng vượt usage_limit
+    }
+
+    @Test
+    void promotionUsedUpWhileOnVnPayKeepsPaymentRecord() throws Exception {
+        // Khách đã sang VNPay, trong lúc đó khách khác dùng mất lượt cuối của mã
+        useUpPromotion();
+
+        mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
+                .andExpect(flash().attribute("errorMessage",
+                        "VNPay đã trừ tiền nhưng đơn không còn hiệu lực. Vui lòng liên hệ nhân viên kèm mã đơn "
+                                + booking.getBookingCode() + "."));
+        entityManager.flush();
+
+        // Giống đơn hết hạn: lưu payment SUCCESS làm bằng chứng, đơn/vé giữ nguyên, mã KM không bị cộng thêm
+        assertThat(jdbc.queryForObject("SELECT status FROM payment WHERE booking_id = ?", String.class, booking.getId()))
+                .isEqualTo("SUCCESS");
+        assertThat(bookingStatus()).isEqualTo("PENDING");
+        assertThat(promotionUsedCount()).isEqualTo(1);
+    }
+
+    // Giả lập: mã TEST10 chỉ có 1 lượt và khách khác đã dùng mất lượt đó
+    private void useUpPromotion() {
+        booking.getPromotion().setUsageLimit(1);
+        booking.getPromotion().setUsedCount(1);
     }
 
     // Tham số giống hệt VNPay gửi kèm khi trả khách về (chưa có chữ ký)

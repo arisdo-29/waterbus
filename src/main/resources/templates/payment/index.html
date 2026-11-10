@@ -3,7 +3,6 @@
   <head th:replace="~{fragments/layout :: head('Thanh toán')}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/css/app.css" th:href="@{/css/app.css}">
@@ -86,16 +85,13 @@
           </div>
           <div class="wb-card wb-payment-method">
             <span class="wb-eyebrow">Phương thức thanh toán</span>
-            <h2>Chọn cách thanh toán</h2>
-            <!--/* JS đổi action theo phương thức: MOCK -> /payment/{code}/mock, VNPAY -> /payment/{code}/vnpay (BE4) */-->
-            <form action="/templates/booking/detail.html" method="post" th:action="@{/payment/{code}/mock(code=${booking?.bookingCode})}" data-payment-form th:with="locked=${booking?.status != 'PENDING' or booking?.expiresAt == null}" data-payment-amount="28.500 đ" th:data-payment-amount="${#numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'}">
-              <fieldset class="wb-method-group">
-                <legend class="visually-hidden">Phương thức thanh toán</legend>
-                <label class="wb-method-option"><input type="radio" name="method" value="MOCK" checked th:disabled="${locked}" data-action-url="/templates/booking/detail.html" th:data-action-url="@{/payment/{code}/mock(code=${booking?.bookingCode})}" data-method-label="hình thức mô phỏng"><span><i class="bi bi-wallet2" aria-hidden="true"></i><strong>Thanh toán mô phỏng</strong><small>Mô phỏng, dùng khi demo. Không trừ tiền thật.</small></span><i class="bi bi-check-circle-fill wb-method-check" aria-hidden="true"></i></label>
-                <label class="wb-method-option"><input type="radio" name="method" value="VNPAY" th:disabled="${locked}" data-action-url="/templates/booking/detail.html" th:data-action-url="@{/payment/{code}/vnpay(code=${booking?.bookingCode})}" data-method-label="VNPay"><span><i class="bi bi-credit-card-2-front" aria-hidden="true"></i><strong>VNPay</strong><small>Thẻ ATM nội địa, QR, ví qua cổng VNPay.</small></span><i class="bi bi-check-circle-fill wb-method-check" aria-hidden="true"></i></label>
-              </fieldset>
+            <h2>Thanh toán qua VNPay</h2>
+            <form action="/templates/booking/detail.html" method="post" th:action="@{/payment/{code}/vnpay(code=${booking?.bookingCode})}" data-payment-form th:with="locked=${booking?.status != 'PENDING' or booking?.expiresAt == null}" data-payment-amount="28.500 đ" th:data-payment-amount="${#numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'}">
+              <div class="wb-method-group">
+                <div class="wb-method-option is-static" th:classappend="${locked} ? 'is-locked'"><span><i class="bi bi-credit-card-2-front" aria-hidden="true"></i><strong>VNPay</strong><small>Thẻ ATM nội địa, QR, ví qua cổng VNPay.</small></span><i class="bi bi-check-circle-fill wb-method-check" aria-hidden="true"></i></div>
+              </div>
               <p class="wb-payment-expired" data-payment-expired>Đơn đã hết thời gian giữ chỗ, vui lòng đặt lại.</p>
-              <button class="btn btn-wb-accent w-100" type="submit" data-payment-submit data-confirm="Xác nhận thanh toán đơn này?" th:data-confirm="${'Thanh toán ' + #numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ qua hình thức mô phỏng?'}" data-confirm-title="Xác nhận thanh toán" data-confirm-ok="Thanh toán" th:disabled="${booking?.status != 'PENDING' or booking?.expiresAt == null}">Thanh toán <span th:text="${#numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">28.500 đ</span> <i class="bi bi-lock-fill ms-2" aria-hidden="true"></i></button><a class="wb-return-home" href="/templates/index.html" th:href="@{/}">Về trang chủ</a>
+              <button class="btn btn-wb-accent w-100" type="submit" data-payment-submit data-confirm="Xác nhận thanh toán đơn này?" th:data-confirm="${'Thanh toán ' + #numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ qua VNPay?'}" data-confirm-title="Xác nhận thanh toán" data-confirm-ok="Thanh toán" th:disabled="${booking?.status != 'PENDING' or booking?.expiresAt == null}">Thanh toán <span th:text="${#numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">28.500 đ</span> <i class="bi bi-lock-fill ms-2" aria-hidden="true"></i></button><a class="wb-return-home" href="/templates/index.html" th:href="@{/}">Về trang chủ</a>
             </form>
           </div>
         </div>

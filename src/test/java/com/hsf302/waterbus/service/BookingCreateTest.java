@@ -171,6 +171,8 @@ class BookingCreateTest {
         assertInvalid(tripId, List.of(seatA1), s1, s2, "SAIMA", "0901234567", "Mã khuyến mãi không hợp lệ");
         assertInvalid(tripId, List.of(seatA1), s1, s2, "", "12345", "Số điện thoại");
         assertInvalid(tripId, List.of(), s1, s2, "", "0901234567", "ít nhất 1 ghế");
+        assertInvalid(tripId, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), s1, s2, "", "0901234567",
+                "tối đa 10 ghế"); // 11 ghế -> chặn ngay, chưa cần xem ghế có trống không
         assertInvalid(-1, List.of(seatA1), s1, s2, "", "0901234567", "Ghế vừa có người đặt"); // chuyến không tồn tại
         assertThat(count("booking")).isZero();
         assertThat(count("ticket")).isZero();

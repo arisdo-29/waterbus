@@ -13,6 +13,10 @@ import org.springframework.validation.Errors;
 // Module: BE4 - Đặt vé & Thanh toán
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface BookingService {
+    // Số ghế tối đa trong 1 đơn. Trang chọn ghế (app.js) cũng chặn 10 ghế, nhưng request có thể bị sửa tay
+    // nên server phải tự kiểm tra lại. Dùng chung cho BookingForm (@Size) và createBooking.
+    int MAX_SEATS_PER_BOOKING = 10;
+
     /** Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService. */
     Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail);
 

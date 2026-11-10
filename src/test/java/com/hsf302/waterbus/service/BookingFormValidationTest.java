@@ -104,6 +104,20 @@ class BookingFormValidationTest {
     }
 
     @Test
+    void moreThanTenSeatsIsRejected() throws Exception {
+        // Giống người dùng sửa tay request (bỏ qua JS trang chọn ghế): gửi 11 ghế
+        MockHttpServletRequestBuilder request = booking("Lan", "0901234567", "lan@example.com", "");
+        for (int i = 1; i <= 10; i++) {
+            request.param("seatIds", String.valueOf(seatId + i)); // thêm 10 ghế nữa -> tổng 11
+        }
+        mvc.perform(request)
+                .andExpect(view().name("booking/checkout"))
+                .andExpect(model().attributeHasFieldErrors("bookingForm", "seatIds"))
+                .andExpect(model().attribute("errorMessage", "Bạn chỉ có thể chọn tối đa 10 ghế trong một lần đặt."));
+        assertThat(count("booking")).isZero();
+    }
+
+    @Test
     void validFormStillCreatesBookingAndTrimsSpaces() throws Exception {
         String location = mvc.perform(booking(" Lan ", " 0901234567 ", " lan@example.com ", " "))
                 .andExpect(status().is3xxRedirection())

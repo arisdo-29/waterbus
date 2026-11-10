@@ -32,6 +32,9 @@ public interface TripService {
     /** Thông tin chuyến cho trang chọn ghế; null nếu không có chuyến hoặc chuyến không SCHEDULED. */
     BookingTripDTO getBookableTrip(int tripId);
 
+    /** Giờ tại hai bến đã chọn cho trang chọn ghế; null nếu chuyến không đi qua chặng này. */
+    BookingTripDTO getBookableTrip(int tripId, int fromStationId, int toStationId);
+
     /** HỢP ĐỒNG cho BE4: lấy chuyến theo id để gắn vào vé; null nếu không có. */
     Trip getTripById(int tripId);
 

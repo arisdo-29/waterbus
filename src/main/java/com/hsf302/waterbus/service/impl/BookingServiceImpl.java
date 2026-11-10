@@ -87,6 +87,12 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalArgumentException("Vui lòng chọn ít nhất 1 ghế.");
         }
         seatIds = seatIds.stream().distinct().toList(); // bỏ ghế bị gửi trùng (nếu có)
+        // Đếm SAU khi bỏ ghế trùng để đếm đúng số ghế thật. BookingForm (@Size) đã chặn ở controller,
+        // kiểm tra lại ở đây vì service có thể được gọi từ chỗ khác không đi qua form
+        if (seatIds.size() > BookingService.MAX_SEATS_PER_BOOKING) {
+            throw new IllegalArgumentException("Bạn chỉ có thể chọn tối đa "
+                    + BookingService.MAX_SEATS_PER_BOOKING + " ghế trong một lần đặt.");
+        }
         if (fromStationId == toStationId) {
             throw new IllegalArgumentException("Bến đi và bến đến phải khác nhau.");
         }

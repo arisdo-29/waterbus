@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.service.BookingService;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -17,7 +18,11 @@ public class BookingForm {
     private Integer fromStationId;
     private Integer toStationId;
 
+    // Annotation chỉ nhận hằng số lúc biên dịch: MAX_SEATS_PER_BOOKING là hằng int nên dùng được,
+    // ghép chuỗi với hằng đó vẫn là hằng -> đổi con số 1 chỗ thì cả giới hạn lẫn câu báo lỗi cùng đổi
     @NotEmpty(message = "Vui lòng chọn ít nhất 1 ghế.")
+    @Size(max = BookingService.MAX_SEATS_PER_BOOKING,
+            message = "Bạn chỉ có thể chọn tối đa " + BookingService.MAX_SEATS_PER_BOOKING + " ghế trong một lần đặt.")
     private List<Integer> seatIds;
 
     @NotBlank(message = "Vui lòng nhập họ và tên.")

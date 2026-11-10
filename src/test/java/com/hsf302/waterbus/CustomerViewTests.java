@@ -109,10 +109,10 @@ class CustomerViewTests {
         }
         assertThat(render("checkout", model)).containsPattern("<button[^>]*type=\"submit\"[^>]*data-confirm=\"Đặt 2 vé chuyến "
                 + "Tuyến thực \\([^\"]*\\)[^\"]*, ghế C7, C8\\?\"");
-        assertThat(render("payment", model)).containsPattern("data-payment-submit[^>]*data-confirm=\"Thanh toán 42.000 đ qua hình thức mô phỏng\\?\"")
-                .contains("data-payment-amount=\"42.000 đ\"", "name=\"method\" value=\"MOCK\" checked", "name=\"method\" value=\"VNPAY\"",
-                        "data-action-url=\"/payment/REAL-42/mock\"", "data-action-url=\"/payment/REAL-42/vnpay\"");
-        assertThat(render("payment", fixture("PAID"))).containsPattern("value=\"VNPAY\"[^>]*disabled");
+        assertThat(render("payment", model)).containsPattern("data-payment-submit[^>]*data-confirm=\"Thanh toán 42.000 đ qua VNPay\\?\"")
+                .contains("data-payment-amount=\"42.000 đ\"", "action=\"/payment/REAL-42/vnpay\"")
+                .doesNotContain("MOCK", "/mock", "mô phỏng");
+        assertThat(render("payment", fixture("PAID"))).contains("wb-method-option is-static is-locked");
         assertThat(render("detail", model)).containsPattern("action=\"/booking/REAL-42/cancel\"[^>]*data-confirm-variant=\"danger\"");
         model.put("seats", List.of());
         model.put("trip", null);
@@ -238,7 +238,7 @@ class CustomerViewTests {
     void paymentDetailAndHistoryRenderRealDataAndStatuses(String state) throws Exception {
         Map<String, Object> model = fixture(state);
         String payment = render("payment", model);
-        assertThat(payment).contains("action=\"/payment/REAL-42/mock\"", "method=\"post\"", "42.000 đ", "C7");
+        assertThat(payment).contains("action=\"/payment/REAL-42/vnpay\"", "method=\"post\"", "42.000 đ", "C7");
         assertThat(payment).containsPattern(state.equals("PENDING")
                 ? "<button[^>]*data-payment-submit(?![^>]*disabled)[^>]*>"
                 : "<button[^>]*data-payment-submit[^>]*disabled=\"disabled\"");

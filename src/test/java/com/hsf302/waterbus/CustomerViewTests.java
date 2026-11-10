@@ -163,7 +163,13 @@ class CustomerViewTests {
         String html = render("detail", model);
         assertThat(html).contains("Bà &lt;Một&gt;", "sinh năm <span>1950</span>", "Mang giấy tờ gốc khi lên tàu",
                 "data-qr-value=\"REAL-42\"", "Đưa nhân viên quét để lên tàu cả nhóm", "VNPay", "VNP-778")
-                .doesNotContain("wb-refund-banner");
+                .doesNotContain("wb-refund-banner")
+                .contains("Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn");
+        MockHttpSession loggedIn = new MockHttpSession();
+        loggedIn.setAttribute("loginAccount", account("CUSTOMER"));
+        assertThat(render("detail", model, get("/__test/views/detail").session(loggedIn)))
+                .doesNotContain("Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn");
+        assertThat(render("detail", fixture("PENDING"))).doesNotContain("Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn");
 
         model.put("refund", Map.of("status", "PENDING", "amount", new java.math.BigDecimal("42000")));
         model.put("tripCancelReason", "Nước lớn");

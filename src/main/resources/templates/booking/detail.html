@@ -103,6 +103,12 @@
             <small>Đưa nhân viên quét để lên tàu cả nhóm</small>
           </div>
         </div>
+        <!--/* Khách chưa đăng nhập không xem lại được đơn trong "Vé của tôi": nhắc lưu/in vé về máy */-->
+        <div class="alert alert-warning wb-print-hidden mt-3 mb-0" role="alert" th:if="${booking?.status == 'PAID' and session.loginAccount == null}">
+          <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i><strong>Hãy lưu vé về máy.</strong>
+          Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn. Hãy lưu hoặc in vé về máy (kèm mã QR) để dùng khi check-in lên tàu.
+          <div class="mt-2"><button class="btn btn-wb-outline" type="button" data-print-ticket><i class="bi bi-printer me-2" aria-hidden="true"></i>Lưu / in vé</button></div>
+        </div>
       </section>
       <section class="container wb-section-top">
         <div class="wb-ticket-list">

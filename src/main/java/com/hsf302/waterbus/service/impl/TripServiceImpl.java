@@ -7,6 +7,7 @@ import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.dto.TripManifestDTO;
 import com.hsf302.waterbus.dto.TicketCheckinDTO;
+import com.hsf302.waterbus.entity.RouteStation;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.SeatRepository;
@@ -19,8 +20,11 @@ import com.hsf302.waterbus.service.WaterbusService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -154,28 +158,88 @@ public class TripServiceImpl implements TripService {
         if (date == null || fromStationId <= 0 || toStationId <= 0 || fromStationId == toStationId) {
             return List.of();
         }
-        return tripRepository.searchTrips(fromStationId, toStationId,
-                date.atStartOfDay(), date.plusDays(1).atStartOfDay(), LocalDateTime.now());
+        LocalDateTime stopSellingAt = LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES);
+        List<Trip> matches = new ArrayList<>();
+        Map<Integer, Segment> segments = new HashMap<>();
+        for (var route : routeService.getActiveRoutes()) {
+            Segment segment = segmentForRoute(route.getId(), fromStationId, toStationId);
+            if (segment == null) continue;
+            segments.put(route.getId(), segment);
+            // The requested date is the boarding date, which may differ from the trip's first-stop date.
+            LocalDateTime start = date.atStartOfDay().minusMinutes(segment.departureMinutes());
+            LocalDateTime end = date.plusDays(1).atStartOfDay().minusMinutes(segment.departureMinutes());
+            tripRepository.searchTripsForRoute(route.getId(), start, end).stream()
+                    .filter(trip -> trip.getDepartureTime().plusMinutes(segment.departureMinutes())
+                            .isAfter(stopSellingAt))
+                    .forEach(matches::add);
+        }
+        matches.sort(Comparator.comparing((Trip trip) -> trip.getDepartureTime()
+                        .plusMinutes(segments.get(trip.getRoute().getId()).departureMinutes()))
+                .thenComparing(Trip::getId));
+        return matches;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TripSearchDTO> searchTripResults(int fromStationId, int toStationId, LocalDate date) {
+        Map<Integer, Segment> segments = new HashMap<>();
         return searchTrips(fromStationId, toStationId, date).stream()
-                .map(trip -> new TripSearchDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                        trip.getDepartureTime(), trip.getArrivalTime(),
-                        seatRepository.countAvailableSeats(trip.getId(), trip.getWaterbus().getId())))
+                .map(trip -> {
+                    int routeId = trip.getRoute().getId();
+                    Segment segment = segments.computeIfAbsent(routeId,
+                            id -> segmentForRoute(id, fromStationId, toStationId));
+                    return new TripSearchDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
+                            trip.getDepartureTime().plusMinutes(segment.departureMinutes()),
+                            trip.getDepartureTime().plusMinutes(segment.arrivalMinutes()),
+                            seatRepository.countAvailableSeats(trip.getId(), trip.getWaterbus().getId()));
+                })
                 .toList();
     }
+
+    private Segment segmentForRoute(int routeId, int fromStationId, int toStationId) {
+        RouteStation departure = null;
+        RouteStation arrival = null;
+        for (RouteStation stop : routeService.getStopsOfRoute(routeId)) {
+            if (stop.getStation().getId() == fromStationId) departure = stop;
+            if (stop.getStation().getId() == toStationId) arrival = stop;
+        }
+        if (departure == null || arrival == null || departure.getStopOrder() >= arrival.getStopOrder()) {
+            return null;
+        }
+        return new Segment(departure.getMinutesFromStart(), arrival.getMinutesFromStart());
+    }
+
+    private record Segment(int departureMinutes, int arrivalMinutes) { }
 
     @Override
     @Transactional(readOnly = true)
     public BookingTripDTO getBookableTrip(int tripId) {
         return tripRepository.findById(tripId)
                 .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
-                .filter(trip -> trip.getDepartureTime().isAfter(LocalDateTime.now()))
+                .filter(trip -> trip.getDepartureTime()
+                        .isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES)))
                 .map(trip -> new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
                         trip.getDepartureTime(), trip.getArrivalTime()))
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BookingTripDTO getBookableTrip(int tripId, int fromStationId, int toStationId) {
+        return tripRepository.findById(tripId)
+                .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .filter(trip -> Boolean.TRUE.equals(trip.getRoute().getIsActive()))
+                .filter(trip -> "ACTIVE".equals(trip.getWaterbus().getStatus()))
+                .map(trip -> {
+                    Segment segment = segmentForRoute(trip.getRoute().getId(), fromStationId, toStationId);
+                    if (segment == null) return null;
+                    LocalDateTime boardingTime = trip.getDepartureTime().plusMinutes(segment.departureMinutes());
+                    if (!boardingTime.isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES))) {
+                        return null;
+                    }
+                    return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
+                            boardingTime, trip.getDepartureTime().plusMinutes(segment.arrivalMinutes()));
+                })
                 .orElse(null);
     }
 

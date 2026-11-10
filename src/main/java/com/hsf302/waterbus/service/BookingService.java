@@ -47,8 +47,12 @@ public interface BookingService {
     /** Tạm tính = giá loại vé x số ghế. */
     BigDecimal calculateSubtotal(int ticketTypeId, int seatCount);
 
-    /** Thông tin chuyến để hiển thị trên trang checkout (qua TripService.getBookableTrip). Không tìm thấy hoặc chuyến không còn SCHEDULED -> null. */
-    BookingTripDTO getTripInfo(int tripId);
+    /**
+     * Thông tin chuyến cho trang checkout, giờ tính theo chặng khách chọn (qua TripService.getBookableTrip).
+     * null nếu: không có chuyến, chuyến không còn SCHEDULED, chuyến không đi qua chặng này,
+     * hoặc đã ngừng bán online (tàu sắp tới bến đi).
+     */
+    BookingTripDTO getTripInfo(int tripId, int fromStationId, int toStationId);
 
     /**
      * Vé ưu đãi (loại vé requiresVerification = true): kiểm tra họ tên + năm sinh của từng ghế.

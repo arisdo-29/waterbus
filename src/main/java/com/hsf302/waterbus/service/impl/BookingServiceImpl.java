@@ -105,12 +105,6 @@ public class BookingServiceImpl implements BookingService {
         if (trip == null || !"SCHEDULED".equals(trip.getStatus())) {
             throw new IllegalArgumentException("Chuyến tàu này không còn nhận đặt vé.");
         }
-        // Ngừng bán online khi chỉ còn 10 phút (hoặc ít hơn) là tàu chạy, hoặc tàu đã chạy rồi:
-        // giờ chạy phải SAU mốc "bây giờ + 10 phút" thì mới cho đặt
-        LocalDateTime stopSellingAt = LocalDateTime.now().plusMinutes(10);
-        if (!trip.getDepartureTime().isAfter(stopSellingAt)) {
-            throw new IllegalArgumentException("Chuyến tàu sắp khởi hành, đã ngừng bán vé online.");
-        }
 
         // 4. Bến: cả 2 bến phải nằm trên tuyến của chuyến, bến đi đứng trước bến đến (RouteService của Khuyên)
         RouteStation fromStop = null;
@@ -125,6 +119,10 @@ public class BookingServiceImpl implements BookingService {
         }
         if (fromStop == null || toStop == null || fromStop.getStopOrder() >= toStop.getStopOrder()) {
             throw new IllegalArgumentException("Bến đi và bến đến không đúng với tuyến của chuyến này.");
+        }
+        // Kiểm tra giờ ở ĐÂY (sau khi có fromStop) vì phải biết bến khách lên mới tính được giờ tàu tới bến đó
+        if (isOnlineSalesClosed(trip, fromStop)) {
+            throw new IllegalArgumentException("Chuyến tàu sắp khởi hành, đã ngừng bán vé online.");
         }
 
         // 5. Loại vé: phải đang bán (TicketTypeService của Tân)
@@ -217,6 +215,21 @@ public class BookingServiceImpl implements BookingService {
         return booking;
     }
 
+    // Đã ngừng bán online chưa: khi tàu tới bến khách lên chỉ còn ONLINE_SALES_CUTOFF_MINUTES phút
+    // (hoặc ít hơn), hoặc đã qua bến đó. Dùng chung hằng số và cách tính với trang tìm chuyến của Trí,
+    // để chuyến nào còn hiện trong kết quả tìm thì vẫn đặt được, hết hiện thì cũng hết đặt.
+    private boolean isOnlineSalesClosed(Trip trip, RouteStation fromStop) {
+        // Giờ tàu tới bến đi = giờ rời bến đầu tuyến + số phút từ bến đầu tới bến đó
+        int minutesFromStart = 0;
+        if (fromStop.getMinutesFromStart() != null) {
+            minutesFromStart = fromStop.getMinutesFromStart();
+        }
+        LocalDateTime boardingTime = trip.getDepartureTime().plusMinutes(minutesFromStart);
+        LocalDateTime stopSellingAt = LocalDateTime.now().plusMinutes(TripService.ONLINE_SALES_CUTOFF_MINUTES);
+        // Giờ tới bến phải SAU mốc ngừng bán thì mới còn bán
+        return !boardingTime.isAfter(stopSellingAt);
+    }
+
     private boolean isActiveSeatConflict(DataIntegrityViolationException exception) {
         String indexName = "ux_ticket_trip_seat_active";
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
@@ -295,15 +308,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingTripDTO getTripInfo(int tripId) {
-        // Dùng hợp đồng của Trí: null nếu không có chuyến hoặc chuyến không còn SCHEDULED
-        return tripService.getBookableTrip(tripId);
+    public BookingTripDTO getTripInfo(int tripId, int fromStationId, int toStationId) {
+        // Dùng bản có bến của Trí (giống trang chọn ghế): giờ hiển thị là giờ tại bến khách chọn,
+        // và mốc ngừng bán online tính theo giờ tàu tới bến đi, khớp với createBooking
+        return tripService.getBookableTrip(tripId, fromStationId, toStationId);
     }
 
     @Override
     public void validatePassengers(BookingForm form, Errors errors) {
-        // Thiếu chuyến/loại vé -> Controller đã tự xử lý trước, ở đây bỏ qua
-        if (form.getTripId() == null || form.getTicketTypeId() == null) {
+        // Thiếu chuyến/loại vé/bến -> Controller đã tự xử lý trước, ở đây bỏ qua
+        if (form.getTripId() == null || form.getTicketTypeId() == null
+                || form.getFromStationId() == null || form.getToStationId() == null) {
             return;
         }
         // Chỉ kiểm tra vé ưu đãi (requiresVerification = true). Vé thường -> không cần họ tên, năm sinh
@@ -311,7 +326,7 @@ public class BookingServiceImpl implements BookingService {
         if (ticketType == null || !Boolean.TRUE.equals(ticketType.getRequiresVerification())) {
             return;
         }
-        BookingTripDTO trip = getTripInfo(form.getTripId());
+        BookingTripDTO trip = getTripInfo(form.getTripId(), form.getFromStationId(), form.getToStationId());
         if (trip == null) {
             return;
         }

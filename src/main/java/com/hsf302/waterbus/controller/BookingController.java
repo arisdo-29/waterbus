@@ -67,7 +67,7 @@ public class BookingController {
                            @RequestParam int toStationId,
                            Model model, RedirectAttributes flash) {
         // Chuyến hoặc loại vé không tồn tại (sửa tay form) -> về trang tìm chuyến
-        if (!tripAndTicketTypeExist(tripId, ticketTypeId)) {
+        if (!tripAndTicketTypeExist(tripId, fromStationId, toStationId, ticketTypeId)) {
             flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
             return "redirect:/trips";
         }
@@ -99,7 +99,8 @@ public class BookingController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thông tin chuyến, loại vé hoặc bến.");
         }
 
-        if (!tripAndTicketTypeExist(form.getTripId(), form.getTicketTypeId())) {
+        if (!tripAndTicketTypeExist(form.getTripId(), form.getFromStationId(), form.getToStationId(),
+                form.getTicketTypeId())) {
             flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
             return "redirect:/trips";
         }
@@ -176,15 +177,17 @@ public class BookingController {
     }
 
     // Chuyến còn mở bán và loại vé có tồn tại thì mới vẽ được trang checkout
-    private boolean tripAndTicketTypeExist(int tripId, int ticketTypeId) {
-        return bookingService.getTripInfo(tripId) != null && ticketTypeService.getTicketTypeById(ticketTypeId) != null;
+    private boolean tripAndTicketTypeExist(int tripId, int fromStationId, int toStationId, int ticketTypeId) {
+        // Truyền cả 2 bến: chuyến chỉ "còn bán" khi tàu tới bến đi còn hơn 10 phút (tính theo chặng khách chọn)
+        return bookingService.getTripInfo(tripId, fromStationId, toStationId) != null
+                && ticketTypeService.getTicketTypeById(ticketTypeId) != null;
     }
 
     // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). Dùng chung cho checkout() và create().
     private void fillCheckoutModel(Model model, int tripId, List<Integer> seatIds, int ticketTypeId,
                                    int fromStationId, int toStationId) {
         List<Seat> seats = bookingService.getSelectedSeats(tripId, seatIds);
-        model.addAttribute("trip", bookingService.getTripInfo(tripId));
+        model.addAttribute("trip", bookingService.getTripInfo(tripId, fromStationId, toStationId));
         model.addAttribute("seats", seats);
         model.addAttribute("ticketType", ticketTypeService.getTicketTypeById(ticketTypeId));
         model.addAttribute("subtotal", bookingService.calculateSubtotal(ticketTypeId, seats.size()));

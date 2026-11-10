@@ -59,7 +59,8 @@ public class VnPayServiceImpl implements VnPayService {
         if (booking == null) {
             throw new IllegalArgumentException("Không tìm thấy đơn đặt vé.");
         }
-        // Dùng chung luật với payMock: đơn PENDING, còn hạn, chuyến còn SCHEDULED
+        // Dùng chung luật với payMock: đơn PENDING, còn hạn, chuyến còn SCHEDULED, mã KM còn lượt.
+        // Chặn ở đây để khách không bị đưa sang VNPay trả tiền cho một đơn chắc chắn không ghi nhận được.
         String reason = paymentService.getCannotPayReason(booking.getId());
         if (reason != null) {
             throw new IllegalArgumentException(reason);
@@ -143,7 +144,8 @@ public class VnPayServiceImpl implements VnPayService {
         }
 
         String transactionNo = params.get("vnp_TransactionNo"); // mã giao dịch phía VNPay
-        // 6. VNPay đã trừ tiền nhưng đơn không còn thanh toán được (hết hạn giữ chỗ / chuyến bị huỷ)
+        // 6. VNPay đã trừ tiền nhưng đơn không còn thanh toán được
+        //    (hết hạn giữ chỗ / chuyến bị huỷ / khách khác vừa dùng lượt cuối của mã KM)
         if (paymentService.getCannotPayReason(booking.getId()) != null) {
             return recordPaidButInvalid(booking, transactionNo);
         }

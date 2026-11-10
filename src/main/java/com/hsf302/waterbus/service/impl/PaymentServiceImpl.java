@@ -3,6 +3,7 @@ package com.hsf302.waterbus.service.impl;
 import com.hsf302.waterbus.dto.PaymentInfoDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Payment;
+import com.hsf302.waterbus.entity.Promotion;
 import com.hsf302.waterbus.entity.Ticket;
 import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.PaymentRepository;
@@ -61,7 +62,26 @@ public class PaymentServiceImpl implements PaymentService {
         if (tickets.isEmpty() || !"SCHEDULED".equals(tickets.get(0).getTrip().getStatus())) {
             return "Chuyến tàu đã bị huỷ hoặc không còn nhận thanh toán.";
         }
+        // Mã KM chỉ được tính lượt lúc trả tiền, nên trong lúc đơn này chờ, khách khác có thể đã dùng lượt cuối.
+        // Phải chặn ở đây: nếu để confirmPaid tăng used_count vượt usage_limit thì SQL Server từ chối
+        // (ràng buộc CK_promo_usage) và khách thấy trang lỗi 500 thay vì một lời báo dễ hiểu.
+        Promotion promotion = booking.getPromotion();
+        if (isPromotionUsedUp(promotion)) {
+            return "Mã khuyến mãi " + promotion.getCode() + " đã hết lượt sử dụng. Vui lòng đặt vé lại không dùng mã này.";
+        }
         return null; // không có lý do nào để chặn -> thanh toán được
+    }
+
+    // Mã KM đã dùng hết số lượt cho phép chưa. usage_limit = NULL nghĩa là mã không giới hạn lượt.
+    private boolean isPromotionUsedUp(Promotion promotion) {
+        if (promotion == null || promotion.getUsageLimit() == null) {
+            return false; // đơn không dùng mã, hoặc mã không giới hạn lượt
+        }
+        int usedCount = 0;
+        if (promotion.getUsedCount() != null) {
+            usedCount = promotion.getUsedCount();
+        }
+        return usedCount >= promotion.getUsageLimit();
     }
 
     @Override
@@ -102,6 +122,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         // 4. Đơn có dùng mã khuyến mãi -> tăng used_count lên 1
+        // (getCannotPayReason ở đầu hàm đã chặn mã hết lượt, nên tăng ở đây không vượt usage_limit)
         if (booking.getPromotion() != null) {
             promotionService.increaseUsedCount(booking.getPromotion().getCode());
         }

@@ -50,7 +50,9 @@ public class TripController {
                         @RequestParam(required = false) Integer fromStationId,
                         @RequestParam(required = false) Integer toStationId,
                         Model model) {
-        BookingTripDTO trip = tripService.getBookableTrip(id);
+        BookingTripDTO trip = fromStationId == null || toStationId == null
+                ? tripService.getBookableTrip(id)
+                : tripService.getBookableTrip(id, fromStationId, toStationId);
         if (trip == null) {
             return "redirect:/trips";
         }

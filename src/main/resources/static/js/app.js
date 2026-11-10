@@ -137,11 +137,6 @@
                 window.location.reload();
             });
         });
-        document.querySelectorAll('[data-action="back"]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                window.history.back();
-            });
-        });
     }
 
     function initCountdown() {

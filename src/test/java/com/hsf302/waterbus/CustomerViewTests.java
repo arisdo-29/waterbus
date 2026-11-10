@@ -92,6 +92,7 @@ class CustomerViewTests {
                 .containsPattern("name=\"toStationId\"[^>]*value=\"12\"")
                 .containsPattern("name=\"seatIds\"[^>]*value=\"91\"")
                 .containsPattern("name=\"seatIds\"[^>]*value=\"92\"");
+        assertThat(html).contains("href=\"/trips/71/seats?fromStationId=11&amp;toStationId=12\"").doesNotContain("data-action=\"back\"");
         // Explicitly empty submitted values must not be replaced with account defaults.
         assertThat(render("checkout", model, get("/__test/views/checkout").session(session)
                 .param("contactName", "").param("contactPhone", "").param("contactEmail", "")))

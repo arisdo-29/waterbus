@@ -14,6 +14,8 @@ import java.util.List;
 // Module: BE2 - Tàu, Ghế & Chuyến
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface TripService {
+    int ONLINE_SALES_CUTOFF_MINUTES = 10;
+
     List<AdminTripDTO> getTripsForAdmin();
 
     List<AdminTripDTO> getTodayTrips();

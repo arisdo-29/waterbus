@@ -109,8 +109,11 @@ class PaymentMockTest {
                 .andExpect(view().name("payment/index"))
                 .andExpect(model().attributeExists("booking", "trip", "tickets"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        // TODO(Tram): giao dien da bo lua chon MOCK (PR #105), form thanh toan chi con /vnpay. Khuyen chi doi assertion nay
+        // de CI qua; Tram xem lai ten test/class PaymentMockTest va cac test /mock cho phu hop (backend /mock van con).
         assertThat(html).contains(booking.getBookingCode(), "Tuyen test", "TEST_TRIP1", "A1", "A2",
-                "Ben mot", "Ben hai", "27.000 đ", "-3.000 đ", "/payment/" + booking.getBookingCode() + "/mock");
+                "Ben mot", "Ben hai", "27.000 đ", "-3.000 đ", "/payment/" + booking.getBookingCode() + "/vnpay")
+                .doesNotContain("/payment/" + booking.getBookingCode() + "/mock");
 
         mvc.perform(get("/payment/SAIMA123"))
                 .andExpect(redirectedUrl("/"))

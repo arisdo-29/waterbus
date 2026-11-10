@@ -14,6 +14,8 @@ import java.util.List;
 // Module: BE2 - Tàu, Ghế & Chuyến
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface TripService {
+    int ONLINE_SALES_CUTOFF_MINUTES = 10;
+
     List<AdminTripDTO> getTripsForAdmin();
 
     List<AdminTripDTO> getTodayTrips();
@@ -31,6 +33,9 @@ public interface TripService {
 
     /** Thông tin chuyến cho trang chọn ghế; null nếu không có chuyến hoặc chuyến không SCHEDULED. */
     BookingTripDTO getBookableTrip(int tripId);
+
+    /** Giờ tại hai bến đã chọn cho trang chọn ghế; null nếu chuyến không đi qua chặng này. */
+    BookingTripDTO getBookableTrip(int tripId, int fromStationId, int toStationId);
 
     /** HỢP ĐỒNG cho BE4: lấy chuyến theo id để gắn vào vé; null nếu không có. */
     Trip getTripById(int tripId);

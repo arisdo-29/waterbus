@@ -92,6 +92,7 @@ class CustomerViewTests {
                 .containsPattern("name=\"toStationId\"[^>]*value=\"12\"")
                 .containsPattern("name=\"seatIds\"[^>]*value=\"91\"")
                 .containsPattern("name=\"seatIds\"[^>]*value=\"92\"");
+        assertThat(html).contains("href=\"/trips/71/seats?fromStationId=11&amp;toStationId=12\"").doesNotContain("data-action=\"back\"");
         // Explicitly empty submitted values must not be replaced with account defaults.
         assertThat(render("checkout", model, get("/__test/views/checkout").session(session)
                 .param("contactName", "").param("contactPhone", "").param("contactEmail", "")))
@@ -109,10 +110,10 @@ class CustomerViewTests {
         }
         assertThat(render("checkout", model)).containsPattern("<button[^>]*type=\"submit\"[^>]*data-confirm=\"Đặt 2 vé chuyến "
                 + "Tuyến thực \\([^\"]*\\)[^\"]*, ghế C7, C8\\?\"");
-        assertThat(render("payment", model)).containsPattern("data-payment-submit[^>]*data-confirm=\"Thanh toán 42.000 đ qua hình thức mô phỏng\\?\"")
-                .contains("data-payment-amount=\"42.000 đ\"", "name=\"method\" value=\"MOCK\" checked", "name=\"method\" value=\"VNPAY\"",
-                        "data-action-url=\"/payment/REAL-42/mock\"", "data-action-url=\"/payment/REAL-42/vnpay\"");
-        assertThat(render("payment", fixture("PAID"))).containsPattern("value=\"VNPAY\"[^>]*disabled");
+        assertThat(render("payment", model)).containsPattern("data-payment-submit[^>]*data-confirm=\"Thanh toán 42.000 đ qua VNPay\\?\"")
+                .contains("data-payment-amount=\"42.000 đ\"", "action=\"/payment/REAL-42/vnpay\"")
+                .doesNotContain("MOCK", "/mock", "mô phỏng");
+        assertThat(render("payment", fixture("PAID"))).contains("wb-method-option is-static is-locked");
         assertThat(render("detail", model)).containsPattern("action=\"/booking/REAL-42/cancel\"[^>]*data-confirm-variant=\"danger\"");
         model.put("seats", List.of());
         model.put("trip", null);
@@ -162,7 +163,13 @@ class CustomerViewTests {
         String html = render("detail", model);
         assertThat(html).contains("Bà &lt;Một&gt;", "sinh năm <span>1950</span>", "Mang giấy tờ gốc khi lên tàu",
                 "data-qr-value=\"REAL-42\"", "Đưa nhân viên quét để lên tàu cả nhóm", "VNPay", "VNP-778")
-                .doesNotContain("wb-refund-banner");
+                .doesNotContain("wb-refund-banner")
+                .contains("Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn");
+        MockHttpSession loggedIn = new MockHttpSession();
+        loggedIn.setAttribute("loginAccount", account("CUSTOMER"));
+        assertThat(render("detail", model, get("/__test/views/detail").session(loggedIn)))
+                .doesNotContain("Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn");
+        assertThat(render("detail", fixture("PENDING"))).doesNotContain("Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn");
 
         model.put("refund", Map.of("status", "PENDING", "amount", new java.math.BigDecimal("42000")));
         model.put("tripCancelReason", "Nước lớn");
@@ -232,7 +239,7 @@ class CustomerViewTests {
     void paymentDetailAndHistoryRenderRealDataAndStatuses(String state) throws Exception {
         Map<String, Object> model = fixture(state);
         String payment = render("payment", model);
-        assertThat(payment).contains("action=\"/payment/REAL-42/mock\"", "method=\"post\"", "42.000 đ", "C7");
+        assertThat(payment).contains("action=\"/payment/REAL-42/vnpay\"", "method=\"post\"", "42.000 đ", "C7");
         assertThat(payment).containsPattern(state.equals("PENDING")
                 ? "<button[^>]*data-payment-submit(?![^>]*disabled)[^>]*>"
                 : "<button[^>]*data-payment-submit[^>]*disabled=\"disabled\"");

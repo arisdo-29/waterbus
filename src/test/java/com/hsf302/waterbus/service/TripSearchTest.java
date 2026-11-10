@@ -18,6 +18,7 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -135,9 +136,117 @@ class TripSearchTest {
         assertTrue(resultsPage.contains("Còn 2 ghế trống"));
     }
 
+    @Test
+    void showsSegmentTimesAndSortsByBoardingTime() throws Exception {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 33 WHERE route_id = ? AND station_id = ?",
+                routeId, middleStationId);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 60 WHERE route_id = ? AND station_id = ?",
+                routeId, lastStationId);
+        trip("TEST_SEARCH_SEGMENT", routeId, busId, date.atTime(18, 25), "SCHEDULED");
+
+        jdbc.update("INSERT INTO route (code, name, is_active) VALUES ('TEST_SEARCH_R3', 'Short route', 1)");
+        int shortRouteId = id("route", "code", "TEST_SEARCH_R3");
+        stop(shortRouteId, middleStationId, 1, 0);
+        stop(shortRouteId, lastStationId, 2, 20);
+        trip("TEST_SEARCH_EARLIER", shortRouteId, busId, date.atTime(18, 50), "SCHEDULED");
+
+        List<TripSearchDTO> results = tripService.searchTripResults(middleStationId, lastStationId, date);
+        assertEquals(List.of("TEST_SEARCH_T1", "TEST_SEARCH_T2", "TEST_SEARCH_EARLIER", "TEST_SEARCH_SEGMENT"),
+                results.stream().map(TripSearchDTO::getTripCode).toList());
+        TripSearchDTO segment = results.get(3);
+        assertEquals(date.atTime(18, 58), segment.getDepartureTime());
+        assertEquals(date.atTime(19, 25), segment.getArrivalTime());
+
+        int tripId = id("trip", "trip_code", "TEST_SEARCH_SEGMENT");
+        var seatTrip = tripService.getBookableTrip(tripId, middleStationId, lastStationId);
+        assertEquals(segment.getDepartureTime(), seatTrip.getDepartureTime());
+        assertEquals(segment.getArrivalTime(), seatTrip.getArrivalTime());
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String seatsPage = mvc.perform(get("/trips/" + tripId + "/seats")
+                        .param("fromStationId", String.valueOf(middleStationId))
+                        .param("toStationId", String.valueOf(lastStationId)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(seatsPage.contains("18:58"));
+        assertTrue(seatsPage.contains("19:25"));
+    }
+
+    @Test
+    void usesBoardingDateAcrossMidnightAndKeepsFutureIntermediateStop() {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 33 WHERE route_id = ? AND station_id = ?",
+                routeId, middleStationId);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 60 WHERE route_id = ? AND station_id = ?",
+                routeId, lastStationId);
+        trip("TEST_SEARCH_MIDNIGHT", routeId, busId, date.minusDays(1).atTime(23, 40), "SCHEDULED");
+
+        List<TripSearchDTO> results = tripService.searchTripResults(middleStationId, lastStationId, date);
+        TripSearchDTO midnight = results.stream()
+                .filter(result -> "TEST_SEARCH_MIDNIGHT".equals(result.getTripCode())).findFirst().orElseThrow();
+        assertEquals(date.atTime(0, 13), midnight.getDepartureTime());
+        assertEquals(date.atTime(0, 40), midnight.getArrivalTime());
+
+        LocalDateTime routeDeparture = LocalDateTime.now().minusMinutes(5);
+        trip("TEST_BOARD_FUTURE", routeId, busId, routeDeparture, "SCHEDULED");
+        LocalDate boardingDate = routeDeparture.plusMinutes(33).toLocalDate();
+        assertTrue(tripService.searchTripResults(middleStationId, lastStationId, boardingDate).stream()
+                .anyMatch(result -> "TEST_BOARD_FUTURE".equals(result.getTripCode())));
+        assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_BOARD_FUTURE"),
+                middleStationId, lastStationId) != null);
+    }
+
+    @Test
+    void stopsOnlineSalesTenMinutesBeforeBoardingAtSelectedStop() throws Exception {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 20 WHERE route_id = ? AND station_id = ?",
+                routeId, middleStationId);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 40 WHERE route_id = ? AND station_id = ?",
+                routeId, lastStationId);
+
+        LocalDateTime now = LocalDateTime.now();
+        trip("TEST_CUTOFF_FIRST", routeId, busId, now.plusMinutes(9), "SCHEDULED");
+        trip("TEST_OPEN_FIRST", routeId, busId, now.plusMinutes(12), "SCHEDULED");
+        trip("TEST_CUTOFF_MID", routeId, busId, now.minusMinutes(11), "SCHEDULED");
+        trip("TEST_OPEN_MID", routeId, busId, now.minusMinutes(8), "SCHEDULED");
+
+        List<String> firstStopCodes = tripService.searchTrips(firstStationId, lastStationId, now.toLocalDate())
+                .stream().map(Trip::getTripCode).toList();
+        assertFalse(firstStopCodes.contains("TEST_CUTOFF_FIRST"));
+        assertTrue(firstStopCodes.contains("TEST_OPEN_FIRST"));
+        assertNull(tripService.getBookableTrip(id("trip", "trip_code", "TEST_CUTOFF_FIRST")));
+        assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_OPEN_FIRST")) != null);
+
+        LocalDate boardingDate = now.minusMinutes(8).plusMinutes(20).toLocalDate();
+        List<String> middleStopCodes = tripService.searchTrips(middleStationId, lastStationId, boardingDate)
+                .stream().map(Trip::getTripCode).toList();
+        assertFalse(middleStopCodes.contains("TEST_CUTOFF_MID"));
+        assertTrue(middleStopCodes.contains("TEST_OPEN_MID"));
+        assertNull(tripService.getBookableTrip(id("trip", "trip_code", "TEST_CUTOFF_MID"),
+                middleStationId, lastStationId));
+        assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_OPEN_MID"),
+                middleStationId, lastStationId) != null);
+
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc.perform(get("/trips/" + id("trip", "trip_code", "TEST_CUTOFF_MID") + "/seats")
+                        .param("fromStationId", String.valueOf(middleStationId))
+                        .param("toStationId", String.valueOf(lastStationId)))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(get("/trips/" + id("trip", "trip_code", "TEST_OPEN_MID") + "/seats")
+                        .param("fromStationId", String.valueOf(middleStationId))
+                        .param("toStationId", String.valueOf(lastStationId)))
+                .andExpect(status().isOk());
+    }
+
     private void stop(int routeId, int stationId, int order) {
-        jdbc.update("INSERT INTO route_station (route_id, station_id, stop_order, minutes_from_start) VALUES (?, ?, ?, 0)",
-                routeId, stationId, order);
+        stop(routeId, stationId, order, 0);
+    }
+
+    private void stop(int routeId, int stationId, int order, int minutes) {
+        jdbc.update("INSERT INTO route_station (route_id, station_id, stop_order, minutes_from_start) VALUES (?, ?, ?, ?)",
+                routeId, stationId, order, minutes);
     }
 
     private void trip(String code, int routeId, int busId, LocalDateTime departure, String status) {

@@ -14,6 +14,7 @@
 #
 # --- BE2 Trí: Tàu, Ghế & Chuyến ---
 **/*Trip*                           @Nguyentri2531
+**/*Refund*                         @Nguyentri2531
 **/*Seat*                           @Nguyentri2531
 **/Waterbus.java                    @Nguyentri2531
 **/WaterbusRepository.java          @Nguyentri2531
@@ -25,6 +26,8 @@
 **/*Auth*                           @dwargon73-sketch
 **/*TicketType*                     @dwargon73-sketch
 **/*Promotion*                      @dwargon73-sketch
+**/TicketService*                  @dwargon73-sketch
+**/*Checkin*                       @dwargon73-sketch
 #
 # --- BE4 Trâm: Đặt vé & Thanh toán ---
 **/*Booking*                        @kopslngbtram2110
@@ -36,6 +39,7 @@
 /src/main/resources/static/                 @arisdo-29
 /src/main/resources/templates/trip/         @Nguyentri2531
 /src/main/resources/templates/admin/        @Nguyentri2531
+/src/main/resources/templates/account/      @Nguyentri2531
 /src/main/resources/static/css/admin.css    @Nguyentri2531
 /src/main/resources/templates/auth/         @dwargon73-sketch
 /src/main/resources/templates/admin/promotion/   @dwargon73-sketch

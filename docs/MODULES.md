@@ -5,8 +5,8 @@
 | Vai trò | Người | Backend | Giao diện (FE) |
 |---|---|---|---|
 | **BE1** | **Khuyên** | Tuyến & Bến: `Station*`, `Route*`, `RouteStation*` | **FE chính**: layout, trang chủ, checkout, thanh toán, xem vé |
-| **BE2** | **Trí** | Tàu, Ghế & Chuyến: `Waterbus*`, `Seat*`, `Trip*` | UI tìm chuyến, sơ đồ chọn ghế, mẫu trang admin |
-| **BE3** | **Tân** | Tài khoản, Loại vé & Khuyến mãi: `Account*`, `Auth*`, `TicketType*`, `Promotion*` | Trang đăng nhập/đăng ký, admin khuyến mãi |
+| **BE2** | **Trí** | Tàu, Ghế & Chuyến + Hoàn tiền: `Waterbus*`, `Seat*`, `Trip*`, `Refund*` | UI tìm chuyến, sơ đồ chọn ghế, mẫu trang admin, view hoàn tiền, view tài khoản cá nhân (`account/**`) |
+| **BE3** | **Tân** | Tài khoản, Loại vé & Khuyến mãi: `Account*`, `Auth*`, `TicketType*`, `Promotion*` | Trang đăng nhập/đăng ký, admin khuyến mãi và loại vé |
 | **BE4** | **Trâm** | Đặt vé & Thanh toán: `Booking*`, `Ticket*`, `Payment*` | Không (giao diện luồng đặt vé do Khuyên làm) |
 
 ## Ai sở hữu file nào
@@ -17,8 +17,10 @@ Một file chỉ một người sửa, nên không bao giờ conflict. Cột **F
 |---|---|
 | `templates/fragments/layout.html`, `static/css/app.css`, `static/js/**`, ảnh | Khuyên (BE1) |
 | `templates/index.html`, `templates/booking/**`, `templates/payment/**`, `templates/station/**`, `templates/route/**` | Khuyên (BE1) |
-| `templates/trip/**`, `templates/admin/**` (trừ các thư mục của Tân), `static/css/admin.css` | Trí (BE2) |
-| `templates/auth/**`, `templates/admin/promotion/**`, `templates/admin/tickettype/**`, `templates/admin/checkin/**`, `templates/admin/account/**` | Tân (BE3) |
+| `templates/trip/**`, `templates/account/**` (hồ sơ, đổi mật khẩu), `templates/admin/**` (trừ `admin/promotion/**`, `admin/tickettype/**`; gồm `admin/account/**`, `admin/checkin/**`, `admin/refund/**`), `static/css/admin.css` | Trí (BE2) |
+| `templates/auth/**`, `templates/admin/promotion/**`, `templates/admin/tickettype/**` | Tân (BE3) |
+| `Refund*` (`RefundService(Impl)`, `AdminRefundController`, `RefundAdminDTO`, `RefundRepository`) | Trí (BE2) |
+| `AccountController`, `AdminAccountController`, `AdminCheckinController`, `TicketService*` (soát vé) | Tân (BE3): backend; view của các trang này do Trí giữ |
 | Controller / Service / DTO / Repository của module | BE của module đó |
 | `pom.xml`, `application.properties`, `entity/*`, `database/*`, `.github/*` | Leader |
 

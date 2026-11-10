@@ -108,7 +108,7 @@
                                     <tr th:each="b : ${bookings}">
                                         <td><strong class="wb-mono text-primary" th:text="${b.bookingCode}">BK0000001</strong></td>
                                         <td class="small" th:text="${b.createdAt != null ? #temporals.format(b.createdAt, 'dd/MM/yyyy HH:mm') : '-'}">01/01/2026</td>
-                                        <td><strong th:text="${#numbers.formatDecimal(b.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">30.000 đ</strong></td>
+                                        <td><strong th:text="${#numbers.formatDecimal(b.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">30.000 đ</strong></td>
                                         <td>
                                             <span th:replace="~{fragments/layout :: statusBadge(${b.status})}">Đã thanh toán</span>
                                         </td>

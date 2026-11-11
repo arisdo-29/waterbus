@@ -2,7 +2,6 @@ package com.hsf302.waterbus.controller;
 
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.VnPayResult;
-import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.VnPayService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,7 +51,8 @@ public class PaymentController {
     @PostMapping("/{bookingCode}/vnpay")
     public String payVnPay(@PathVariable String bookingCode, @RequestParam(required = false) String bankCode,
                            HttpServletRequest request, RedirectAttributes flash) {
-        Booking booking = bookingService.getBookingByCode(bookingCode);
+        // Lấy DTO của đơn (không lấy entity): controller chỉ cần biết đơn có tồn tại không và mã đơn
+        BookingDTO booking = bookingService.getBookingDetail(bookingCode);
         if (booking == null) {
             // Sai mã đơn -> không có trang thanh toán để quay về -> về trang chủ
             flash.addFlashAttribute("errorMessage", "Không tìm thấy đơn đặt vé có mã " + bookingCode + ".");

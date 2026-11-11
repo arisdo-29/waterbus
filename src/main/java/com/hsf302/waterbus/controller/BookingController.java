@@ -3,7 +3,7 @@ package com.hsf302.waterbus.controller;
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.BookingForm;
-import com.hsf302.waterbus.entity.Seat;
+import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PaymentService;
 import com.hsf302.waterbus.service.RefundService;
@@ -157,6 +157,9 @@ public class BookingController {
         model.addAttribute("booking", booking);
         model.addAttribute("trip", bookingService.getTripOfBooking(booking.getId()));
         model.addAttribute("tickets", bookingService.getTicketsOfBooking(booking.getId()));
+        // TODO chờ B6: RefundService (module Trí) đang trả entity Refund -> view vẫn nhận entity.
+        // Khi Trí có DTO hoàn tiền (status, amount, refundedAt, transactionRef) thì đổi sang DTO đó;
+        // giữ tên attribute "refund" vì template booking/detail đang đọc refund.status/amount/refundedAt/transactionRef.
         model.addAttribute("refund", refundService.getRefundOfBooking(booking.getId()));
         model.addAttribute("tripCancelReason", bookingService.getTripCancelReason(booking.getId()));
         // payment: PaymentInfoDTO (method, transactionRef) hoặc null nếu đơn chưa có payment
@@ -191,7 +194,7 @@ public class BookingController {
     // Đưa đủ dữ liệu cho trang booking/checkout (tên attribute theo docs/PAGES.md). Dùng chung cho checkout() và create().
     private void fillCheckoutModel(Model model, int tripId, List<Integer> seatIds, int ticketTypeId,
                                    int fromStationId, int toStationId) {
-        List<Seat> seats = bookingService.getSelectedSeats(tripId, seatIds);
+        List<SeatDTO> seats = bookingService.getSelectedSeats(tripId, seatIds); // DTO, controller không nhận entity Seat
         model.addAttribute("trip", bookingService.getTripInfo(tripId, fromStationId, toStationId));
         model.addAttribute("seats", seats);
         model.addAttribute("ticketType", ticketTypeService.getTicketTypeById(ticketTypeId));

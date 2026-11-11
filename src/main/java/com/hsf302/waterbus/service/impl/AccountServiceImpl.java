@@ -106,6 +106,10 @@ public class AccountServiceImpl implements AccountService {
             throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác");
         }
 
+        if (passwordEncoder.matches(newPassword, account.getPasswordHash())) {
+            throw new IllegalArgumentException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+        }
+
         account.setPasswordHash(passwordEncoder.encode(newPassword));
         accountRepository.save(account);
     }

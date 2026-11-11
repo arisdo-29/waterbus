@@ -38,7 +38,7 @@
 
                         <div class="wb-form-row">
                             <label for="phone">Số điện thoại</label>
-                            <input type="tel" id="phone" class="form-control" th:field="*{phone}" placeholder="0901234567" maxlength="20" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
+                            <input type="tel" id="phone" class="form-control" th:field="*{phone}" placeholder="0901234567" pattern="0[0-9]{9}" maxlength="10" inputmode="numeric" title="Nhập 10 chữ số, bắt đầu bằng 0" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
                             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Số điện thoại không hợp lệ</div>
                         </div>
 

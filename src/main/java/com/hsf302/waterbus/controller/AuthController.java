@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -27,9 +28,19 @@ public class AuthController {
     }
 
     @GetMapping("/login")
-    public String showLoginForm(Model model, HttpSession session) {
+    public String showLoginForm(@RequestParam(name = "redirect", required = false) String redirect,
+                                Model model,
+                                HttpSession session) {
+        if (redirect != null && !redirect.isBlank() && redirect.startsWith("/") && !redirect.startsWith("//") && !redirect.contains("\\")) {
+            session.setAttribute("redirectAfterLogin", redirect);
+        }
+
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         if (loginAccount != null) {
+            String target = getSafeRedirectUrl(session, loginAccount);
+            if (target != null) {
+                return "redirect:" + target;
+            }
             if ("STAFF".equalsIgnoreCase(loginAccount.getRole())) {
                 return "redirect:/admin/checkin";
             }
@@ -62,6 +73,11 @@ public class AuthController {
         AccountDTO accountDTO = AccountDTO.fromEntity(account);
         session.setAttribute("loginAccount", accountDTO);
 
+        String target = getSafeRedirectUrl(session, accountDTO);
+        if (target != null) {
+            return "redirect:" + target;
+        }
+
         if ("STAFF".equalsIgnoreCase(accountDTO.getRole())) {
             return "redirect:/admin/checkin";
         }
@@ -69,6 +85,30 @@ public class AuthController {
             return "redirect:/admin/trips";
         }
         return "redirect:/";
+    }
+
+    private String getSafeRedirectUrl(HttpSession session, AccountDTO account) {
+        String redirectUrl = (String) session.getAttribute("redirectAfterLogin");
+        if (redirectUrl == null || redirectUrl.isBlank()) {
+            return null;
+        }
+        session.removeAttribute("redirectAfterLogin");
+
+        if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//") || redirectUrl.contains("\\")) {
+            return null;
+        }
+
+        if (redirectUrl.startsWith("/admin")) {
+            if ("CUSTOMER".equalsIgnoreCase(account.getRole())) {
+                return "/";
+            }
+            if ("STAFF".equalsIgnoreCase(account.getRole())) {
+                if (!redirectUrl.startsWith("/admin/checkin") && !redirectUrl.startsWith("/admin/trips")) {
+                    return "/admin/checkin";
+                }
+            }
+        }
+        return redirectUrl;
     }
 
     @GetMapping("/register")

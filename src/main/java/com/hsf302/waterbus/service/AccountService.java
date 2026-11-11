@@ -7,6 +7,9 @@ import org.springframework.data.domain.Page;
 
 // Module: BE3 - Tài khoản, Loại vé & Khuyến mãi
 public interface AccountService {
+    /** ID của tài khoản Super Admin quản trị cao nhất hệ thống. */
+    int SUPER_ADMIN_ID = 0;
+
     /** Trả về AccountDTO nếu đúng email + mật khẩu (so bằng BCrypt), sai hoặc bị khoá thì trả null. */
     AccountDTO login(String email, String rawPassword);
 

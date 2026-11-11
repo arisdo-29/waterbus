@@ -189,14 +189,19 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public AccountDTO changeRole(int targetAccountId, String newRole, int currentAdminId) {
+        if (targetAccountId == SUPER_ADMIN_ID) {
+            throw new IllegalArgumentException("Không thể thay đổi vai trò của tài khoản Super Admin!");
+        }
+
         if (targetAccountId == currentAdminId) {
             throw new IllegalArgumentException("Bạn không thể tự thay đổi vai trò của chính mình!");
         }
 
         Account target = requireAccount(targetAccountId);
 
-        if ("ADMIN".equalsIgnoreCase(target.getRole())) {
-            throw new IllegalArgumentException("Không thể thay đổi vai trò của tài khoản Quản trị viên tối cao!");
+        // Chỉ Super Admin (id = 0) mới có quyền đổi vai trò của một tài khoản ADMIN khác
+        if ("ADMIN".equalsIgnoreCase(target.getRole()) && currentAdminId != SUPER_ADMIN_ID) {
+            throw new IllegalArgumentException("Không thể thay đổi vai trò của tài khoản Quản trị viên!");
         }
 
         if ("ADMIN".equalsIgnoreCase(newRole)) {
@@ -216,14 +221,19 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public AccountDTO toggleStatus(int targetAccountId, int currentAdminId) {
+        if (targetAccountId == SUPER_ADMIN_ID) {
+            throw new IllegalArgumentException("Không thể khóa hoặc mở khóa tài khoản Super Admin!");
+        }
+
         if (targetAccountId == currentAdminId) {
             throw new IllegalArgumentException("Bạn không thể tự khóa tài khoản của chính mình!");
         }
 
         Account target = requireAccount(targetAccountId);
 
-        if ("ADMIN".equalsIgnoreCase(target.getRole())) {
-            throw new IllegalArgumentException("Không thể khóa tài khoản Quản trị viên tối cao!");
+        // Chỉ Super Admin (id = 0) mới có quyền khóa hoặc mở khóa tài khoản ADMIN khác
+        if ("ADMIN".equalsIgnoreCase(target.getRole()) && currentAdminId != SUPER_ADMIN_ID) {
+            throw new IllegalArgumentException("Không thể khóa tài khoản Quản trị viên!");
         }
 
         String nextStatus = "ACTIVE".equalsIgnoreCase(target.getStatus()) ? "LOCKED" : "ACTIVE";
@@ -236,6 +246,10 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public void resetPassword(int targetAccountId, String newPassword) {
+        if (targetAccountId == SUPER_ADMIN_ID) {
+            throw new IllegalArgumentException("Không thể đặt lại mật khẩu cho tài khoản Super Admin!");
+        }
+
         if (newPassword == null || newPassword.trim().length() < 6) {
             throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 6 ký tự.");
         }

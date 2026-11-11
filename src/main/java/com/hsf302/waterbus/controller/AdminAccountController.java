@@ -12,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -79,6 +80,11 @@ public class AdminAccountController {
 
     @GetMapping("/{id}")
     public String viewDetail(@PathVariable int id, Model model, RedirectAttributes redirectAttributes) {
+        if (id == AccountService.SUPER_ADMIN_ID) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy tài khoản có mã ID: 0");
+            return "redirect:/admin/accounts";
+        }
+
         AccountDTO account = accountService.getAccountById(id);
         if (account == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy tài khoản có mã ID: " + id);
@@ -89,6 +95,12 @@ public class AdminAccountController {
         model.addAttribute("account", account);
         model.addAttribute("bookings", bookings);
         return "admin/account/detail";
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleTypeMismatch(RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", "Đường dẫn không hợp lệ hoặc tham số sai định dạng.");
+        return "redirect:/admin/accounts";
     }
 
     @PostMapping("/{id}/change-role")

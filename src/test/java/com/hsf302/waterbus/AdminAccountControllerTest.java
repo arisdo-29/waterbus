@@ -215,4 +215,24 @@ class AdminAccountControllerTest {
                 .andExpect(view().name("admin/account/detail"))
                 .andExpect(model().attributeExists("account", "bookings"));
     }
+
+    @Test
+    @DisplayName("Gõ URL xem chi tiết Super Admin ID 0 -> báo không tìm thấy và chuyển hướng")
+    void testViewDetail_SuperAdminId0_RedirectsWithError() throws Exception {
+        mvc.perform(get("/admin/accounts/0")
+                        .sessionAttr("loginAccount", adminDTO))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/accounts"))
+                .andExpect(flash().attribute("errorMessage", "Không tìm thấy tài khoản có mã ID: 0"));
+    }
+
+    @Test
+    @DisplayName("Gõ URL xem chi tiết với ID sai định dạng -> chuyển hướng và báo lỗi thân thiện")
+    void testViewDetail_InvalidIdFormat_RedirectsWithError() throws Exception {
+        mvc.perform(get("/admin/accounts/abc")
+                        .sessionAttr("loginAccount", adminDTO))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/accounts"))
+                .andExpect(flash().attributeExists("errorMessage"));
+    }
 }

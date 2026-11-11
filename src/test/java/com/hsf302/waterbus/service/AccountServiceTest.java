@@ -422,4 +422,52 @@ class AccountServiceTest {
         UpdateProfileRequest profileInvalid = new UpdateProfileRequest("Test", "091234");
         assertFalse(validator.validate(profileInvalid).isEmpty());
     }
+
+    @Test
+    void testSuperAdmin_CannotBeModified_ThrowsException() {
+        // 1. Thao tác changeRole trên SUPER_ADMIN_ID (id = 0) bị từ chối
+        IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class, () ->
+                accountService.changeRole(AccountService.SUPER_ADMIN_ID, "STAFF", 1)
+        );
+        assertTrue(ex1.getMessage().contains("Super Admin"));
+
+        // 2. Thao tác toggleStatus trên SUPER_ADMIN_ID bị từ chối
+        IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class, () ->
+                accountService.toggleStatus(AccountService.SUPER_ADMIN_ID, 1)
+        );
+        assertTrue(ex2.getMessage().contains("Super Admin"));
+
+        // 3. Thao tác resetPassword trên SUPER_ADMIN_ID bị từ chối
+        IllegalArgumentException ex3 = assertThrows(IllegalArgumentException.class, () ->
+                accountService.resetPassword(AccountService.SUPER_ADMIN_ID, "Password123")
+        );
+        assertTrue(ex3.getMessage().contains("Super Admin"));
+    }
+
+    @Test
+    void testSuperAdmin_CanManageOtherAdminAccounts() {
+        Account otherAdmin = new Account();
+        otherAdmin.setId(2);
+        otherAdmin.setEmail("admin2@waterbus.vn");
+        otherAdmin.setRole("ADMIN");
+        otherAdmin.setStatus("LOCKED");
+
+        when(accountRepository.findById(2)).thenReturn(Optional.of(otherAdmin));
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
+
+        // 1. Admin thường (id = 1) không thể mở khóa hoặc khóa tài khoản Admin khác (id = 2)
+        assertThrows(IllegalArgumentException.class, () ->
+                accountService.toggleStatus(2, 1)
+        );
+
+        // 2. Super Admin (id = 0) CÓ THỂ mở khóa tài khoản Admin khác (cứu khi admin bị khóa)
+        AccountDTO unlocked = accountService.toggleStatus(2, AccountService.SUPER_ADMIN_ID);
+        assertNotNull(unlocked);
+        assertEquals("ACTIVE", unlocked.getStatus());
+
+        // 3. Super Admin (id = 0) CÓ THỂ đổi role tài khoản Admin khác sang STAFF
+        AccountDTO roleChanged = accountService.changeRole(2, "STAFF", AccountService.SUPER_ADMIN_ID);
+        assertNotNull(roleChanged);
+        assertEquals("STAFF", roleChanged.getRole());
+    }
 }

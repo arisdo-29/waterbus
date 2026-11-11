@@ -17,7 +17,8 @@ public interface AccountRepository extends JpaRepository<Account, Integer> {
 
     @Query("""
         SELECT a FROM Account a
-        WHERE (:keyword IS NULL OR :keyword = ''
+        WHERE a.id <> 0
+          AND (:keyword IS NULL OR :keyword = ''
                OR LOWER(a.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(a.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(a.phone) LIKE LOWER(CONCAT('%', :keyword, '%')))

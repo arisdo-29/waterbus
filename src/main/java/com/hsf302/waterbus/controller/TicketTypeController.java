@@ -7,6 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -61,6 +62,12 @@ public class TicketTypeController {
     public String delete(@PathVariable("id") int id, RedirectAttributes redirectAttributes) {
         ticketTypeService.deleteTicketType(id);
         redirectAttributes.addFlashAttribute("successMessage", "Đã xóa (ẩn) loại vé thành công!");
+        return "redirect:/admin/ticket-types";
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleTypeMismatch(RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", "Đường dẫn loại vé không hợp lệ.");
         return "redirect:/admin/ticket-types";
     }
 }

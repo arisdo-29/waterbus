@@ -214,7 +214,7 @@ public class BookingServiceImpl implements BookingService {
             throw ex;
         }
 
-        // 9. Đơn 0 đ đã coi như thanh toán xong -> có dùng mã KM thì tăng lượt dùng (giống payMock)
+        // 9. Đơn 0 đ đã coi như thanh toán xong -> có dùng mã KM thì tăng lượt dùng (giống confirmPaid)
         if (isFree && promotion != null) {
             promotionService.increaseUsedCount(promotion.getCode());
         }

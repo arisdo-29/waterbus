@@ -34,15 +34,6 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional
-    public Payment payMock(int bookingId) {
-        // Thanh toán giả lập: không gọi cổng thật, mã giao dịch tự đặt là MOCK-<mã đơn>
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt vé."));
-        return confirmPaid(bookingId, "MOCK", "MOCK-" + booking.getBookingCode());
-    }
-
-    @Override
     @Transactional(readOnly = true) // chỉ đọc; vẫn cần transaction để đọc được chuyến (quan hệ LAZY) của vé
     public String getCannotPayReason(int bookingId) {
         Booking booking = bookingRepository.findById(bookingId).orElse(null);

@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Ticket;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -31,6 +32,20 @@ public class TicketDTO implements Serializable {
         this.passengerName = passengerName;
         this.birthYear = birthYear;
         this.requiresVerification = requiresVerification;
+    }
+
+    // Entity Ticket -> DTO: chỉ chép field. displayStatus là NGHIỆP VỤ nên BookingService tính rồi truyền vào
+    // (VD vé HOLD của đơn đã quá hạn giữ chỗ -> "CANCELLED" dù DB chưa đổi).
+    public static TicketDTO fromEntity(Ticket t, String displayStatus) {
+        if (t == null) {
+            return null;
+        }
+        // Lấy mã ghế và TÊN bến từ các entity liên quan
+        // requiresVerification lấy từ loại vé của chính vé này (cột kiểu Boolean nên so với TRUE để tránh null)
+        boolean requiresVerification = Boolean.TRUE.equals(t.getTicketType().getRequiresVerification());
+        return new TicketDTO(t.getTicketCode(), t.getSeat().getSeatCode(), t.getFromStation().getName(),
+                t.getToStation().getName(), t.getPrice(), displayStatus,
+                t.getPassengerName(), t.getBirthYear(), requiresVerification);
     }
 
     public String getTicketCode() {

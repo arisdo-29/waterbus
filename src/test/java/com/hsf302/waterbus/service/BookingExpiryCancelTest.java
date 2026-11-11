@@ -71,7 +71,7 @@ class BookingExpiryCancelTest {
         Booking overdue = book(List.of(seats.get(0), seats.get(1)), null);  // quá hạn -> phải bị huỷ
         Booking stillHeld = book(List.of(seats.get(2)), null);             // còn hạn -> giữ nguyên
         Booking paid = book(List.of(seats.get(3)), null);                  // đã trả tiền -> giữ nguyên
-        paymentService.payMock(paid.getId());
+        paymentService.confirmPaid(paid.getId(), "VNPAY", "14123456"); // trả tiền qua VNPay
         overdue.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         paid.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 

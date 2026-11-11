@@ -52,14 +52,16 @@ public class VnPayServiceImpl implements VnPayService {
 
     @Override
     public String createPaymentUrl(String bookingCode, String clientIp, String bankCode) {
+        // Máy chưa điền khoá VNPay (VD máy bạn cùng nhóm) -> báo lỗi dễ hiểu. Phải giữ kiểm tra này:
+        // thiếu khoá thì bước ký dữ liệu bên dưới bị NullPointerException và khách thấy trang lỗi 500
         if (!config.isConfigured()) {
-            throw new IllegalArgumentException("VNPay chưa được cấu hình trên máy chủ. Vui lòng chọn Thanh toán mô phỏng.");
+            throw new IllegalArgumentException("Hiện chưa thanh toán được qua VNPay. Vui lòng thử lại sau hoặc liên hệ nhân viên.");
         }
         Booking booking = bookingService.getBookingByCode(bookingCode);
         if (booking == null) {
             throw new IllegalArgumentException("Không tìm thấy đơn đặt vé.");
         }
-        // Dùng chung luật với payMock: đơn PENDING, còn hạn, chuyến còn SCHEDULED, mã KM còn lượt.
+        // Luật chung của getCannotPayReason: đơn PENDING, còn hạn, chuyến còn SCHEDULED, mã KM còn lượt.
         // Chặn ở đây để khách không bị đưa sang VNPay trả tiền cho một đơn chắc chắn không ghi nhận được.
         String reason = paymentService.getCannotPayReason(booking.getId());
         if (reason != null) {
@@ -150,7 +152,7 @@ public class VnPayServiceImpl implements VnPayService {
             return recordPaidButInvalid(booking, transactionNo);
         }
 
-        // 7. Mọi thứ hợp lệ -> ghi nhận giống payMock: payment SUCCESS, đơn PAID, vé VALID
+        // 7. Mọi thứ hợp lệ -> confirmPaid ghi nhận: payment SUCCESS, đơn PAID, vé VALID
         try {
             paymentService.confirmPaid(booking.getId(), "VNPAY", transactionNo);
             return new VnPayResult(bookingCode, true, "Thanh toán VNPay thành công! Vé của bạn đã sẵn sàng.");

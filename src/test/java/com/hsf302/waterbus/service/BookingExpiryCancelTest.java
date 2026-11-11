@@ -1,10 +1,12 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.job.BookingExpiryJob;
 import jakarta.persistence.EntityManager;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -136,6 +139,36 @@ class BookingExpiryCancelTest {
                 .andExpect(flash().attribute("successMessage", "Đã huỷ đơn."));
         entityManager.flush();
         assertThat(status(ofLan)).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void overdueBookingShowsAsExpiredBeforeJobRuns() throws Exception {
+        int lanId = account("lan@example.com");
+        AccountDTO lan = new AccountDTO(lanId, "lan@example.com", "Test", "0900000000", "CUSTOMER", "ACTIVE");
+        Booking overdue = book(List.of(seats.get(0)), lanId);
+        overdue.setExpiresAt(LocalDateTime.now().minusMinutes(1)); // đã quá hạn giữ chỗ, nhưng job CHƯA chạy
+
+        // Dữ liệu đưa ra view: đơn "EXPIRED", vé "CANCELLED" (đúng như job sẽ làm)
+        assertThat(bookingService.getBookingDetail(overdue.getBookingCode()).getStatus()).isEqualTo("EXPIRED");
+        assertThat(bookingService.getTicketsOfBooking(overdue.getId())).extracting(TicketDTO::getStatus)
+                .containsExactly("CANCELLED");
+
+        // Trang xem vé và "Vé của tôi" hiện là hết hạn, không còn mời thanh toán
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        assertThat(page(mvc, "/booking/" + overdue.getBookingCode(), lan))
+                .contains("Đơn đã hết hạn").doesNotContain("Vui lòng hoàn tất thanh toán để giữ chỗ.");
+        assertThat(page(mvc, "/my-bookings", lan)).contains("Hết hạn giữ chỗ").doesNotContain("Chờ thanh toán");
+
+        // DB vẫn PENDING / HOLD: chỉ đổi chữ hiển thị, việc ghi DB + nhả ghế vẫn để job làm
+        entityManager.flush();
+        assertThat(status(overdue)).isEqualTo("PENDING");
+        assertThat(ticketStatuses(overdue)).containsExactly("HOLD");
+    }
+
+    // Mở trang bằng tài khoản đã đăng nhập, trả về HTML
+    private String page(MockMvc mvc, String url, AccountDTO account) throws Exception {
+        return mvc.perform(get(url).sessionAttr("loginAccount", account))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 
     private Booking book(List<Integer> seatIds, Integer accountId) {

@@ -14,6 +14,15 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
 
     boolean existsByTripCode(String tripCode);
 
+    @Query("""
+            SELECT COUNT(t) FROM Trip t
+            WHERE t.waterbus.id = :waterbusId AND t.status = 'SCHEDULED'
+              AND t.departureTime < :arrivalTime AND t.arrivalTime > :departureTime
+            """)
+    long countScheduledOverlaps(@Param("waterbusId") int waterbusId,
+                                @Param("departureTime") LocalDateTime departureTime,
+                                @Param("arrivalTime") LocalDateTime arrivalTime);
+
     @Query("SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus "
             + "WHERE t.departureTime >= :start AND t.departureTime < :end ORDER BY t.departureTime, t.id")
     List<Trip> findDepartingBetween(@Param("start") LocalDateTime start,

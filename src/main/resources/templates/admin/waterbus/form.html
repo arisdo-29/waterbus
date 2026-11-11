@@ -31,14 +31,13 @@
         <main class="wb-main wb-admin-content">
             <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
             <header class="wb-admin-head">
-                <div><span class="wb-eyebrow">Quản trị</span><h1 th:text="${waterbus?.id == null} ? 'Thêm tàu' : 'Sửa tàu'">Thêm tàu</h1><p>Những mục có dấu * là bắt buộc.</p></div>
+                <div><span class="wb-eyebrow">Quản trị</span><h1>Thêm tàu</h1><p>Những mục có dấu * là bắt buộc.</p></div>
                 <a class="btn btn-wb-outline" href="/templates/admin/waterbus/list.html" th:href="@{/admin/waterbuses}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Danh sách</a>
             </header>
             <div class="wb-admin-form-layout">
                 <section class="wb-admin-form-card">
                     <h2 class="wb-admin-form-title">Thông tin tàu</h2>
                     <form action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/save}" th:object="${waterbus}" method="post" data-confirm="Lưu thông tin tàu với các giá trị đã nhập?">
-                        <input type="hidden" th:field="*{id}">
                         <div class="wb-admin-form-row">
                             <label for="code">Mã tàu <span class="wb-admin-required" aria-hidden="true">*</span></label>
                             <input class="form-control" id="code" th:field="*{code}" type="text" required maxlength="20">

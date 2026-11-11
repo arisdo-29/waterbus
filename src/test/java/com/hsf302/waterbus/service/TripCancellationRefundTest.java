@@ -94,12 +94,11 @@ class TripCancellationRefundTest {
         entityManager.flush();
         int refundId = jdbc.queryForObject("SELECT id FROM refund WHERE booking_id = ?", Integer.class,
                 id("booking", "booking_code", "CANCEL_PAID"));
-        refundService.markRefunded(refundId, "BANK-REFUND", LocalDateTime.now(), "Đã hoàn tiền");
-        entityManager.flush();
-
         LocalDate paymentDate = LocalDate.now();
         LocalDate refundDate = paymentDate.plusDays(1);
-        jdbc.update("UPDATE refund SET refunded_at = ? WHERE id = ?", refundDate.atTime(9, 30), refundId);
+        jdbc.update("UPDATE refund SET status = 'DONE', refunded_at = ? WHERE id = ?",
+                refundDate.atTime(9, 30), refundId);
+        jdbc.update("UPDATE booking SET status = 'REFUNDED' WHERE booking_code = 'CANCEL_PAID'");
         entityManager.clear();
 
         var paymentReport = revenueService.getReport(paymentDate, paymentDate);

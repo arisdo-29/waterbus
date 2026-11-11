@@ -14,7 +14,8 @@ import com.hsf302.waterbus.entity.TicketType;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
-import com.hsf302.waterbus.repository.RefundRepository;
+import com.hsf302.waterbus.entity.Refund;
+import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.AccountService;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PromotionService;
@@ -40,7 +41,7 @@ public class BookingServiceImpl implements BookingService {
     private final TicketRepository ticketRepository;
     // Module khác: chỉ gọi qua Service, không gọi Repository của họ
     private final TripService tripService;
-    private final RefundRepository refundRepository;
+    private final RefundService refundService; // module khác: trạng thái hoàn tiền khi chuyến bị huỷ
     private final RouteService routeService;
     private final TicketTypeService ticketTypeService;
     private final PromotionService promotionService;
@@ -48,13 +49,13 @@ public class BookingServiceImpl implements BookingService {
 
     // Constructor injection: Spring tự đưa các repository/service vào
     public BookingServiceImpl(BookingRepository bookingRepository, TicketRepository ticketRepository,
-                              TripService tripService, RouteService routeService, RefundRepository refundRepository,
+                              TripService tripService, RouteService routeService, RefundService refundService,
                               TicketTypeService ticketTypeService, PromotionService promotionService,
                               AccountService accountService) {
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
         this.tripService = tripService;
-        this.refundRepository = refundRepository;
+        this.refundService = refundService;
         this.routeService = routeService;
         this.ticketTypeService = ticketTypeService;
         this.promotionService = promotionService;
@@ -443,8 +444,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingDTO toDTO(Booking b) {
-        String refundStatus = refundRepository.findByBookingId(b.getId())
-                .map(refund -> refund.getStatus()).orElse(null);
+        // Trạng thái hoàn tiền (PENDING = chờ hoàn, DONE = đã hoàn) để trang "Vé của tôi" hiện nhãn đúng.
+        // Refund là module khác -> hỏi qua RefundService, không gọi thẳng RefundRepository
+        String refundStatus = null; // chuyến không bị huỷ thì đơn không có khoản hoàn nào
+        Refund refund = refundService.getRefundOfBooking(b.getId());
+        if (refund != null) {
+            refundStatus = refund.getStatus();
+        }
         return new BookingDTO(b.getId(), b.getBookingCode(), b.getStatus(), b.getContactName(),
                 b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
                 b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);

@@ -124,7 +124,7 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentInfoDTO getPaymentOfBooking(int bookingId) {
         // Có payment -> đổi sang DTO nhỏ (chỉ method + transactionRef). Không có -> null (đơn chưa trả / đơn 0 đ)
         return paymentRepository.findByBookingId(bookingId)
-                .map(payment -> new PaymentInfoDTO(payment.getMethod(), payment.getTransactionRef()))
+                .map(PaymentInfoDTO::fromEntity) // đổi Entity -> DTO do chính DTO lo
                 .orElse(null);
     }
 }

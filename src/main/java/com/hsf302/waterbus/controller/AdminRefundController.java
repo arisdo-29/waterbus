@@ -1,15 +1,15 @@
 package com.hsf302.waterbus.controller;
 
+import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.service.RefundService;
-import java.time.LocalDateTime;
 import org.springframework.stereotype.Controller;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -36,12 +36,12 @@ public class AdminRefundController {
     }
 
     @PostMapping("/{id}/complete")
-    public String complete(@PathVariable int id, @RequestParam String transactionRef,
-                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime refundedAt,
-                           @RequestParam(required = false) String note, RedirectAttributes flash) {
+    public String complete(@PathVariable int id,
+                           @SessionAttribute(name = "loginAccount", required = false) AccountDTO admin,
+                           RedirectAttributes flash) {
         try {
-            refundService.markRefunded(id, transactionRef, refundedAt, note);
-            flash.addFlashAttribute("successMessage", "Đã ghi nhận hoàn tiền.");
+            refundService.markRefunded(id, admin);
+            flash.addFlashAttribute("successMessage", "Đã xác nhận hoàn tiền.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }

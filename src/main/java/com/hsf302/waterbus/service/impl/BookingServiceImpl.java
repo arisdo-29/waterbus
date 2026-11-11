@@ -14,7 +14,8 @@ import com.hsf302.waterbus.entity.TicketType;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
-import com.hsf302.waterbus.repository.RefundRepository;
+import com.hsf302.waterbus.entity.Refund;
+import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.AccountService;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PromotionService;
@@ -40,7 +41,7 @@ public class BookingServiceImpl implements BookingService {
     private final TicketRepository ticketRepository;
     // Module khác: chỉ gọi qua Service, không gọi Repository của họ
     private final TripService tripService;
-    private final RefundRepository refundRepository;
+    private final RefundService refundService; // module khác: trạng thái hoàn tiền khi chuyến bị huỷ
     private final RouteService routeService;
     private final TicketTypeService ticketTypeService;
     private final PromotionService promotionService;
@@ -48,13 +49,13 @@ public class BookingServiceImpl implements BookingService {
 
     // Constructor injection: Spring tự đưa các repository/service vào
     public BookingServiceImpl(BookingRepository bookingRepository, TicketRepository ticketRepository,
-                              TripService tripService, RouteService routeService, RefundRepository refundRepository,
+                              TripService tripService, RouteService routeService, RefundService refundService,
                               TicketTypeService ticketTypeService, PromotionService promotionService,
                               AccountService accountService) {
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
         this.tripService = tripService;
-        this.refundRepository = refundRepository;
+        this.refundService = refundService;
         this.routeService = routeService;
         this.ticketTypeService = ticketTypeService;
         this.promotionService = promotionService;
@@ -214,7 +215,7 @@ public class BookingServiceImpl implements BookingService {
             throw ex;
         }
 
-        // 9. Đơn 0 đ đã coi như thanh toán xong -> có dùng mã KM thì tăng lượt dùng (giống payMock)
+        // 9. Đơn 0 đ đã coi như thanh toán xong -> có dùng mã KM thì tăng lượt dùng (giống confirmPaid)
         if (isFree && promotion != null) {
             promotionService.increaseUsedCount(promotion.getCode());
         }
@@ -443,19 +444,45 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingDTO toDTO(Booking b) {
-        String refundStatus = refundRepository.findByBookingId(b.getId())
-                .map(refund -> refund.getStatus()).orElse(null);
-        return new BookingDTO(b.getId(), b.getBookingCode(), b.getStatus(), b.getContactName(),
+        // Trạng thái hoàn tiền (PENDING = chờ hoàn, DONE = đã hoàn) để trang "Vé của tôi" hiện nhãn đúng.
+        // Refund là module khác -> hỏi qua RefundService, không gọi thẳng RefundRepository
+        String refundStatus = null; // chuyến không bị huỷ thì đơn không có khoản hoàn nào
+        Refund refund = refundService.getRefundOfBooking(b.getId());
+        if (refund != null) {
+            refundStatus = refund.getStatus();
+        }
+        // Đơn đã quá hạn giữ chỗ nhưng job chưa kịp đổi trong DB -> hiển thị luôn là hết hạn
+        String status = b.getStatus();
+        if (isHoldExpired(b)) {
+            status = "EXPIRED";
+        }
+        return new BookingDTO(b.getId(), b.getBookingCode(), status, b.getContactName(),
                 b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
                 b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);
+    }
+
+    // Đơn còn PENDING trong DB mà đã quá giờ giữ chỗ. BookingExpiryJob chạy 1 phút/lần mới đổi đơn sang
+    // EXPIRED (và nhả ghế), nên trong lúc chờ job, trang vẫn phải hiện là hết hạn chứ không mời khách trả tiền.
+    // Chỉ đổi chữ HIỂN THỊ trong DTO, không ghi DB: việc ghi DB + nhả ghế để job làm, tránh làm 2 nơi.
+    private boolean isHoldExpired(Booking b) {
+        if (!"PENDING".equals(b.getStatus()) || b.getExpiresAt() == null) {
+            return false;
+        }
+        return b.getExpiresAt().isBefore(LocalDateTime.now());
     }
 
     private TicketDTO toTicketDTO(Ticket t) {
         // Lấy mã ghế và TÊN bến từ các entity liên quan
         // requiresVerification lấy từ loại vé của chính vé này (cột kiểu Boolean nên so với TRUE để tránh null)
         boolean requiresVerification = Boolean.TRUE.equals(t.getTicketType().getRequiresVerification());
+        // Vé đang giữ chỗ của đơn đã quá hạn: job sẽ huỷ vé (CANCELLED) -> hiển thị trước như vậy,
+        // để trang không vừa ghi "Đơn đã hết hạn" vừa ghi vé "Đang giữ chỗ"
+        String status = t.getStatus();
+        if ("HOLD".equals(status) && isHoldExpired(t.getBooking())) {
+            status = "CANCELLED";
+        }
         return new TicketDTO(t.getTicketCode(), t.getSeat().getSeatCode(), t.getFromStation().getName(),
-                t.getToStation().getName(), t.getPrice(), t.getStatus(),
+                t.getToStation().getName(), t.getPrice(), status,
                 t.getPassengerName(), t.getBirthYear(), requiresVerification);
     }
 

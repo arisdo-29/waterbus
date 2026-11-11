@@ -112,12 +112,18 @@ public class TripServiceImpl implements TripService {
         // Routes without configured travel times use the same 50-minute estimate as the demo schedule.
         if (duration <= 0) duration = 50;
 
+        LocalDateTime departureTime = form.getDepartureTime().withSecond(0).withNano(0);
+        LocalDateTime arrivalTime = departureTime.plusMinutes(duration);
+        if (tripRepository.countScheduledOverlaps(waterbus.getId(), departureTime, arrivalTime) > 0) {
+            throw new IllegalArgumentException("Tàu đã có chuyến khác trùng giờ. Vui lòng chọn tàu hoặc giờ khác.");
+        }
+
         var trip = new Trip();
         trip.setTripCode(nextTripCode(form));
         trip.setRoute(route);
         trip.setWaterbus(waterbus);
-        trip.setDepartureTime(form.getDepartureTime().withSecond(0).withNano(0));
-        trip.setArrivalTime(trip.getDepartureTime().plusMinutes(duration));
+        trip.setDepartureTime(departureTime);
+        trip.setArrivalTime(arrivalTime);
         trip.setStatus("SCHEDULED");
         tripRepository.save(trip);
     }

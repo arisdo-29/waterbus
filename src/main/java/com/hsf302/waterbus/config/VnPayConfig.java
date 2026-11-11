@@ -29,7 +29,7 @@ public class VnPayConfig {
         this.returnUrl = returnUrl.trim();
     }
 
-    // Có đủ 2 khoá bí mật thì mới dùng được VNPay; thiếu thì trang thanh toán báo dùng Thanh toán mô phỏng
+    // Có đủ 2 khoá bí mật thì mới dùng được VNPay; thiếu thì nút thanh toán báo lỗi (không ra trang 500)
     public boolean isConfigured() {
         return !tmnCode.isEmpty() && !hashSecret.isEmpty();
     }

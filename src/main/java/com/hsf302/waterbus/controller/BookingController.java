@@ -59,13 +59,21 @@ public class BookingController {
     }
 
     // POST /booking/checkout: form ở trang chọn ghế (trip/seats) gửi lên -> trang xem lại đơn, CHƯA lưu gì vào DB
+    // Hai bến dùng Integer + required = false (không dùng int): thiếu bến hoặc bến rỗng thì nhận null
+    // để tự báo lỗi dễ hiểu, thay vì Spring tự trả trang lỗi 400 trước khi vào hàm
     @PostMapping("/checkout")
     public String checkout(@RequestParam int tripId,
                            @RequestParam(required = false) List<Integer> seatIds, // nhiều checkbox cùng tên
                            @RequestParam int ticketTypeId,
-                           @RequestParam int fromStationId,
-                           @RequestParam int toStationId,
+                           @RequestParam(required = false) Integer fromStationId,
+                           @RequestParam(required = false) Integer toStationId,
                            Model model, RedirectAttributes flash) {
+        // Thiếu bến: VD khách mở trang chọn ghế bằng link không kèm bến (/trips/5/seats) -> 2 ô ẩn bến bị rỗng.
+        // Không biết khách đi chặng nào thì không biết giờ tàu tới bến đi -> về trang tìm chuyến để chọn lại bến
+        if (fromStationId == null || toStationId == null) {
+            flash.addFlashAttribute("errorMessage", "Vui lòng chọn bến đi và bến đến trước khi đặt vé.");
+            return "redirect:/trips";
+        }
         // Chuyến hoặc loại vé không tồn tại (sửa tay form) -> về trang tìm chuyến
         if (!tripAndTicketTypeExist(tripId, fromStationId, toStationId, ticketTypeId)) {
             flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");
@@ -202,16 +210,39 @@ public class BookingController {
     }
 
     // Gộp các lỗi validate thành 1 câu cho alert đỏ (errorMessage) ở đầu form
+    // Mỗi lỗi chỉ hiện 1 lần trên trang:
+    // - Lỗi của ô khách nhập (họ tên, SĐT...) đã hiện ngay dưới ô đó -> alert chỉ nhắc chung 1 câu.
+    // - Lỗi không có ô để hiện (ghế là ô ẩn, dữ liệu ẩn bị sửa tay) -> ghi thẳng vào alert,
+    //   vì alert là chỗ duy nhất khách nhìn thấy lỗi đó.
     private String errorText(BindingResult errors) {
+        boolean hasErrorUnderField = false;
         String text = "";
         for (ObjectError error : errors.getAllErrors()) {
+            if (error instanceof FieldError field && isShownUnderField(field.getField())) {
+                hasErrorUnderField = true;
+                continue; // template đã hiện câu lỗi dưới ô -> không lặp lại ở alert
+            }
             String message = error.getDefaultMessage();
             // Lỗi đổi kiểu (VD seatIds=abc) có message tiếng Anh khó hiểu -> thay bằng câu dễ hiểu
             if (error instanceof FieldError field && field.isBindingFailure()) {
                 message = "Dữ liệu gửi lên không hợp lệ.";
             }
-            text = text + message + " ";
+            if (!text.contains(message)) { // nhiều ô ẩn cùng sai thì câu giống nhau chỉ ghi 1 lần
+                text = text + message + " ";
+            }
+        }
+        if (hasErrorUnderField) {
+            text = "Vui lòng kiểm tra các ô được đánh dấu. " + text;
         }
         return text.trim();
+    }
+
+    // Ô có chỗ hiện lỗi ngay bên dưới trong templates/booking/checkout.html (th:errors / #fields.errors).
+    // passengerNames[0], birthYears[1]... là ô hành khách từng ghế -> so phần đầu tên.
+    private boolean isShownUnderField(String fieldName) {
+        return fieldName.equals("contactName") || fieldName.equals("contactPhone")
+                || fieldName.equals("contactEmail") || fieldName.equals("promoCode")
+                || fieldName.equals("acceptPolicy")
+                || fieldName.startsWith("passengerNames") || fieldName.startsWith("birthYears");
     }
 }

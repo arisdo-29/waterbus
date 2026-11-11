@@ -116,4 +116,35 @@ class PromotionServiceTest {
         // Cập nhật record khác (excludeId = 99) thành mã của record 10 -> true (trùng)
         assertEquals(true, promotionService.isCodeDuplicate("WELCOME10", 99));
     }
+
+    @Test
+    void testIncreaseUsedCount_Success() {
+        Promotion promo = new Promotion();
+        promo.setCode("PROMO10");
+        promo.setUsageLimit(10);
+        promo.setUsedCount(5);
+
+        when(promotionRepository.findByCodeIgnoreCase("PROMO10")).thenReturn(Optional.of(promo));
+
+        promotionService.increaseUsedCount("PROMO10");
+
+        assertEquals(6, promo.getUsedCount());
+        Mockito.verify(promotionRepository).save(promo);
+    }
+
+    @Test
+    void testIncreaseUsedCount_ExceedsLimit_ThrowsException() {
+        Promotion promo = new Promotion();
+        promo.setCode("PROMO_FULL");
+        promo.setUsageLimit(5);
+        promo.setUsedCount(5);
+
+        when(promotionRepository.findByCodeIgnoreCase("PROMO_FULL")).thenReturn(Optional.of(promo));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> promotionService.increaseUsedCount("PROMO_FULL"),
+                "Mã khuyến mãi đã hết lượt sử dụng."
+        );
+    }
 }

@@ -83,7 +83,7 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | MS | URL | View | FE | BE | Model | Form gửi lên |
 |---|---|---|---|---|---|---|
 | M3 | `GET /admin/trips…` | `admin/trip/list`, `…/form` | Trí | Trí | `trips` / `trip`, `routes`, `waterbuses` | `routeId`, `waterbusId`, `departureTime`, `status` |
-| M3 | `GET /admin/waterbuses…` | `admin/waterbus/list`, `…/form` | Trí | Trí | `waterbuses` / `waterbus` | `code`, `name`, `capacity`, `status` |
+| M3 | `GET /admin/waterbuses`, `/new` | `admin/waterbus/list`, `…/form` | Trí | Trí | `waterbuses`, `scheduledTripCounts` (theo ID tàu) / `waterbus` | POST `/admin/waterbuses/save`: `code`, `name`, `capacity`, `status` (chỉ thêm mới); POST `/{id}/status`: `status`; không có trang sửa tàu |
 | M3 | `GET /admin/stations`, `/new`, `/{id}/edit` | `admin/station/list`, `…/form` | Trí | Khuyên | `stations`: List StationDTO / `station`: StationForm | POST `/admin/stations/save`: `id` (rỗng = thêm mới), `code`, `name`, `address`, `isActive`; POST `/{id}/delete` chỉ ẩn bến |
 | M3 | `GET /admin/routes`, `/new`, `/{id}/edit` | `admin/route/list`, `…/form` | Trí | Khuyên | `routes`: List RouteDTO / `route`: RouteForm (`stationIds` theo thứ tự đã lưu), `stations`: List StationDTO gồm cả bến inactive | POST `/admin/routes/save`: `id`, `code`, `name`, `description`, `isActive`, `stationIds` (lặp theo thứ tự); POST `/{id}/delete` chỉ ngừng hoạt động tuyến |
 | M3 | `GET /admin/promotions…` | `admin/promotion/list`, `…/form` | Tân | Tân | `promotions` / `promotion` | `id`, `code`, `name`, `discountType`, `discountValue`, `maxDiscount`, `minOrderAmount`, `startAt`, `endAt`, `usageLimit`, `isActive` |

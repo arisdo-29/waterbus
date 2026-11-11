@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.service.impl;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.dto.RegisterRequest;
 import com.hsf302.waterbus.entity.Account;
 import com.hsf302.waterbus.repository.AccountRepository;
 import com.hsf302.waterbus.service.AccountService;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+// Module: BE3 (Tân) - Tài khoản, phân quyền và hồ sơ cá nhân
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -25,8 +27,14 @@ public class AccountServiceImpl implements AccountService {
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
+    private Account requireAccount(int id) {
+        return accountRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+    }
+
     @Override
-    public Account login(String email, String rawPassword) {
+    @Transactional(readOnly = true)
+    public AccountDTO login(String email, String rawPassword) {
         if (email == null || rawPassword == null) {
             return null;
         }
@@ -34,12 +42,22 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.findByEmailIgnoreCase(email.trim())
                 .filter(account -> "ACTIVE".equalsIgnoreCase(account.getStatus()))
                 .filter(account -> passwordEncoder.matches(rawPassword, account.getPasswordHash()))
+                .map(AccountDTO::fromEntity)
                 .orElse(null);
     }
 
     @Override
     @Transactional
-    public Account register(String email, String rawPassword, String fullName, String phone) {
+    public AccountDTO register(RegisterRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Thông tin đăng ký không được để trống");
+        }
+        return register(request.getEmail(), request.getPassword(), request.getFullName(), request.getPhone());
+    }
+
+    @Override
+    @Transactional
+    public AccountDTO register(String email, String rawPassword, String fullName, String phone) {
         if (email == null || rawPassword == null) {
             throw new IllegalArgumentException("Email và mật khẩu không được để trống");
         }
@@ -58,32 +76,47 @@ public class AccountServiceImpl implements AccountService {
         account.setStatus("ACTIVE");
         account.setCreatedAt(LocalDateTime.now());
 
-        return accountRepository.save(account);
+        Account saved = accountRepository.save(account);
+        return AccountDTO.fromEntity(saved);
     }
 
     @Override
-    public AccountDTO toDTO(Account account) {
-        return AccountDTO.fromEntity(account);
+    @Transactional(readOnly = true)
+    public AccountDTO getAccountById(int id) {
+        return accountRepository.findById(id)
+                .map(AccountDTO::fromEntity)
+                .orElse(null);
     }
 
     @Override
-    public Account getAccountById(int id) {
+    @Transactional(readOnly = true)
+    public Account getAccountEntityById(int id) {
         return accountRepository.findById(id).orElse(null);
     }
 
     @Override
-    public Account getAccountByEmail(String email) {
+    @Transactional(readOnly = true)
+    public AccountDTO getAccountByEmail(String email) {
         if (email == null || email.trim().isEmpty()) {
             return null;
         }
-        return accountRepository.findByEmailIgnoreCase(email.trim()).orElse(null);
+        return accountRepository.findByEmailIgnoreCase(email.trim())
+                .map(AccountDTO::fromEntity)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isLocked(int accountId) {
+        return accountRepository.findById(accountId)
+                .map(account -> "LOCKED".equalsIgnoreCase(account.getStatus()))
+                .orElse(false);
     }
 
     @Override
     @Transactional
     public AccountDTO updateProfile(int accountId, String fullName, String phone) {
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+        Account account = requireAccount(accountId);
 
         account.setFullName(fullName != null ? fullName.trim() : "");
         account.setPhone(phone != null ? phone.trim() : null);
@@ -99,8 +132,7 @@ public class AccountServiceImpl implements AccountService {
             throw new IllegalArgumentException("Mật khẩu không được để trống");
         }
 
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+        Account account = requireAccount(accountId);
 
         if (!passwordEncoder.matches(currentPassword, account.getPasswordHash())) {
             throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác");
@@ -161,8 +193,7 @@ public class AccountServiceImpl implements AccountService {
             throw new IllegalArgumentException("Bạn không thể tự thay đổi vai trò của chính mình!");
         }
 
-        Account target = accountRepository.findById(targetAccountId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản cần đổi vai trò."));
+        Account target = requireAccount(targetAccountId);
 
         if ("ADMIN".equalsIgnoreCase(target.getRole())) {
             throw new IllegalArgumentException("Không thể thay đổi vai trò của tài khoản Quản trị viên tối cao!");
@@ -189,8 +220,7 @@ public class AccountServiceImpl implements AccountService {
             throw new IllegalArgumentException("Bạn không thể tự khóa tài khoản của chính mình!");
         }
 
-        Account target = accountRepository.findById(targetAccountId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản cần cập nhật trạng thái."));
+        Account target = requireAccount(targetAccountId);
 
         if ("ADMIN".equalsIgnoreCase(target.getRole())) {
             throw new IllegalArgumentException("Không thể khóa tài khoản Quản trị viên tối cao!");
@@ -210,8 +240,7 @@ public class AccountServiceImpl implements AccountService {
             throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 6 ký tự.");
         }
 
-        Account target = accountRepository.findById(targetAccountId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản cần đặt lại mật khẩu."));
+        Account target = requireAccount(targetAccountId);
 
         target.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
         accountRepository.save(target);

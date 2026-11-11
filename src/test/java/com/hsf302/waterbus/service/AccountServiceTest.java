@@ -42,14 +42,37 @@ class AccountServiceTest {
             return acc;
         });
 
-        Account result = accountService.register("test@example.com", "Password@123", "Nguyen Van B", "0901234567");
+        AccountDTO result = accountService.register("test@example.com", "Password@123", "Nguyen Van B", "0901234567");
 
         assertNotNull(result);
         assertEquals(1, result.getId());
         assertEquals("test@example.com", result.getEmail());
         assertEquals("CUSTOMER", result.getRole());
         assertEquals("ACTIVE", result.getStatus());
-        assertTrue(passwordEncoder.matches("Password@123", result.getPasswordHash()));
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+
+    @Test
+    void testRegister_WithRequest_Success() {
+        when(accountRepository.existsByEmailIgnoreCase("req@example.com")).thenReturn(false);
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
+            Account acc = invocation.getArgument(0);
+            acc.setId(2);
+            return acc;
+        });
+
+        com.hsf302.waterbus.dto.RegisterRequest req = new com.hsf302.waterbus.dto.RegisterRequest();
+        req.setEmail("req@example.com");
+        req.setPassword("Password@123");
+        req.setFullName("Nguyen Van Req");
+        req.setPhone("0901234568");
+
+        AccountDTO result = accountService.register(req);
+
+        assertNotNull(result);
+        assertEquals(2, result.getId());
+        assertEquals("req@example.com", result.getEmail());
+        assertEquals("CUSTOMER", result.getRole());
         verify(accountRepository, times(1)).save(any(Account.class));
     }
 
@@ -74,7 +97,7 @@ class AccountServiceTest {
 
         when(accountRepository.findByEmailIgnoreCase("user@example.com")).thenReturn(Optional.of(account));
 
-        Account loggedIn = accountService.login("user@example.com", "Secret@123");
+        AccountDTO loggedIn = accountService.login("user@example.com", "Secret@123");
         assertNotNull(loggedIn);
         assertEquals(1, loggedIn.getId());
     }
@@ -89,7 +112,7 @@ class AccountServiceTest {
 
         when(accountRepository.findByEmailIgnoreCase("user@example.com")).thenReturn(Optional.of(account));
 
-        Account loggedIn = accountService.login("user@example.com", "WrongPassword");
+        AccountDTO loggedIn = accountService.login("user@example.com", "WrongPassword");
         assertNull(loggedIn);
     }
 
@@ -103,12 +126,12 @@ class AccountServiceTest {
 
         when(accountRepository.findByEmailIgnoreCase("locked@example.com")).thenReturn(Optional.of(account));
 
-        Account loggedIn = accountService.login("locked@example.com", "Secret@123");
+        AccountDTO loggedIn = accountService.login("locked@example.com", "Secret@123");
         assertNull(loggedIn);
     }
 
     @Test
-    void testToDTO() {
+    void testAccountDTOConversion() {
         Account account = new Account();
         account.setId(10);
         account.setEmail("test@gmail.com");
@@ -117,21 +140,36 @@ class AccountServiceTest {
         account.setRole("STAFF");
         account.setStatus("ACTIVE");
 
-        AccountDTO dto = accountService.toDTO(account);
-        assertNotNull(dto);
-        assertEquals(10, dto.getId());
-        assertEquals("test@gmail.com", dto.getEmail());
-        assertEquals("Nguyen Van Test", dto.getFullName());
-        assertEquals("STAFF", dto.getRole());
-
         AccountDTO directDto = AccountDTO.fromEntity(account);
         assertNotNull(directDto);
-        assertEquals(dto, directDto);
+        assertEquals(10, directDto.getId());
+        assertEquals("test@gmail.com", directDto.getEmail());
+        assertEquals("Nguyen Van Test", directDto.getFullName());
+        assertEquals("STAFF", directDto.getRole());
 
         Account convertedBack = directDto.toEntity();
         assertNotNull(convertedBack);
         assertEquals(account.getId(), convertedBack.getId());
         assertEquals(account.getEmail(), convertedBack.getEmail());
+    }
+
+    @Test
+    void testIsLocked() {
+        Account locked = new Account();
+        locked.setId(1);
+        locked.setStatus("LOCKED");
+
+        Account active = new Account();
+        active.setId(2);
+        active.setStatus("ACTIVE");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(locked));
+        when(accountRepository.findById(2)).thenReturn(Optional.of(active));
+        when(accountRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertTrue(accountService.isLocked(1));
+        assertFalse(accountService.isLocked(2));
+        assertFalse(accountService.isLocked(99));
     }
 
     @Test

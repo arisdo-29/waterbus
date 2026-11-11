@@ -11,6 +11,9 @@ public interface TicketTypeService {
     /** Loại vé đang bán (BE4 hiển thị khi chọn vé). */
     List<TicketType> getActiveTicketTypes();
 
+    /** Loại vé đang bán trả về DTO cho Controller / View chọn vé. */
+    List<TicketTypeDTO> getActiveTicketTypeDTOs();
+
     /** HỢP ĐỒNG cho BE4: giá hiện tại của loại vé. */
     BigDecimal getPrice(int ticketTypeId);
 

@@ -1,26 +1,32 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.dto.RegisterRequest;
 import com.hsf302.waterbus.entity.Account;
 import org.springframework.data.domain.Page;
-import java.util.List;
-
-import com.hsf302.waterbus.dto.AccountDTO;
 
 // Module: BE3 - Tài khoản, Loại vé & Khuyến mãi
-// Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface AccountService {
-    /** Trả về Account nếu đúng email + mật khẩu (so bằng BCrypt), sai thì trả null. */
-    Account login(String email, String rawPassword);
+    /** Trả về AccountDTO nếu đúng email + mật khẩu (so bằng BCrypt), sai hoặc bị khoá thì trả null. */
+    AccountDTO login(String email, String rawPassword);
 
-    /** Tạo tài khoản CUSTOMER, mật khẩu phải mã hoá BCrypt trước khi lưu. */
-    Account register(String email, String rawPassword, String fullName, String phone);
+    /** Tạo tài khoản CUSTOMER từ RegisterRequest, mật khẩu phải mã hoá BCrypt trước khi lưu. */
+    AccountDTO register(RegisterRequest request);
 
-    /** Chuyển đổi Entity sang DTO an toàn. */
-    AccountDTO toDTO(Account account);
+    /** Tạo tài khoản CUSTOMER với các tham số lẻ. */
+    AccountDTO register(String email, String rawPassword, String fullName, String phone);
 
-    Account getAccountById(int id);
+    /** Trả về AccountDTO theo ID phục vụ tầng Controller. */
+    AccountDTO getAccountById(int id);
 
-    Account getAccountByEmail(String email);
+    /** Trả về Entity Account phục vụ nội bộ giữa các Service. */
+    Account getAccountEntityById(int id);
+
+    /** Trả về AccountDTO theo Email phục vụ tầng Controller. */
+    AccountDTO getAccountByEmail(String email);
+
+    /** Kiểm tra trạng thái tài khoản có bị khoá hay không (phục vụ Interceptor). */
+    boolean isLocked(int accountId);
 
     /** Cập nhật thông tin cá nhân. */
     AccountDTO updateProfile(int accountId, String fullName, String phone);

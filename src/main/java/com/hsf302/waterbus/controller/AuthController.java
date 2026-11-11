@@ -3,7 +3,6 @@ package com.hsf302.waterbus.controller;
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.LoginRequest;
 import com.hsf302.waterbus.dto.RegisterRequest;
-import com.hsf302.waterbus.entity.Account;
 import com.hsf302.waterbus.service.AccountService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -64,13 +63,12 @@ public class AuthController {
             return "auth/login";
         }
 
-        Account account = accountService.login(loginRequest.getEmail(), loginRequest.getPassword());
-        if (account == null) {
+        AccountDTO accountDTO = accountService.login(loginRequest.getEmail(), loginRequest.getPassword());
+        if (accountDTO == null) {
             model.addAttribute("errorMessage", "Email hoặc mật khẩu không chính xác hoặc tài khoản đã bị khóa.");
             return "auth/login";
         }
 
-        AccountDTO accountDTO = AccountDTO.fromEntity(account);
         session.setAttribute("loginAccount", accountDTO);
 
         String target = getSafeRedirectUrl(session, accountDTO);
@@ -132,12 +130,7 @@ public class AuthController {
         }
 
         try {
-            accountService.register(
-                    registerRequest.getEmail(),
-                    registerRequest.getPassword(),
-                    registerRequest.getFullName(),
-                    registerRequest.getPhone()
-            );
+            accountService.register(registerRequest);
             redirectAttributes.addFlashAttribute("successMessage", "Đăng ký thành công! Vui lòng đăng nhập.");
             return "redirect:/auth/login";
         } catch (IllegalArgumentException ex) {

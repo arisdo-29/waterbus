@@ -35,6 +35,7 @@
                     </div>
 
                     <form th:action="@{/account/profile}" th:object="${updateProfileRequest}" method="post" novalidate
+                          id="profileForm" th:attr="data-original-name=${account?.fullName},data-original-phone=${account?.phone}"
                           data-confirm="Xác nhận lưu thay đổi thông tin cá nhân?"
                           data-confirm-title="Cập nhật hồ sơ"
                           data-confirm-ok="Lưu thay đổi">
@@ -52,12 +53,13 @@
 
                         <div class="wb-form-row">
                             <label for="phone">Số điện thoại</label>
-                            <input type="tel" id="phone" class="form-control" th:field="*{phone}" maxlength="20" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
+                            <input type="tel" id="phone" class="form-control" th:field="*{phone}" pattern="0[0-9]{9}" maxlength="10" inputmode="numeric" title="Nhập 10 chữ số, bắt đầu bằng 0" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
                             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Số điện thoại không hợp lệ</div>
                         </div>
 
                         <div class="d-flex flex-column gap-2 mt-4">
-                            <button type="submit" class="btn btn-wb-accent">
+                            <small class="text-muted" id="profileUnchangedHint">Chưa thay đổi thông tin nào.</small>
+                            <button type="submit" class="btn btn-wb-accent" id="saveProfileButton">
                                 <i class="bi bi-check2-circle me-2" aria-hidden="true"></i>Lưu thay đổi
                             </button>
                             <a href="/templates/account/change-password.html" th:href="@{/account/change-password}" class="btn btn-wb-outline text-center">
@@ -72,5 +74,24 @@
 
     <footer th:replace="~{fragments/layout :: footer}"></footer>
     <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <script>
+        (() => {
+            const form = document.getElementById('profileForm');
+            const name = form.querySelector('#fullName');
+            const phone = form.querySelector('#phone');
+            const button = document.getElementById('saveProfileButton');
+            const hint = document.getElementById('profileUnchangedHint');
+            const originalName = (form.dataset.originalName || '').trim();
+            const originalPhone = (form.dataset.originalPhone || '').trim();
+            const update = () => {
+                const unchanged = name.value.trim() === originalName && phone.value.trim() === originalPhone;
+                button.disabled = unchanged;
+                hint.hidden = !unchanged;
+            };
+            name.addEventListener('input', update);
+            phone.addEventListener('input', update);
+            update();
+        })();
+    </script>
 </body>
 </html>

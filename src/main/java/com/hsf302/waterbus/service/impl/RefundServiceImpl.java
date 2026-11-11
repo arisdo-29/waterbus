@@ -1,12 +1,15 @@
 package com.hsf302.waterbus.service.impl;
 
+import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.RefundAdminDTO;
+import com.hsf302.waterbus.entity.Account;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Refund;
 import com.hsf302.waterbus.entity.Ticket;
 import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.RefundRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
+import com.hsf302.waterbus.service.AccountService;
 import com.hsf302.waterbus.service.RefundService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,12 +24,14 @@ public class RefundServiceImpl implements RefundService {
     private final RefundRepository refundRepository;
     private final BookingRepository bookingRepository;
     private final TicketRepository ticketRepository;
+    private final AccountService accountService;
 
     public RefundServiceImpl(RefundRepository refundRepository, BookingRepository bookingRepository,
-                             TicketRepository ticketRepository) {
+                             TicketRepository ticketRepository, AccountService accountService) {
         this.refundRepository = refundRepository;
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
+        this.accountService = accountService;
     }
 
     @Override
@@ -82,7 +87,9 @@ public class RefundServiceImpl implements RefundService {
                 : refundRepository.findByStatusOrderByCreatedAtDesc(status);
         return refunds.stream().map(refund -> new RefundAdminDTO(refund.getId(),
                 refund.getBooking().getBookingCode(), refund.getAmount(), refund.getStatus(),
-                refund.getReason(), refund.getTransactionRef(), refund.getRefundedAt())).toList();
+                refund.getReason(), refund.getBooking().getContactName(),
+                refund.getBooking().getContactPhone(), refund.getBooking().getContactEmail(),
+                refund.getTransactionRef(), refund.getRefundedAt())).toList();
     }
 
     @Override
@@ -93,25 +100,22 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     @Transactional
-    public void markRefunded(int id, String transactionRef, LocalDateTime refundedAt, String note) {
+    public void markRefunded(int id, AccountDTO admin) {
+        if (admin == null || admin.getId() == null || !"ADMIN".equals(admin.getRole())) {
+            throw new IllegalArgumentException("Chỉ quản trị viên được xác nhận hoàn tiền.");
+        }
+        Account processor = accountService.getAccountById(admin.getId());
+        if (processor == null || !"ADMIN".equals(processor.getRole())
+                || !"ACTIVE".equals(processor.getStatus())) {
+            throw new IllegalArgumentException("Tài khoản quản trị không còn hợp lệ.");
+        }
         Refund refund = refundRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khoản hoàn tiền."));
         if (!"PENDING".equals(refund.getStatus())) {
             throw new IllegalArgumentException("Khoản này đã được ghi nhận hoàn tiền.");
         }
-        String reference = transactionRef == null ? "" : transactionRef.trim();
-        if (reference.isEmpty() || reference.length() > 100) {
-            throw new IllegalArgumentException("Mã giao dịch hoàn phải có từ 1 đến 100 ký tự.");
-        }
-        if (refundedAt == null || refundedAt.isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Thời điểm hoàn tiền không hợp lệ.");
-        }
-        if (note != null && note.length() > 255) {
-            throw new IllegalArgumentException("Ghi chú tối đa 255 ký tự.");
-        }
-        refund.setTransactionRef(reference);
-        refund.setRefundedAt(refundedAt);
-        refund.setNote(note == null ? null : note.trim());
+        refund.setRefundedAt(LocalDateTime.now());
+        refund.setProcessedBy(processor);
         refund.setStatus("DONE");
         refund.getBooking().setStatus("REFUNDED");
     }

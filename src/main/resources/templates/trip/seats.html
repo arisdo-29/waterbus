@@ -87,7 +87,8 @@
                 <div class="wb-seat-chips" data-seat-chips><span class="wb-muted-text">Chưa chọn ghế</span></div>
               </div>
               <div class="wb-summary-total"><span>Tạm tính</span><strong data-seat-total>0 đ</strong></div>
-              <button class="btn btn-wb-accent w-100" type="submit" data-seat-submit disabled>Tiếp tục <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
+              <p class="alert alert-warning mb-0" th:if="${session.loginAccount?.role == 'ADMIN'}">Tài khoản quản trị không thể đặt vé. Vui lòng sử dụng tài khoản khách hàng hoặc nhân viên.</p>
+              <button class="btn btn-wb-accent w-100" type="submit" data-seat-submit disabled th:unless="${session.loginAccount?.role == 'ADMIN'}">Tiếp tục <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
             </aside>
           </div>
         </div>

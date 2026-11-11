@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 // Module: BE2 - Tàu, Ghế & Chuyến. Mọi URL của controller này bắt đầu bằng /trips
 // View đặt trong templates/trip/ (giao diện: Trí)
@@ -49,11 +50,14 @@ public class TripController {
     public String seats(@PathVariable int id,
                         @RequestParam(required = false) Integer fromStationId,
                         @RequestParam(required = false) Integer toStationId,
-                        Model model) {
-        BookingTripDTO trip = fromStationId == null || toStationId == null
-                ? tripService.getBookableTrip(id)
-                : tripService.getBookableTrip(id, fromStationId, toStationId);
+                        Model model, RedirectAttributes flash) {
+        if (fromStationId == null || toStationId == null) {
+            flash.addFlashAttribute("errorMessage", "Vui lòng chọn bến đi và bến đến trước khi chọn ghế.");
+            return "redirect:/trips";
+        }
+        BookingTripDTO trip = tripService.getBookableTrip(id, fromStationId, toStationId);
         if (trip == null) {
+            flash.addFlashAttribute("errorMessage", "Chuyến không còn mở bán hoặc chặng đã chọn không hợp lệ. Vui lòng tìm lại chuyến.");
             return "redirect:/trips";
         }
         model.addAttribute("trip", trip);
@@ -61,8 +65,8 @@ public class TripController {
         model.addAttribute("ticketTypes", ticketTypeService.getActiveTicketTypes());
         model.addAttribute("fromStationId", fromStationId);
         model.addAttribute("toStationId", toStationId);
-        model.addAttribute("fromStation", fromStationId == null ? null : stationService.getStationById(fromStationId));
-        model.addAttribute("toStation", toStationId == null ? null : stationService.getStationById(toStationId));
+        model.addAttribute("fromStation", stationService.getStationById(fromStationId));
+        model.addAttribute("toStation", stationService.getStationById(toStationId));
         return "trip/seats";
     }
 }

@@ -4,5 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record RefundAdminDTO(Integer id, String bookingCode, BigDecimal amount, String status,
-                             String reason, String transactionRef, LocalDateTime refundedAt) {
+                             String reason, String contactName, String contactPhone, String contactEmail,
+                             String transactionRef, LocalDateTime refundedAt) {
 }

@@ -7,17 +7,14 @@ import com.hsf302.waterbus.entity.Payment;
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 // Muốn thêm cổng thanh toán thật (VNPay, MoMo...): tạo class mới implements PaymentService, controller chỉ gọi interface nên không phải sửa.
 public interface PaymentService {
-    /** Thanh toán giả lập: payment SUCCESS, booking PAID, vé HOLD -> VALID. */
-    Payment payMock(int bookingId);
-
     /**
      * Đơn có thanh toán được không? Được -> null. Không được -> câu lỗi để hiện cho khách
-     * (không tìm thấy đơn / đơn không còn PENDING / hết hạn giữ chỗ / chuyến không còn SCHEDULED).
+     * (không tìm thấy đơn / đơn không còn PENDING / hết hạn giữ chỗ / chuyến không còn SCHEDULED / mã KM hết lượt).
      */
     String getCannotPayReason(int bookingId);
 
     /**
-     * Ghi nhận đơn đã được trả tiền (dùng chung cho MOCK và VNPAY): payment SUCCESS, booking PAID,
+     * Ghi nhận đơn đã được trả tiền (VNPay gọi khi khách trả tiền thành công): payment SUCCESS, booking PAID,
      * vé HOLD -> VALID, tăng lượt dùng mã KM. Đơn không thanh toán được -> IllegalArgumentException.
      */
     Payment confirmPaid(int bookingId, String method, String transactionRef);

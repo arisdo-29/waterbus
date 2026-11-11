@@ -49,8 +49,8 @@
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
                                 <form th:if="${session.loginAccount?.role == 'ADMIN'}" action="/templates/admin/trip/list.html" th:action="@{/admin/trips/{id}/cancel(id=${trip?.id})}" method="post" data-confirm="Huỷ chuyến này?" th:attr="data-confirm=|Huỷ chuyến ${trip.tripCode}? ${trip.soldTickets} vé đã xác nhận sẽ bị huỷ; đơn có tiền chuyển sang chờ hoàn.|" data-confirm-variant="danger" data-confirm-ok="Huỷ chuyến">
                                     <label class="visually-hidden" th:for="|cancelReason-${trip.id}|">Lý do huỷ chuyến</label>
-                                    <input class="form-control" type="text" name="reason" th:id="|cancelReason-${trip.id}|" placeholder="Lý do huỷ chuyến" maxlength="255" required th:disabled="${trip?.status != 'SCHEDULED'}">
-                                    <button class="btn btn-wb-outline" type="submit" th:disabled="${trip?.status != 'SCHEDULED'}">Huỷ chuyến</button>
+                                    <input class="form-control" type="text" name="reason" th:id="|cancelReason-${trip.id}|" placeholder="Lý do huỷ chuyến" maxlength="255" required th:disabled="${!trip.cancelable}">
+                                    <button class="btn btn-wb-outline" type="submit" th:disabled="${!trip.cancelable}">Huỷ chuyến</button>
                                 </form>
                                 <span th:if="${session.loginAccount?.role != 'ADMIN'}" class="text-muted small">Chỉ xem</span>
                             </div></td>

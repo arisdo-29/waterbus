@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -396,6 +398,25 @@ class BookingCreateTest {
         mvc.perform(get("/my-bookings").sessionAttr("loginAccount", empty))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("bookings", List.of()));
+    }
+
+    @Test
+    void myBookingsReturnsToSamePageAfterLogin() throws Exception {
+        // Tài khoản có mật khẩu thật (mã hoá BCrypt) để đăng nhập được qua POST /auth/login
+        jdbc.update("INSERT INTO account (email, password_hash, full_name, phone, role, status, created_at) "
+                        + "VALUES ('an@example.com', ?, 'An', '0900000001', 'CUSTOMER', 'ACTIVE', ?)",
+                new BCryptPasswordEncoder().encode("Matkhau@123"), LocalDateTime.now());
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        MockHttpSession session = new MockHttpSession(); // dùng chung 1 session như 1 trình duyệt thật
+
+        // 1. Chưa đăng nhập mà vào "Vé của tôi" -> sang trang đăng nhập, session nhớ trang muốn vào
+        mvc.perform(get("/my-bookings").session(session)).andExpect(redirectedUrl("/auth/login"));
+        assertThat(session.getAttribute("redirectAfterLogin")).isEqualTo("/my-bookings");
+
+        // 2. Đăng nhập xong -> quay lại đúng "Vé của tôi" (trước đây về trang chủ)
+        mvc.perform(post("/auth/login").session(session)
+                        .param("email", "an@example.com").param("password", "Matkhau@123"))
+                .andExpect(redirectedUrl("/my-bookings"));
     }
 
     @Test

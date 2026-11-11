@@ -26,6 +26,9 @@ public class MyBookingController {
         // Lấy tài khoản từ session (làm giống AccountController.viewProfile())
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         if (loginAccount == null) {
+            // Nhớ trang khách đang muốn vào: AuthController đọc "redirectAfterLogin" trong session
+            // và đưa khách quay lại /my-bookings sau khi đăng nhập (làm giống AccountController.viewProfile)
+            session.setAttribute("redirectAfterLogin", "/my-bookings");
             return "redirect:/auth/login"; // chưa đăng nhập -> sang trang đăng nhập
         }
         // Tên attribute đúng theo docs/PAGES.md: bookings

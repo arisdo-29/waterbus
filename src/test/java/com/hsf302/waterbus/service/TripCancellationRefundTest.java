@@ -1,18 +1,27 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.AccountDTO;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @Transactional
@@ -22,6 +31,7 @@ class TripCancellationRefundTest {
     @Autowired private TripService tripService;
     @Autowired private RefundService refundService;
     @Autowired private RevenueService revenueService;
+    @Autowired private WebApplicationContext context;
 
     private int tripId;
 
@@ -86,6 +96,50 @@ class TripCancellationRefundTest {
         assertEquals(BigDecimal.ZERO, report.summary().totalRevenue());
         assertEquals(report.summary().totalRevenue(), report.dailyRevenue().stream()
                 .map(day -> day.revenue()).reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"MAINTENANCE", "INACTIVE"})
+    void canCancelTripAfterWaterbusStatusChanges(String waterbusStatus) {
+        jdbc.update("UPDATE waterbus SET status = ? WHERE code = 'CANCEL_W'", waterbusStatus);
+        assertTrue(tripService.getTripsForAdmin().stream()
+                .filter(trip -> trip.id() == tripId).findFirst().orElseThrow().isCancelable());
+
+        tripService.cancelTrip(tripId, "Tàu không thể phục vụ");
+        entityManager.flush();
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", tripId));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?",
+                id("booking", "booking_code", "CANCEL_PAID")));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund", Integer.class));
+    }
+
+    @Test
+    void reasonMustContainOneTo255Characters() {
+        assertThrows(IllegalArgumentException.class, () -> tripService.cancelTrip(tripId, " "));
+        assertThrows(IllegalArgumentException.class, () -> tripService.cancelTrip(tripId, "A".repeat(256)));
+        assertEquals("SCHEDULED", value("SELECT status FROM trip WHERE id = ?", tripId));
+
+        String reason = "A".repeat(255);
+        tripService.cancelTrip(tripId, reason);
+        entityManager.flush();
+        assertEquals(reason, value("SELECT cancel_reason FROM trip WHERE id = ?", tripId));
+    }
+
+    @Test
+    void adminListDisablesCancellationAfterDeparture() throws Exception {
+        LocalDateTime past = LocalDateTime.now().minusHours(1);
+        jdbc.update("UPDATE trip SET departure_time = ?, arrival_time = ? WHERE id = ?",
+                past, past.plusMinutes(30), tripId);
+        assertFalse(tripService.getTripsForAdmin().stream()
+                .filter(trip -> trip.id() == tripId).findFirst().orElseThrow().isCancelable());
+
+        var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        AccountDTO admin = new AccountDTO(1, "admin@test.vn", "Admin", null, "ADMIN", "ACTIVE");
+        String html = mvc.perform(get("/admin/trips").sessionAttr("loginAccount", admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        int inputStart = html.indexOf("id=\"cancelReason-" + tripId + "\"");
+        assertTrue(inputStart >= 0);
+        assertTrue(html.substring(inputStart, html.indexOf('>', inputStart)).contains("disabled"));
     }
 
     private void booking(String code, String status, int amount) {

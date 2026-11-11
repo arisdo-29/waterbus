@@ -17,16 +17,15 @@ public interface BookingService {
     // nên server phải tự kiểm tra lại. Dùng chung cho BookingForm (@Size) và createBooking.
     int MAX_SEATS_PER_BOOKING = 10;
 
-    /** Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService. */
-    Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail);
-
     /**
-     * Giống hàm trên, thêm họ tên + năm sinh từng hành khách (vé ưu đãi; vé thường truyền null).
+     * Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService.
+     * Nhận nguyên form trang checkout (chuyến, ghế, loại vé, bến, mã KM, thông tin liên hệ) thay cho 10-12 tham số rời.
+     * Thêm họ tên + năm sinh từng hành khách (vé ưu đãi; vé thường để null).
      * Phần tử thứ i của 2 danh sách thuộc ghế thứ i trong seatIds.
      * Tổng tiền = 0 đ -> đơn PAID + vé VALID ngay, không tạo payment.
+     * accountId: tài khoản đang đăng nhập, null = khách vãng lai. Trả DTO cho controller (không trả entity).
      */
-    Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail,
-                          List<String> passengerNames, List<Integer> birthYears);
+    BookingDTO createBooking(BookingForm form, Integer accountId);
 
     /** Tra cứu đơn theo mã. */
     Booking getBookingByCode(String bookingCode);

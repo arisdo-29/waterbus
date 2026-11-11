@@ -70,7 +70,7 @@ class BookingRefundDisplayTest {
                 "refund-admin@example.com", "Admin hoàn tiền", null, "ADMIN", "ACTIVE");
 
         // Đặt vé + trả tiền qua VNPay, rồi nhà vận hành huỷ chuyến -> hệ thống tạo khoản hoàn tiền PENDING
-        booking = bookingService.createBooking(tripId, List.of(seatId), ticketTypeId, s1, s2,
+        booking = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatId), ticketTypeId, s1, s2,
                 "", lan.getId(), "Lan", "0901234567", "lan@example.com");
         paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
         tripService.cancelTrip(tripId, "Nuoc lon");

@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.service.BookingService;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
@@ -76,6 +77,17 @@ public class BookingForm {
     // Field kiểu boolean thì getter tên là isXxx (Java Bean), Spring vẫn tự hiểu
     public boolean isAcceptPolicy() { return acceptPolicy; }
     public void setAcceptPolicy(boolean acceptPolicy) { this.acceptPolicy = acceptPolicy; }
+
+    // Form -> entity Booking mới: chỉ chép phần KHÁCH NHẬP là thông tin liên hệ (đã bỏ khoảng trắng 2 đầu).
+    // Phần hệ thống tính ra (mã đơn, tiền, trạng thái, hạn giữ chỗ, tài khoản, mã KM) là nghiệp vụ
+    // -> BookingService set, không phải việc của form.
+    public Booking toEntity() {
+        Booking booking = new Booking();
+        booking.setContactName(clean(contactName));
+        booking.setContactPhone(clean(contactPhone));
+        booking.setContactEmail(clean(contactEmail));
+        return booking;
+    }
 
     // Bỏ khoảng trắng 2 đầu; ô để trống -> null.
     // Nhờ vậy ô SĐT trống chỉ báo "Vui lòng nhập số điện thoại." (@Pattern bỏ qua null), không báo thêm lỗi định dạng.

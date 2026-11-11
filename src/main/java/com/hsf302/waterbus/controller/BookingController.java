@@ -210,16 +210,39 @@ public class BookingController {
     }
 
     // Gộp các lỗi validate thành 1 câu cho alert đỏ (errorMessage) ở đầu form
+    // Mỗi lỗi chỉ hiện 1 lần trên trang:
+    // - Lỗi của ô khách nhập (họ tên, SĐT...) đã hiện ngay dưới ô đó -> alert chỉ nhắc chung 1 câu.
+    // - Lỗi không có ô để hiện (ghế là ô ẩn, dữ liệu ẩn bị sửa tay) -> ghi thẳng vào alert,
+    //   vì alert là chỗ duy nhất khách nhìn thấy lỗi đó.
     private String errorText(BindingResult errors) {
+        boolean hasErrorUnderField = false;
         String text = "";
         for (ObjectError error : errors.getAllErrors()) {
+            if (error instanceof FieldError field && isShownUnderField(field.getField())) {
+                hasErrorUnderField = true;
+                continue; // template đã hiện câu lỗi dưới ô -> không lặp lại ở alert
+            }
             String message = error.getDefaultMessage();
             // Lỗi đổi kiểu (VD seatIds=abc) có message tiếng Anh khó hiểu -> thay bằng câu dễ hiểu
             if (error instanceof FieldError field && field.isBindingFailure()) {
                 message = "Dữ liệu gửi lên không hợp lệ.";
             }
-            text = text + message + " ";
+            if (!text.contains(message)) { // nhiều ô ẩn cùng sai thì câu giống nhau chỉ ghi 1 lần
+                text = text + message + " ";
+            }
+        }
+        if (hasErrorUnderField) {
+            text = "Vui lòng kiểm tra các ô được đánh dấu. " + text;
         }
         return text.trim();
+    }
+
+    // Ô có chỗ hiện lỗi ngay bên dưới trong templates/booking/checkout.html (th:errors / #fields.errors).
+    // passengerNames[0], birthYears[1]... là ô hành khách từng ghế -> so phần đầu tên.
+    private boolean isShownUnderField(String fieldName) {
+        return fieldName.equals("contactName") || fieldName.equals("contactPhone")
+                || fieldName.equals("contactEmail") || fieldName.equals("promoCode")
+                || fieldName.equals("acceptPolicy")
+                || fieldName.startsWith("passengerNames") || fieldName.startsWith("birthYears");
     }
 }

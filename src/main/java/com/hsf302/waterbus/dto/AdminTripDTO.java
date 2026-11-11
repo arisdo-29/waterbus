@@ -9,4 +9,9 @@ public record AdminTripDTO(Integer id, String tripCode, String routeName, String
                         LocalDateTime departureTime, LocalDateTime arrivalTime, String status) {
         this(id, tripCode, routeName, waterbusName, departureTime, arrivalTime, status, 0);
     }
+
+    public boolean isCancelable() {
+        return "SCHEDULED".equals(status) && departureTime != null
+                && departureTime.isAfter(LocalDateTime.now());
+    }
 }

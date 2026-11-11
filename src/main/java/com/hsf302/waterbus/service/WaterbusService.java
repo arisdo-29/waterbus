@@ -10,9 +10,9 @@ public interface WaterbusService {
     /** Danh sách tàu (trang admin). */
     List<Waterbus> getWaterbuses();
 
-    AdminWaterbusForm getWaterbusForEdit(int waterbusId);
-
     void saveWaterbus(AdminWaterbusForm form);
 
     void changeStatus(int waterbusId, String status);
+
+    long countUpcomingScheduledTrips(int waterbusId);
 }

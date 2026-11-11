@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // BE4 R6: đơn có chuyến bị huỷ phải hiện đúng ở trang xem vé (/booking/{mã}) và "Vé của tôi" (/my-bookings).
-// Đi hết luồng thật: đặt vé -> trả tiền VNPay -> nhà vận hành huỷ chuyến (chờ hoàn tiền) -> admin ghi nhận đã hoàn.
+// Đi hết luồng thật: đặt vé -> trả tiền VNPay -> nhà vận hành huỷ chuyến (chờ hoàn tiền) -> admin xác nhận đã hoàn.
 @SpringBootTest
 @Transactional
 class BookingRefundDisplayTest {
@@ -34,6 +34,7 @@ class BookingRefundDisplayTest {
 
     private MockMvc mvc;
     private AccountDTO lan;  // khách đã đăng nhập, chủ của đơn
+    private AccountDTO admin;
     private Booking booking; // đơn đã trả tiền, sau đó chuyến bị huỷ
 
     @BeforeEach
@@ -62,6 +63,11 @@ class BookingRefundDisplayTest {
                 + "VALUES ('lan@example.com', 'x', 'Lan', '0901234567', 'CUSTOMER', 'ACTIVE', ?)", LocalDateTime.now());
         lan = new AccountDTO(id("account", "email", "lan@example.com"), "lan@example.com", "Lan", "0901234567",
                 "CUSTOMER", "ACTIVE");
+        jdbc.update("INSERT INTO account (email, password_hash, full_name, role, status, created_at) "
+                + "VALUES ('refund-admin@example.com', 'x', 'Admin hoàn tiền', 'ADMIN', 'ACTIVE', ?)",
+                LocalDateTime.now());
+        admin = new AccountDTO(id("account", "email", "refund-admin@example.com"),
+                "refund-admin@example.com", "Admin hoàn tiền", null, "ADMIN", "ACTIVE");
 
         // Đặt vé + trả tiền qua VNPay, rồi nhà vận hành huỷ chuyến -> hệ thống tạo khoản hoàn tiền PENDING
         booking = bookingService.createBooking(tripId, List.of(seatId), ticketTypeId, s1, s2,
@@ -89,15 +95,16 @@ class BookingRefundDisplayTest {
     void refundedBookingShowsRefundedEverywhere() throws Exception {
         // Admin ghi nhận đã chuyển tiền hoàn cho khách -> khoản hoàn DONE, đơn REFUNDED
         int refundId = refundService.getRefundOfBooking(booking.getId()).getId();
-        refundService.markRefunded(refundId, "HT-001", LocalDateTime.now().minusMinutes(1), null);
+        refundService.markRefunded(refundId, admin);
+        assertThat(refundService.getRefundOfBooking(booking.getId()).getRefundedAt()).isNotNull();
 
         BookingDTO dto = bookingService.getBookingDetail(booking.getBookingCode());
         assertThat(dto.getStatus()).isEqualTo("REFUNDED");
         assertThat(dto.getRefundStatus()).isEqualTo("DONE");
 
-        // Trang xem vé: "Đơn đã hoàn tiền" + banner xanh có mã giao dịch hoàn, không còn mã QR lên tàu
+        // Trang xem vé: "Đơn đã hoàn tiền" + banner xanh, không còn mã QR lên tàu
         assertThat(page("/booking/" + booking.getBookingCode()))
-                .contains("Đơn đã hoàn tiền", "wb-refund-banner is-done", "HT-001")
+                .contains("Đơn đã hoàn tiền", "wb-refund-banner is-done")
                 .doesNotContain("wb-refund-banner is-pending", "Đưa nhân viên quét");
         // "Vé của tôi": nhãn "Đã hoàn tiền", không còn "Chờ hoàn tiền"
         assertThat(page("/my-bookings")).contains(booking.getBookingCode(), "Đã hoàn tiền")

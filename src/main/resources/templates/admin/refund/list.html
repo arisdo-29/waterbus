@@ -11,7 +11,7 @@
     <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
     <main class="wb-main wb-admin-content">
         <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
-        <header class="wb-admin-head"><div><span class="wb-eyebrow">Quản trị</span><h1>Hoàn tiền</h1><p>Ghi nhận khoản hoàn sau khi nhà vận hành huỷ chuyến.</p></div></header>
+        <header class="wb-admin-head"><div><span class="wb-eyebrow">Quản trị</span><h1>Hoàn tiền</h1><p>Hoàn tiền cho khách ngoài hệ thống, sau đó xác nhận tại đây.</p></div></header>
         <form th:action="@{/admin/refunds}" action="/admin/refunds" method="get" class="wb-admin-form-card row g-3 align-items-end mb-4">
             <div class="col-12 col-sm-6"><label class="form-label" for="refundStatus">Trạng thái</label><select class="form-select" id="refundStatus" name="status"><option value="" th:selected="${statusFilter == null or statusFilter == ''}">Tất cả</option><option value="PENDING" th:selected="${statusFilter == 'PENDING'}">Chờ hoàn</option><option value="DONE" th:selected="${statusFilter == 'DONE'}">Đã hoàn</option></select></div>
             <div class="col-12 col-sm-3"><button class="btn btn-wb-accent w-100" type="submit">Lọc</button></div>
@@ -19,20 +19,18 @@
         <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(refunds)}">
             <table class="table wb-admin-table">
                 <caption class="visually-hidden">Danh sách hoàn tiền khi huỷ chuyến</caption>
-                <thead><tr><th scope="col">Mã đơn</th><th scope="col">Số tiền</th><th scope="col">Lý do</th><th scope="col">Trạng thái</th><th scope="col">Ghi nhận hoàn</th></tr></thead>
+                <thead><tr><th scope="col">Mã đơn</th><th scope="col">Khách hàng</th><th scope="col">Số tiền</th><th scope="col">Lý do</th><th scope="col">Trạng thái</th><th scope="col">Xác nhận hoàn</th></tr></thead>
                 <tbody><tr th:each="refund : ${refunds}">
                     <td data-label="Mã đơn"><a th:href="@{/booking/{code}(code=${refund.bookingCode})}" th:text="${refund.bookingCode}">BK0001</a></td>
+                    <td data-label="Khách hàng"><strong th:text="${refund.contactName}">Nguyễn Văn A</strong><br><a th:href="|tel:${refund.contactPhone}|" th:text="${refund.contactPhone}">0901234567</a><br><a th:href="|mailto:${refund.contactEmail}|" th:text="${refund.contactEmail}">khach@example.com</a></td>
                     <td data-label="Số tiền" th:text="|${#numbers.formatDecimal(refund.amount, 0, 'POINT', 0, 'COMMA')} đ|">0 đ</td>
                     <td data-label="Lý do" th:text="${refund.reason}">Chuyến bị huỷ</td>
                     <td data-label="Trạng thái"><span class="badge rounded-pill" th:classappend="${refund.status == 'DONE'} ? 'wb-badge-success' : 'wb-badge-warning'" th:text="${refund.status == 'DONE'} ? 'Đã hoàn' : 'Chờ hoàn'">Chờ hoàn</span></td>
-                    <td data-label="Ghi nhận hoàn">
-                        <form th:if="${refund.status == 'PENDING'}" th:action="@{/admin/refunds/{id}/complete(id=${refund.id})}" method="post" class="d-grid gap-2" data-confirm="Xác nhận đã hoàn tiền?" th:attr="data-confirm=|Xác nhận đã hoàn ${#numbers.formatDecimal(refund.amount, 0, 'POINT', 0, 'COMMA')} đ cho đơn ${refund.bookingCode}? Chỉ bấm sau khi đã chuyển tiền ngoài hệ thống.|" data-confirm-ok="Xác nhận đã hoàn">
-                            <input class="form-control" type="text" name="transactionRef" placeholder="Mã giao dịch hoàn" maxlength="100" aria-label="Mã giao dịch hoàn" required>
-                            <input class="form-control" type="datetime-local" name="refundedAt" aria-label="Thời điểm hoàn" required>
-                            <input class="form-control" type="text" name="note" placeholder="Ghi chú" maxlength="255" aria-label="Ghi chú">
-                            <button class="btn btn-wb-accent" type="submit">Xác nhận đã hoàn</button>
+                    <td data-label="Xác nhận hoàn">
+                        <form th:if="${refund.status == 'PENDING'}" th:action="@{/admin/refunds/{id}/complete(id=${refund.id})}" method="post" data-confirm="Xác nhận đã hoàn tiền?" th:attr="data-confirm=|Xác nhận đã hoàn ${#numbers.formatDecimal(refund.amount, 0, 'POINT', 0, 'COMMA')} đ cho ${refund.contactName} (${refund.contactPhone}), đơn ${refund.bookingCode}? Chỉ bấm sau khi đã hoàn tiền ngoài hệ thống.|" data-confirm-ok="Xác nhận đã hoàn tiền">
+                            <button class="btn btn-wb-accent" type="submit">Xác nhận đã hoàn tiền</button>
                         </form>
-                        <div th:if="${refund.status == 'DONE'}"><span th:text="${refund.transactionRef}">Mã giao dịch</span><br><small th:text="${#temporals.format(refund.refundedAt, 'HH:mm dd/MM/yyyy')}">Thời điểm hoàn</small></div>
+                        <div th:if="${refund.status == 'DONE'}"><small th:if="${refund.refundedAt != null}" th:text="${#temporals.format(refund.refundedAt, 'HH:mm dd/MM/yyyy')}">Thời điểm hoàn</small><small th:if="${refund.transactionRef != null}" th:text="${refund.transactionRef}">Mã giao dịch cũ</small></div>
                     </td>
                 </tr></tbody>
             </table>

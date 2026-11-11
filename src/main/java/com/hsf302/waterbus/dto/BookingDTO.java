@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Booking;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,6 +46,18 @@ public class BookingDTO implements Serializable {
         this.expiresAt = expiresAt;
         this.paidAt = paidAt;
         this.refundStatus = refundStatus;
+    }
+
+    // Entity Booking -> DTO: chỉ chép field. 2 trạng thái là NGHIỆP VỤ nên BookingService tính rồi truyền vào:
+    // - displayStatus: trạng thái để hiển thị (đơn PENDING đã quá hạn giữ chỗ -> "EXPIRED" dù DB chưa đổi)
+    // - refundStatus: trạng thái hoàn tiền (PENDING / DONE), null nếu đơn không có khoản hoàn
+    public static BookingDTO fromEntity(Booking b, String displayStatus, String refundStatus) {
+        if (b == null) {
+            return null;
+        }
+        return new BookingDTO(b.getId(), b.getBookingCode(), displayStatus, b.getContactName(),
+                b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
+                b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);
     }
 
     public Integer getId() {

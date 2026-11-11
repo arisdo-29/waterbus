@@ -3,6 +3,7 @@ package com.hsf302.waterbus.service.impl;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.dto.BookingTripDTO;
+import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.dto.TicketTypeDTO;
 import com.hsf302.waterbus.entity.Booking;
@@ -25,6 +26,7 @@ import com.hsf302.waterbus.service.TripService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -309,14 +311,22 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<Seat> getSelectedSeats(int tripId, List<Integer> seatIds) {
+    public List<SeatDTO> getSelectedSeats(int tripId, List<Integer> seatIds) {
         if (seatIds == null) {
             return List.of();
         }
         // Lọc trong danh sách ghế còn trống -> ghế vừa bị người khác đặt sẽ không hiện nữa
-        return tripService.getAvailableSeats(tripId).stream()
-                .filter(seat -> seatIds.contains(seat.getId()))
-                .toList();
+        List<SeatDTO> selectedSeats = new ArrayList<>();
+        for (Seat seat : tripService.getAvailableSeats(tripId)) {
+            if (seatIds.contains(seat.getId())) {
+                // TODO chờ B3: Trí merge SeatDTO.fromEntity thì đổi dòng dưới thành SeatDTO.fromEntity(seat)
+                // (tạm tự dựng DTO ở đây để controller không phải nhận entity Seat).
+                // available = true vì ghế lấy từ danh sách ghế còn trống.
+                selectedSeats.add(new SeatDTO(seat.getId(), seat.getSeatCode(), seat.getSeatRow(),
+                        seat.getSeatCol(), true));
+            }
+        }
+        return selectedSeats;
     }
 
     @Override
@@ -453,7 +463,13 @@ public class BookingServiceImpl implements BookingService {
         return text == null || text.trim().isEmpty();
     }
 
+    // Đổi 1 đơn sang DTO cho controller. Việc chép field nằm trong BookingDTO.fromEntity;
+    // ở đây chỉ tính 2 trạng thái (là nghiệp vụ nên phải ở service) rồi truyền vào.
     private BookingDTO toDTO(Booking b) {
+        return BookingDTO.fromEntity(b, bookingDisplayStatus(b), refundStatusOf(b));
+    }
+
+    private String refundStatusOf(Booking b) {
         // Trạng thái hoàn tiền (PENDING = chờ hoàn, DONE = đã hoàn) để trang "Vé của tôi" hiện nhãn đúng.
         // Refund là module khác -> hỏi qua RefundService, không gọi thẳng RefundRepository
         String refundStatus = null; // chuyến không bị huỷ thì đơn không có khoản hoàn nào
@@ -461,14 +477,16 @@ public class BookingServiceImpl implements BookingService {
         if (refund != null) {
             refundStatus = refund.getStatus();
         }
+        return refundStatus;
+    }
+
+    private String bookingDisplayStatus(Booking b) {
         // Đơn đã quá hạn giữ chỗ nhưng job chưa kịp đổi trong DB -> hiển thị luôn là hết hạn
         String status = b.getStatus();
         if (isHoldExpired(b)) {
             status = "EXPIRED";
         }
-        return new BookingDTO(b.getId(), b.getBookingCode(), status, b.getContactName(),
-                b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
-                b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);
+        return status;
     }
 
     // Đơn còn PENDING trong DB mà đã quá giờ giữ chỗ. BookingExpiryJob chạy 1 phút/lần mới đổi đơn sang
@@ -481,21 +499,23 @@ public class BookingServiceImpl implements BookingService {
         return b.getExpiresAt().isBefore(LocalDateTime.now());
     }
 
+    // Đổi 1 vé sang DTO: chép field do TicketDTO.fromEntity lo (mã ghế, tên bến, requiresVerification...);
+    // ở đây chỉ tính trạng thái hiển thị (nghiệp vụ) rồi truyền vào.
     private TicketDTO toTicketDTO(Ticket t) {
-        // Lấy mã ghế và TÊN bến từ các entity liên quan
-        // requiresVerification lấy từ loại vé của chính vé này (cột kiểu Boolean nên so với TRUE để tránh null)
-        boolean requiresVerification = Boolean.TRUE.equals(t.getTicketType().getRequiresVerification());
+        return TicketDTO.fromEntity(t, ticketDisplayStatus(t));
+    }
+
+    private String ticketDisplayStatus(Ticket t) {
         // Vé đang giữ chỗ của đơn đã quá hạn: job sẽ huỷ vé (CANCELLED) -> hiển thị trước như vậy,
         // để trang không vừa ghi "Đơn đã hết hạn" vừa ghi vé "Đang giữ chỗ"
         String status = t.getStatus();
         if ("HOLD".equals(status) && isHoldExpired(t.getBooking())) {
             status = "CANCELLED";
         }
-        return new TicketDTO(t.getTicketCode(), t.getSeat().getSeatCode(), t.getFromStation().getName(),
-                t.getToStation().getName(), t.getPrice(), status,
-                t.getPassengerName(), t.getBirthYear(), requiresVerification);
+        return status;
     }
 
+    // TODO chờ B2: khi Trí merge BookingTripDTO.fromEntity(trip) vào develop thì gọi hàm đó và xoá toTripDTO
     private BookingTripDTO toTripDTO(Trip trip) {
         return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
                 trip.getDepartureTime(), trip.getArrivalTime());

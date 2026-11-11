@@ -5,7 +5,9 @@ import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.dto.AdminWaterbusForm;
 import com.hsf302.waterbus.repository.WaterbusRepository;
 import com.hsf302.waterbus.repository.SeatRepository;
+import com.hsf302.waterbus.repository.TripRepository;
 import com.hsf302.waterbus.service.WaterbusService;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +18,13 @@ import org.springframework.stereotype.Service;
 public class WaterbusServiceImpl implements WaterbusService {
     private final WaterbusRepository waterbusRepository;
     private final SeatRepository seatRepository;
+    private final TripRepository tripRepository;
 
-    public WaterbusServiceImpl(WaterbusRepository waterbusRepository, SeatRepository seatRepository) {
+    public WaterbusServiceImpl(WaterbusRepository waterbusRepository, SeatRepository seatRepository,
+                               TripRepository tripRepository) {
         this.waterbusRepository = waterbusRepository;
         this.seatRepository = seatRepository;
+        this.tripRepository = tripRepository;
     }
 
     @Override
@@ -29,59 +34,38 @@ public class WaterbusServiceImpl implements WaterbusService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public AdminWaterbusForm getWaterbusForEdit(int waterbusId) {
-        Waterbus waterbus = waterbusRepository.findById(waterbusId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tàu."));
-        AdminWaterbusForm form = new AdminWaterbusForm();
-        form.setId(waterbus.getId());
-        form.setCode(waterbus.getCode());
-        form.setName(waterbus.getName());
-        form.setCapacity(waterbus.getCapacity());
-        form.setStatus(waterbus.getStatus());
-        return form;
-    }
-
-    @Override
     @Transactional
     public void saveWaterbus(AdminWaterbusForm form) {
+        if (form.getId() != null) {
+            throw new IllegalArgumentException("Chỉ có thể thêm tàu mới.");
+        }
         String code = form.getCode().trim();
         String status = form.getStatus();
         if (!Set.of("ACTIVE", "MAINTENANCE", "INACTIVE").contains(status)) {
             throw new IllegalArgumentException("Trạng thái tàu không hợp lệ.");
         }
         waterbusRepository.findFirstByCodeIgnoreCase(code).ifPresent(existing -> {
-            if (!existing.getId().equals(form.getId())) {
-                throw new IllegalArgumentException("Mã tàu đã được sử dụng.");
-            }
+            throw new IllegalArgumentException("Mã tàu đã được sử dụng.");
         });
-        Waterbus waterbus = form.getId() == null ? new Waterbus() : waterbusRepository.findById(form.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tàu để cập nhật."));
-        List<Seat> seats = form.getId() == null
-                ? List.of() : seatRepository.findByWaterbusIdOrderBySeatRowAscSeatColAsc(form.getId());
-        if (form.getCapacity() < seats.size()) {
-            throw new IllegalArgumentException("Sức chứa không thể nhỏ hơn số ghế đã được tạo.");
-        }
+        Waterbus waterbus = new Waterbus();
         waterbus.setCode(code);
         waterbus.setName(form.getName().trim());
         waterbus.setCapacity(form.getCapacity());
         waterbus.setStatus(status);
         waterbus = waterbusRepository.save(waterbus);
-        if (form.getCapacity() > seats.size()) {
-            java.util.ArrayList<Seat> newSeats = new java.util.ArrayList<>();
-            for (int index = seats.size() + 1; index <= form.getCapacity(); index++) {
-                int row = (index - 1) / 6 + 1;
-                int column = (index - 1) % 6 + 1;
-                var seat = new Seat();
-                seat.setWaterbus(waterbus);
-                seat.setSeatCode(rowLabel(row) + column);
-                seat.setSeatRow(row);
-                seat.setSeatCol(column);
-                seat.setIsActive(true);
-                newSeats.add(seat);
-            }
-            seatRepository.saveAll(newSeats);
+        java.util.ArrayList<Seat> newSeats = new java.util.ArrayList<>();
+        for (int index = 1; index <= form.getCapacity(); index++) {
+            int row = (index - 1) / 6 + 1;
+            int column = (index - 1) % 6 + 1;
+            var seat = new Seat();
+            seat.setWaterbus(waterbus);
+            seat.setSeatCode(rowLabel(row) + column);
+            seat.setSeatRow(row);
+            seat.setSeatCol(column);
+            seat.setIsActive(true);
+            newSeats.add(seat);
         }
+        seatRepository.saveAll(newSeats);
     }
 
     @Override
@@ -93,6 +77,13 @@ public class WaterbusServiceImpl implements WaterbusService {
         Waterbus waterbus = waterbusRepository.findById(waterbusId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tàu."));
         waterbus.setStatus(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUpcomingScheduledTrips(int waterbusId) {
+        return tripRepository.countByWaterbusIdAndStatusAndDepartureTimeAfter(
+                waterbusId, "SCHEDULED", LocalDateTime.now());
     }
 
     private String rowLabel(int row) {

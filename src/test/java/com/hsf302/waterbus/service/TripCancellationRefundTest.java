@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.dto.AdminWaterbusForm;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -31,6 +33,7 @@ class TripCancellationRefundTest {
     @Autowired private TripService tripService;
     @Autowired private RefundService refundService;
     @Autowired private RevenueService revenueService;
+    @Autowired private WaterbusService waterbusService;
     @Autowired private WebApplicationContext context;
 
     private int tripId;
@@ -140,6 +143,51 @@ class TripCancellationRefundTest {
         int inputStart = html.indexOf("id=\"cancelReason-" + tripId + "\"");
         assertTrue(inputStart >= 0);
         assertTrue(html.substring(inputStart, html.indexOf('>', inputStart)).contains("disabled"));
+    }
+
+    @Test
+    void waterbusStatusWarnsAboutScheduledTripsAndKeepsCancellationAvailable() throws Exception {
+        int busId = id("waterbus", "code", "CANCEL_W");
+        assertEquals(1, waterbusService.countUpcomingScheduledTrips(busId));
+        var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        AccountDTO admin = new AccountDTO(1, "admin@test.vn", "Admin", null, "ADMIN", "ACTIVE");
+        String html = mvc.perform(get("/admin/waterbuses").sessionAttr("loginAccount", admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(html.contains("1 chuyến sắp tới"));
+        assertTrue(html.contains("/admin/trips"));
+        assertFalse(html.contains("/admin/waterbuses/" + busId + "/edit"));
+        mvc.perform(get("/admin/waterbuses/" + busId + "/edit")
+                        .sessionAttr("loginAccount", admin))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/admin/waterbuses/" + busId + "/status")
+                        .param("status", "MAINTENANCE").sessionAttr("loginAccount", admin))
+                .andExpect(status().is3xxRedirection());
+        entityManager.flush();
+        assertEquals("MAINTENANCE", value("SELECT status FROM waterbus WHERE id = ?", busId));
+        tripService.cancelTrip(tripId, "Tàu bảo trì");
+        entityManager.flush();
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", tripId));
+    }
+
+    @Test
+    void waterbusCanOnlyBeCreatedWithSeats() {
+        AdminWaterbusForm form = new AdminWaterbusForm();
+        form.setCode("NEW_W");
+        form.setName("Tàu mới");
+        form.setCapacity(7);
+        form.setStatus("ACTIVE");
+        waterbusService.saveWaterbus(form);
+        entityManager.flush();
+        int busId = id("waterbus", "code", "NEW_W");
+        assertEquals(7, jdbc.queryForObject("SELECT COUNT(*) FROM seat WHERE waterbus_id = ?",
+                Integer.class, busId));
+
+        form.setId(busId);
+        form.setCapacity(8);
+        assertThrows(IllegalArgumentException.class, () -> waterbusService.saveWaterbus(form));
+        assertEquals(7, jdbc.queryForObject("SELECT capacity FROM waterbus WHERE id = ?",
+                Integer.class, busId));
     }
 
     private void booking(String code, String status, int amount) {

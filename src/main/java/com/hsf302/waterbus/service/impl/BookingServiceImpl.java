@@ -3,6 +3,7 @@ package com.hsf302.waterbus.service.impl;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.dto.BookingTripDTO;
+import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.dto.TicketTypeDTO;
 import com.hsf302.waterbus.entity.Booking;
@@ -25,6 +26,7 @@ import com.hsf302.waterbus.service.TripService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -309,14 +311,22 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<Seat> getSelectedSeats(int tripId, List<Integer> seatIds) {
+    public List<SeatDTO> getSelectedSeats(int tripId, List<Integer> seatIds) {
         if (seatIds == null) {
             return List.of();
         }
         // Lọc trong danh sách ghế còn trống -> ghế vừa bị người khác đặt sẽ không hiện nữa
-        return tripService.getAvailableSeats(tripId).stream()
-                .filter(seat -> seatIds.contains(seat.getId()))
-                .toList();
+        List<SeatDTO> selectedSeats = new ArrayList<>();
+        for (Seat seat : tripService.getAvailableSeats(tripId)) {
+            if (seatIds.contains(seat.getId())) {
+                // TODO chờ B3: Trí merge SeatDTO.fromEntity thì đổi dòng dưới thành SeatDTO.fromEntity(seat)
+                // (tạm tự dựng DTO ở đây để controller không phải nhận entity Seat).
+                // available = true vì ghế lấy từ danh sách ghế còn trống.
+                selectedSeats.add(new SeatDTO(seat.getId(), seat.getSeatCode(), seat.getSeatRow(),
+                        seat.getSeatCol(), true));
+            }
+        }
+        return selectedSeats;
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.hsf302.waterbus.controller;
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.BookingForm;
-import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PaymentService;
@@ -124,10 +123,8 @@ public class BookingController {
             // Đã đăng nhập -> id tài khoản; chưa đăng nhập -> null (khách vãng lai)
             Integer accountId = (loginAccount == null) ? null : loginAccount.getId();
             try {
-                Booking booking = bookingService.createBooking(form.getTripId(), form.getSeatIds(),
-                        form.getTicketTypeId(), form.getFromStationId(), form.getToStationId(), form.getPromoCode(),
-                        accountId, form.getContactName(), form.getContactPhone(), form.getContactEmail(),
-                        form.getPassengerNames(), form.getBirthYears());
+                // Đưa nguyên form cho service (không tách 12 tham số rời), nhận lại DTO của đơn vừa tạo
+                BookingDTO booking = bookingService.createBooking(form, accountId);
                 // Đơn 0 đ đã PAID ngay (không cần trả tiền) -> sang thẳng trang xem vé
                 if ("PAID".equals(booking.getStatus())) {
                     flash.addFlashAttribute("successMessage", "Đặt vé thành công! Vé của bạn đã sẵn sàng.");

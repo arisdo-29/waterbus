@@ -172,7 +172,7 @@ class BookingExpiryCancelTest {
     }
 
     private Booking book(List<Integer> seatIds, Integer accountId) {
-        return bookingService.createBooking(tripId, seatIds, ticketTypeId, s1, s2,
+        return BookingTestHelper.createBooking(bookingService, tripId, seatIds, ticketTypeId, s1, s2,
                 "", accountId, "Lan", "0901234567", "lan@example.com");
     }
 

@@ -73,7 +73,7 @@ class VnPayPaymentTest {
                         + "start_at, end_at, used_count, is_active) VALUES ('TEST10', 'Giam 10%', 'PERCENT', 10, 0, ?, ?, 0, 1)",
                 LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1));
 
-        booking = bookingService.createBooking(tripId, seatIds, ticketTypeId, s1, s2,
+        booking = BookingTestHelper.createBooking(bookingService, tripId, seatIds, ticketTypeId, s1, s2,
                 "TEST10", null, "Lan", "0901234567", "lan@example.com");
     }
 

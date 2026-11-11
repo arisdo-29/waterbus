@@ -89,15 +89,22 @@ class BookingCreateTest {
 
     @Test
     void createsPendingBookingWithHoldTicketsAndDiscount() {
-        Booking booking = bookingService.createBooking(tripId, List.of(seatA1, seatA2), ticketTypeId, s1, s3,
-                "test10", null, " Lan ", "0901234567", "lan@example.com");
+        // Gọi đúng như controller: đưa nguyên form + accountId (null = khách vãng lai), nhận lại DTO
+        BookingDTO created = bookingService.createBooking(BookingTestHelper.form(tripId, List.of(seatA1, seatA2),
+                ticketTypeId, s1, s3, "test10", " Lan ", " 0901234567 ", " lan@example.com "), null);
 
-        assertThat(booking.getBookingCode()).matches("BK[0-9]{8}");
-        assertThat(booking.getStatus()).isEqualTo("PENDING");
-        assertThat(booking.getContactName()).isEqualTo("Lan");
-        assertThat(booking.getSubtotal()).isEqualByComparingTo("30000");
-        assertThat(booking.getDiscountAmount()).isEqualByComparingTo("3000");
-        assertThat(booking.getTotalAmount()).isEqualByComparingTo("27000");
+        assertThat(created.getBookingCode()).matches("BK[0-9]{8}");
+        assertThat(created.getStatus()).isEqualTo("PENDING");
+        // BookingForm.toEntity() đã bỏ khoảng trắng 2 đầu của họ tên, SĐT, email
+        assertThat(created.getContactName()).isEqualTo("Lan");
+        assertThat(created.getContactPhone()).isEqualTo("0901234567");
+        assertThat(created.getContactEmail()).isEqualTo("lan@example.com");
+        assertThat(created.getSubtotal()).isEqualByComparingTo("30000");
+        assertThat(created.getDiscountAmount()).isEqualByComparingTo("3000");
+        assertThat(created.getTotalAmount()).isEqualByComparingTo("27000");
+
+        // Mã KM và vé không có trong DTO -> lấy entity theo mã đơn để kiểm tra tiếp
+        Booking booking = bookingService.getBookingByCode(created.getBookingCode());
         assertThat(booking.getPromotion().getCode()).isEqualTo("TEST10");
         assertThat(booking.getExpiresAt()).isEqualTo(booking.getCreatedAt().plusMinutes(10));
 
@@ -119,10 +126,10 @@ class BookingCreateTest {
 
     @Test
     void rejectsSeatThatWasJustBooked() {
-        bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+        BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1), ticketTypeId, s1, s2,
                 "", null, "Lan", "0901234567", "lan@example.com");
 
-        assertThatThrownBy(() -> bookingService.createBooking(tripId, List.of(seatA1, seatA2), ticketTypeId, s1, s2,
+        assertThatThrownBy(() -> BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1, seatA2), ticketTypeId, s1, s2,
                 "", null, "Minh", "0907654321", "minh@example.com"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Ghế vừa có người đặt");
         assertThat(count("booking")).isEqualTo(1);
@@ -131,7 +138,7 @@ class BookingCreateTest {
 
     @Test
     void concurrentSeatConflictFromUniqueIndexShowsFriendlyCheckoutError() throws Exception {
-        bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+        BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1), ticketTypeId, s1, s2,
                 "", null, "Nguoi khac", "0907654321", "khac@example.com");
 
         // Simulate two requests that both read the seat as available before either inserts its ticket.
@@ -192,7 +199,7 @@ class BookingCreateTest {
         assertThat(count("booking")).isZero();
 
         // Lên ở S2: tàu tới sau 25 phút -> vẫn bán (trước đây tính theo giờ rời S1 nên bị chặn nhầm)
-        Booking booking = bookingService.createBooking(soonTripId, List.of(seatA1), ticketTypeId, s2, s3,
+        Booking booking = BookingTestHelper.createBooking(bookingService, soonTripId, List.of(seatA1), ticketTypeId, s2, s3,
                 "", null, "Lan", "0901234567", "lan@example.com");
         assertThat(booking.getStatus()).isEqualTo("PENDING");
 
@@ -259,7 +266,7 @@ class BookingCreateTest {
 
     @Test
     void postBookingShowsCheckoutAgainWithErrorAndKeepsInput() throws Exception {
-        bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+        BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1), ticketTypeId, s1, s2,
                 "", null, "Nguoi khac", "0907654321", "khac@example.com");
 
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
@@ -308,7 +315,7 @@ class BookingCreateTest {
 
     @Test
     void checkoutGoesBackToSeatPageWhenSeatTakenOrNoSeatChosen() throws Exception {
-        bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+        BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1), ticketTypeId, s1, s2,
                 "", null, "Nguoi khac", "0907654321", "khac@example.com");
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         String seatPage = "/trips/" + tripId + "/seats?fromStationId=" + s1 + "&toStationId=" + s3;
@@ -364,11 +371,11 @@ class BookingCreateTest {
 
         AccountDTO lan = account("lan@example.com");
         AccountDTO minh = account("minh@example.com");
-        Booking older = bookingService.createBooking(tripId, List.of(seatA1), ticketTypeId, s1, s2,
+        Booking older = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1), ticketTypeId, s1, s2,
                 "", lan.getId(), "Lan", "0901234567", "lan@example.com");
-        Booking newer = bookingService.createBooking(tripId, List.of(seatA2), ticketTypeId, s1, s2,
+        Booking newer = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA2), ticketTypeId, s1, s2,
                 "", lan.getId(), "Lan", "0901234567", "lan@example.com");
-        Booking ofMinh = bookingService.createBooking(tripId, List.of(seatA3), ticketTypeId, s1, s2,
+        Booking ofMinh = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA3), ticketTypeId, s1, s2,
                 "", minh.getId(), "Minh", "0907654321", "minh@example.com");
         older.setCreatedAt(LocalDateTime.now().minusHours(1)); // để chắc chắn thứ tự thời gian
 
@@ -429,7 +436,7 @@ class BookingCreateTest {
 
     private void assertInvalid(int trip, List<Integer> seats, int from, int to, String promo, String phone,
                                String message) {
-        assertThatThrownBy(() -> bookingService.createBooking(trip, seats, ticketTypeId, from, to,
+        assertThatThrownBy(() -> BookingTestHelper.createBooking(bookingService, trip, seats, ticketTypeId, from, to,
                 promo, null, "Lan", phone, "lan@example.com"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(message);
     }

@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.interceptor;
 
 import com.hsf302.waterbus.dto.AccountDTO;
+import com.hsf302.waterbus.service.AccountService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -115,5 +116,22 @@ class AdminInterceptorTest {
         verify(session, times(1)).removeAttribute("loginAccount");
         verify(session, times(1)).invalidate();
         verify(response, times(1)).sendRedirect("/auth/login?error=locked");
+    }
+
+    @Test
+    void testPreHandle_LockedInDatabase_InvalidatesSessionAndRedirectsToLogin() throws Exception {
+        AccountService accountService = Mockito.mock(AccountService.class);
+        AdminInterceptor serviceInterceptor = new AdminInterceptor(accountService);
+
+        when(request.getSession(false)).thenReturn(session);
+        AccountDTO activeStaff = new AccountDTO(4, "active@waterbus.vn", "Active User", "0900000004", "STAFF", "ACTIVE");
+        when(session.getAttribute("loginAccount")).thenReturn(activeStaff);
+        when(accountService.isLocked(4)).thenReturn(true);
+
+        boolean result = serviceInterceptor.preHandle(request, response, new Object());
+
+        assertFalse(result);
+        verify(session, times(1)).removeAttribute("loginAccount");
+        verify(session, times(1)).invalidate();
     }
 }

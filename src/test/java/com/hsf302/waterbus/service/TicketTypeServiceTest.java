@@ -59,6 +59,23 @@ class TicketTypeServiceTest {
     }
 
     @Test
+    void testGetActiveTicketTypeDTOs() {
+        TicketType tt1 = new TicketType();
+        tt1.setId(1);
+        tt1.setCode("STD");
+        tt1.setName("Vé Thường");
+        tt1.setPrice(BigDecimal.valueOf(15000));
+        tt1.setIsActive(true);
+
+        when(ticketTypeRepository.findByIsActiveTrue()).thenReturn(List.of(tt1));
+
+        List<TicketTypeDTO> activeList = ticketTypeService.getActiveTicketTypeDTOs();
+        assertEquals(1, activeList.size());
+        assertEquals("STD", activeList.get(0).getCode());
+        assertEquals("Vé Thường", activeList.get(0).getName());
+    }
+
+    @Test
     void testSaveTicketType_CreateNew() {
         TicketTypeDTO dto = new TicketTypeDTO(null, "VIP", "Vé VIP", BigDecimal.valueOf(30000), false, "Mô tả", true);
 

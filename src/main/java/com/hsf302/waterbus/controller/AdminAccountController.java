@@ -3,7 +3,6 @@ package com.hsf302.waterbus.controller;
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.CreateStaffRequest;
-import com.hsf302.waterbus.entity.Account;
 import com.hsf302.waterbus.service.AccountService;
 import com.hsf302.waterbus.service.BookingService;
 import jakarta.servlet.http.HttpSession;
@@ -80,14 +79,14 @@ public class AdminAccountController {
 
     @GetMapping("/{id}")
     public String viewDetail(@PathVariable int id, Model model, RedirectAttributes redirectAttributes) {
-        Account account = accountService.getAccountById(id);
+        AccountDTO account = accountService.getAccountById(id);
         if (account == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy tài khoản có mã ID: " + id);
             return "redirect:/admin/accounts";
         }
 
         List<BookingDTO> bookings = bookingService.getBookingsOfAccount(id);
-        model.addAttribute("account", AccountDTO.fromEntity(account));
+        model.addAttribute("account", account);
         model.addAttribute("bookings", bookings);
         return "admin/account/detail";
     }

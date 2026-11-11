@@ -104,7 +104,7 @@ public class RefundServiceImpl implements RefundService {
         if (admin == null || admin.getId() == null || !"ADMIN".equals(admin.getRole())) {
             throw new IllegalArgumentException("Chỉ quản trị viên được xác nhận hoàn tiền.");
         }
-        Account processor = accountService.getAccountById(admin.getId());
+        Account processor = accountService.getAccountEntityById(admin.getId());
         if (processor == null || !"ADMIN".equals(processor.getRole())
                 || !"ACTIVE".equals(processor.getStatus())) {
             throw new IllegalArgumentException("Tài khoản quản trị không còn hợp lệ.");

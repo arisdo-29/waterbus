@@ -59,13 +59,21 @@ public class BookingController {
     }
 
     // POST /booking/checkout: form ở trang chọn ghế (trip/seats) gửi lên -> trang xem lại đơn, CHƯA lưu gì vào DB
+    // Hai bến dùng Integer + required = false (không dùng int): thiếu bến hoặc bến rỗng thì nhận null
+    // để tự báo lỗi dễ hiểu, thay vì Spring tự trả trang lỗi 400 trước khi vào hàm
     @PostMapping("/checkout")
     public String checkout(@RequestParam int tripId,
                            @RequestParam(required = false) List<Integer> seatIds, // nhiều checkbox cùng tên
                            @RequestParam int ticketTypeId,
-                           @RequestParam int fromStationId,
-                           @RequestParam int toStationId,
+                           @RequestParam(required = false) Integer fromStationId,
+                           @RequestParam(required = false) Integer toStationId,
                            Model model, RedirectAttributes flash) {
+        // Thiếu bến: VD khách mở trang chọn ghế bằng link không kèm bến (/trips/5/seats) -> 2 ô ẩn bến bị rỗng.
+        // Không biết khách đi chặng nào thì không biết giờ tàu tới bến đi -> về trang tìm chuyến để chọn lại bến
+        if (fromStationId == null || toStationId == null) {
+            flash.addFlashAttribute("errorMessage", "Vui lòng chọn bến đi và bến đến trước khi đặt vé.");
+            return "redirect:/trips";
+        }
         // Chuyến hoặc loại vé không tồn tại (sửa tay form) -> về trang tìm chuyến
         if (!tripAndTicketTypeExist(tripId, fromStationId, toStationId, ticketTypeId)) {
             flash.addFlashAttribute("errorMessage", "Chuyến hoặc loại vé không hợp lệ. Vui lòng chọn lại.");

@@ -332,6 +332,31 @@ class BookingCreateTest {
     }
 
     @Test
+    void checkoutWithoutStationsGoesBackToTripSearch() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String message = "Vui lòng chọn bến đi và bến đến trước khi đặt vé.";
+
+        // Không gửi 2 bến (form bị sửa tay) -> trước đây Spring trả lỗi 400
+        mvc.perform(post("/booking/checkout")
+                        .param("tripId", String.valueOf(tripId))
+                        .param("seatIds", String.valueOf(seatA1))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId)))
+                .andExpect(redirectedUrl("/trips"))
+                .andExpect(flash().attribute("errorMessage", message));
+
+        // Có 2 ô bến nhưng rỗng: khách mở trang chọn ghế bằng link không kèm bến (/trips/{id}/seats)
+        mvc.perform(post("/booking/checkout")
+                        .param("tripId", String.valueOf(tripId))
+                        .param("seatIds", String.valueOf(seatA1))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", "")
+                        .param("toStationId", ""))
+                .andExpect(redirectedUrl("/trips"))
+                .andExpect(flash().attribute("errorMessage", message));
+        assertThat(count("booking")).isZero();
+    }
+
+    @Test
     void myBookingsRequiresLoginAndShowsOnlyOwnBookingsNewestFirst() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         // Chưa đăng nhập -> sang trang đăng nhập

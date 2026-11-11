@@ -63,17 +63,28 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional
-    public Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail) {
-        // Vé thường: không có họ tên/năm sinh từng hành khách -> gọi hàm đầy đủ với null
-        return createBooking(tripId, seatIds, ticketTypeId, fromStationId, toStationId, promoCode, accountId,
-                contactName, contactPhone, contactEmail, null, null);
-    }
-
-    @Override
     @Transactional // lưu 1 booking + nhiều ticket: lỗi giữa chừng thì huỷ hết, không lưu nửa vời
-    public Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail,
-                                 List<String> passengerNames, List<Integer> birthYears) {
+    public BookingDTO createBooking(BookingForm form, Integer accountId) {
+        // Form thiếu chuyến/loại vé/bến (bị sửa tay) -> báo lỗi rõ ràng thay vì NullPointerException
+        // (controller đã chặn trước bằng lỗi 400; kiểm tra lại vì service có thể được gọi từ chỗ khác)
+        if (form.getTripId() == null || form.getTicketTypeId() == null
+                || form.getFromStationId() == null || form.getToStationId() == null) {
+            throw new IllegalArgumentException("Thiếu thông tin chuyến, loại vé hoặc bến.");
+        }
+        // Lấy dữ liệu trên form ra biến TRÙNG TÊN tham số cũ -> các bước 1-9 bên dưới giữ nguyên.
+        // Vé thường: form không có họ tên/năm sinh từng hành khách -> passengerNames, birthYears = null
+        int tripId = form.getTripId();
+        int ticketTypeId = form.getTicketTypeId();
+        int fromStationId = form.getFromStationId();
+        int toStationId = form.getToStationId();
+        List<Integer> seatIds = form.getSeatIds();
+        String promoCode = form.getPromoCode();
+        String contactName = form.getContactName();
+        String contactPhone = form.getContactPhone();
+        String contactEmail = form.getContactEmail();
+        List<String> passengerNames = form.getPassengerNames();
+        List<Integer> birthYears = form.getBirthYears();
+
         // 1. Kiểm tra thông tin khách nhập
         if (isBlank(contactName) || isBlank(contactPhone) || isBlank(contactEmail)) {
             throw new IllegalArgumentException("Vui lòng nhập đầy đủ họ tên, số điện thoại và email.");
@@ -161,16 +172,15 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal total = subtotal.subtract(discount);
         boolean isFree = total.compareTo(BigDecimal.ZERO) == 0;
         String number = newBookingNumber();
-        Booking booking = new Booking();
+        // Phần khách nhập (họ tên, SĐT, email đã bỏ khoảng trắng) do form tự chép sang entity
+        Booking booking = form.toEntity();
+        // Phần còn lại do hệ thống tính ra -> service set
         booking.setBookingCode("BK" + number);
         booking.setPromotion(promotion);
         // Đã đăng nhập -> gắn tài khoản vào đơn. Chưa đăng nhập (accountId = null) -> khách vãng lai, account_id để NULL
         if (accountId != null) {
             booking.setAccount(accountService.getAccountEntityById(accountId));
         }
-        booking.setContactName(contactName.trim());
-        booking.setContactPhone(contactPhone.trim());
-        booking.setContactEmail(contactEmail.trim());
         booking.setSubtotal(subtotal);
         booking.setDiscountAmount(discount);
         booking.setTotalAmount(total); // DB bắt buộc: total = subtotal - discount
@@ -219,7 +229,7 @@ public class BookingServiceImpl implements BookingService {
         if (isFree && promotion != null) {
             promotionService.increaseUsedCount(promotion.getCode());
         }
-        return booking;
+        return toDTO(booking); // trả DTO cho controller, entity không ra khỏi service
     }
 
     // Đã ngừng bán online chưa: khi tàu tới bến khách lên chỉ còn ONLINE_SALES_CUTOFF_MINUTES phút

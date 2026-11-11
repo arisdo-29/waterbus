@@ -62,7 +62,7 @@ class PaymentServiceTest {
                 LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1));
 
         // Tạo đơn bằng chính luồng đặt vé (#14): 2 vé x 15.000 - 10% = 27.000
-        booking = bookingService.createBooking(tripId, seatIds, ticketTypeId, s1, s2,
+        booking = BookingTestHelper.createBooking(bookingService, tripId, seatIds, ticketTypeId, s1, s2,
                 "TEST10", null, "Lan", "0901234567", "lan@example.com");
     }
 

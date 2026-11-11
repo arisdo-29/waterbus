@@ -451,17 +451,38 @@ public class BookingServiceImpl implements BookingService {
         if (refund != null) {
             refundStatus = refund.getStatus();
         }
-        return new BookingDTO(b.getId(), b.getBookingCode(), b.getStatus(), b.getContactName(),
+        // Đơn đã quá hạn giữ chỗ nhưng job chưa kịp đổi trong DB -> hiển thị luôn là hết hạn
+        String status = b.getStatus();
+        if (isHoldExpired(b)) {
+            status = "EXPIRED";
+        }
+        return new BookingDTO(b.getId(), b.getBookingCode(), status, b.getContactName(),
                 b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
                 b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);
+    }
+
+    // Đơn còn PENDING trong DB mà đã quá giờ giữ chỗ. BookingExpiryJob chạy 1 phút/lần mới đổi đơn sang
+    // EXPIRED (và nhả ghế), nên trong lúc chờ job, trang vẫn phải hiện là hết hạn chứ không mời khách trả tiền.
+    // Chỉ đổi chữ HIỂN THỊ trong DTO, không ghi DB: việc ghi DB + nhả ghế để job làm, tránh làm 2 nơi.
+    private boolean isHoldExpired(Booking b) {
+        if (!"PENDING".equals(b.getStatus()) || b.getExpiresAt() == null) {
+            return false;
+        }
+        return b.getExpiresAt().isBefore(LocalDateTime.now());
     }
 
     private TicketDTO toTicketDTO(Ticket t) {
         // Lấy mã ghế và TÊN bến từ các entity liên quan
         // requiresVerification lấy từ loại vé của chính vé này (cột kiểu Boolean nên so với TRUE để tránh null)
         boolean requiresVerification = Boolean.TRUE.equals(t.getTicketType().getRequiresVerification());
+        // Vé đang giữ chỗ của đơn đã quá hạn: job sẽ huỷ vé (CANCELLED) -> hiển thị trước như vậy,
+        // để trang không vừa ghi "Đơn đã hết hạn" vừa ghi vé "Đang giữ chỗ"
+        String status = t.getStatus();
+        if ("HOLD".equals(status) && isHoldExpired(t.getBooking())) {
+            status = "CANCELLED";
+        }
         return new TicketDTO(t.getTicketCode(), t.getSeat().getSeatCode(), t.getFromStation().getName(),
-                t.getToStation().getName(), t.getPrice(), t.getStatus(),
+                t.getToStation().getName(), t.getPrice(), status,
                 t.getPassengerName(), t.getBirthYear(), requiresVerification);
     }
 

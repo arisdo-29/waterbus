@@ -24,6 +24,13 @@ public class TicketTypeServiceImpl implements TicketTypeService {
     }
 
     @Override
+    public List<TicketTypeDTO> getActiveTicketTypeDTOs() {
+        return ticketTypeRepository.findByIsActiveTrue().stream()
+                .map(TicketTypeDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
     public BigDecimal getPrice(int ticketTypeId) {
         return ticketTypeRepository.findById(ticketTypeId)
                 .map(TicketType::getPrice)
@@ -76,9 +83,5 @@ public class TicketTypeServiceImpl implements TicketTypeService {
             tt.setIsActive(false);
             ticketTypeRepository.save(tt);
         });
-    }
-
-    private TicketTypeDTO toDTO(TicketType tt) {
-        return TicketTypeDTO.fromEntity(tt);
     }
 }

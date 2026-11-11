@@ -49,7 +49,7 @@ public class TicketServiceImpl implements TicketService {
     @Transactional(readOnly = true)
     public TicketCheckinDTO getTicketInfo(String ticketCode) {
         Ticket ticket = findTicketOrThrow(ticketCode);
-        return mapToDTO(ticket);
+        return TicketCheckinDTO.fromEntity(ticket);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class TicketServiceImpl implements TicketService {
             logScan(ticket.getTicketCode(),
                     ticket.getBooking() != null ? ticket.getBooking().getBookingCode() : null,
                     ticket.getTrip(), staffAccountId, "VIEW", "SUCCESS", source, "Tra cứu vé thành công");
-            return mapToDTO(ticket);
+            return TicketCheckinDTO.fromEntity(ticket);
         } catch (Exception ex) {
             logScan(ticketCode, null, null, staffAccountId, "VIEW", "FAILED", source, ex.getMessage());
             throw ex;
@@ -204,7 +204,7 @@ public class TicketServiceImpl implements TicketService {
 
         logScan(saved.getTicketCode(), getBookingCode(saved), saved.getTrip(), staffAccountId, "CHECKIN", "SUCCESS", safeSource, "Soát vé thành công");
 
-        return mapToDTO(saved);
+        return TicketCheckinDTO.fromEntity(saved);
     }
 
     @Override
@@ -238,18 +238,14 @@ public class TicketServiceImpl implements TicketService {
 
         logScan(saved.getTicketCode(), getBookingCode(saved), saved.getTrip(), staffAccountId, "REJECT", "SUCCESS", "MANUAL", "Từ chối vé ưu đãi: " + safeReason);
 
-        return mapToDTO(saved);
+        return TicketCheckinDTO.fromEntity(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TicketCheckinDTO> getPassengerManifest(int tripId) {
         List<Ticket> tickets = ticketRepository.findByTripIdOrderByIdAsc(tripId);
-        List<TicketCheckinDTO> result = new ArrayList<>();
-        for (Ticket t : tickets) {
-            result.add(mapToDTO(t));
-        }
-        return result;
+        return tickets.stream().map(TicketCheckinDTO::fromEntity).toList();
     }
 
     private Ticket findTicketOrThrow(String ticketCode) {
@@ -293,9 +289,5 @@ public class TicketServiceImpl implements TicketService {
         } catch (Exception ignored) {
             // Log không được làm fail giao dịch chính
         }
-    }
-
-    private TicketCheckinDTO mapToDTO(Ticket ticket) {
-        return TicketCheckinDTO.fromEntity(ticket);
     }
 }

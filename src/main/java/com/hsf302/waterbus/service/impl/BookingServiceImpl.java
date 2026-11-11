@@ -179,7 +179,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setPromotion(promotion);
         // Đã đăng nhập -> gắn tài khoản vào đơn. Chưa đăng nhập (accountId = null) -> khách vãng lai, account_id để NULL
         if (accountId != null) {
-            booking.setAccount(accountService.getAccountById(accountId));
+            booking.setAccount(accountService.getAccountEntityById(accountId));
         }
         booking.setSubtotal(subtotal);
         booking.setDiscountAmount(discount);

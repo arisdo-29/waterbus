@@ -177,8 +177,4 @@ public class PromotionServiceImpl implements PromotionService {
             promotionRepository.save(promo);
         });
     }
-
-    private PromotionDTO toDTO(Promotion p) {
-        return PromotionDTO.fromEntity(p);
-    }
 }

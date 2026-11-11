@@ -1,8 +1,7 @@
 package com.hsf302.waterbus.interceptor;
 
 import com.hsf302.waterbus.dto.AccountDTO;
-import com.hsf302.waterbus.entity.Account;
-import com.hsf302.waterbus.repository.AccountRepository;
+import com.hsf302.waterbus.service.AccountService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -18,14 +17,14 @@ import org.springframework.web.servlet.support.RequestContextUtils;
 @Component
 public class AdminInterceptor implements HandlerInterceptor {
 
-    private final AccountRepository accountRepository;
+    private final AccountService accountService;
 
     public AdminInterceptor() {
-        this.accountRepository = null;
+        this.accountService = null;
     }
 
-    public AdminInterceptor(@Autowired(required = false) AccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
+    public AdminInterceptor(@Autowired(required = false) AccountService accountService) {
+        this.accountService = accountService;
     }
 
     @Override
@@ -55,9 +54,8 @@ public class AdminInterceptor implements HandlerInterceptor {
         }
 
         // Kiểm tra trạng thái tài khoản: Nếu bị khoá trong DB thì tự động đăng xuất
-        if (accountRepository != null && account.getId() != null) {
-            Account dbAccount = accountRepository.findById(account.getId()).orElse(null);
-            if (dbAccount != null && "LOCKED".equalsIgnoreCase(dbAccount.getStatus())) {
+        if (accountService != null && account.getId() != null) {
+            if (accountService.isLocked(account.getId())) {
                 session.removeAttribute("loginAccount");
                 session.invalidate();
                 sendRedirectWithFlashMessage(request, response, "/auth/login?error=locked",

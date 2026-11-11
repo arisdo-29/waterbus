@@ -183,6 +183,30 @@ class TripCancellationRefundTest {
         assertEquals("REFUNDED", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_PAID'"));
     }
 
+    @Test
+    void revenueSubtractsCompletedRefundOnRefundDate() {
+        tripService.cancelTrip(tripId, "Tàu hỏng");
+        entityManager.flush();
+        int refundId = jdbc.queryForObject("SELECT id FROM refund WHERE booking_id = ?", Integer.class,
+                id("booking", "booking_code", "CANCEL_PAID"));
+        refundService.markRefunded(refundId, admin());
+        entityManager.flush();
+
+        LocalDate paymentDate = LocalDate.now();
+        LocalDate refundDate = paymentDate.plusDays(1);
+        jdbc.update("UPDATE refund SET refunded_at = ? WHERE id = ?", refundDate.atTime(9, 30), refundId);
+        entityManager.clear();
+
+        var paymentReport = revenueService.getReport(paymentDate, paymentDate);
+        assertEquals(new BigDecimal("20000"), paymentReport.summary().totalRevenue());
+        assertEquals(BigDecimal.ZERO, paymentReport.summary().totalRefunded());
+
+        var refundReport = revenueService.getReport(refundDate, refundDate);
+        assertEquals(new BigDecimal("-20000"), refundReport.summary().totalRevenue());
+        assertEquals(new BigDecimal("20000"), refundReport.summary().totalRefunded());
+        assertEquals(refundReport.summary().totalRevenue(), refundReport.dailyRevenue().get(0).revenue());
+    }
+
     private AccountDTO admin() {
         return new AccountDTO(id("account", "email", "refund-admin@test.vn"),
                 "refund-admin@test.vn", "Admin hoàn tiền", null, "ADMIN", "ACTIVE");

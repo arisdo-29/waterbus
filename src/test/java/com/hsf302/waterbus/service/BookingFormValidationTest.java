@@ -65,20 +65,41 @@ class BookingFormValidationTest {
                         "contactName", "contactPhone", "contactEmail", "promoCode"))
                 // Vẫn đủ model như trước để trang checkout vẽ lại được
                 .andExpect(model().attributeExists("trip", "seats", "ticketType", "subtotal",
-                        "fromStation", "toStation", "fromStationId", "toStationId", "errorMessage"))
+                        "fromStation", "toStation", "fromStationId", "toStationId"))
+                // L-14: alert đầu trang chỉ nhắc chung, không lặp lại từng lỗi
+                .andExpect(model().attribute("errorMessage", "Vui lòng kiểm tra các ô được đánh dấu."))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(html).contains("Vui lòng nhập họ và tên.", "Số điện thoại phải gồm 10 chữ số",
-                "Email không đúng định dạng.", "Mã khuyến mãi tối đa 30 ký tự.",
-                "value=\"12345\"", "value=\"abc\""); // giữ lại giá trị khách vừa gõ
+        assertThat(html).contains("value=\"12345\"", "value=\"abc\""); // giữ lại giá trị khách vừa gõ
+        // Mỗi câu lỗi hiện đúng 1 lần (dưới ô của nó): tách HTML theo câu lỗi -> được 2 mảnh = có 1 lần
+        assertThat(html.split("Vui lòng nhập họ và tên.", -1)).hasSize(2);
+        assertThat(html.split("Số điện thoại phải gồm 10 chữ số", -1)).hasSize(2);
+        assertThat(html.split("Email không đúng định dạng.", -1)).hasSize(2);
+        assertThat(html.split("Mã khuyến mãi tối đa 30 ký tự.", -1)).hasSize(2);
         assertThat(count("booking")).isZero(); // nhập sai -> chưa tạo đơn
     }
 
     @Test
     void emptyPhoneOnlyAsksToEnterPhone() throws Exception {
-        mvc.perform(booking("Lan", "", "lan@example.com", ""))
+        String html = mvc.perform(booking("Lan", "", "lan@example.com", ""))
                 .andExpect(view().name("booking/checkout"))
                 .andExpect(model().attributeHasFieldErrorCode("bookingForm", "contactPhone", "NotBlank"))
-                .andExpect(model().attribute("errorMessage", "Vui lòng nhập số điện thoại."));
+                .andExpect(model().attribute("errorMessage", "Vui lòng kiểm tra các ô được đánh dấu."))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(html.split("Vui lòng nhập số điện thoại.", -1)).hasSize(2); // chỉ hiện 1 lần, dưới ô SĐT
+    }
+
+    @Test
+    void seatErrorStaysInAlertBecauseSeatHasNoFieldOnPage() throws Exception {
+        // Vừa trống họ tên (có ô để hiện) vừa không có ghế (seatIds là ô ẩn, không có chỗ hiện lỗi)
+        mvc.perform(post("/booking").param("acceptPolicy", "true")
+                        .param("tripId", String.valueOf(tripId))
+                        .param("ticketTypeId", String.valueOf(ticketTypeId))
+                        .param("fromStationId", String.valueOf(s1)).param("toStationId", String.valueOf(s2))
+                        .param("contactName", "").param("contactPhone", "0901234567")
+                        .param("contactEmail", "lan@example.com"))
+                .andExpect(view().name("booking/checkout"))
+                .andExpect(model().attribute("errorMessage",
+                        "Vui lòng kiểm tra các ô được đánh dấu. Vui lòng chọn ít nhất 1 ghế."));
     }
 
     @Test

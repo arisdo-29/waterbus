@@ -123,6 +123,15 @@ class AccountServiceTest {
         assertEquals("test@gmail.com", dto.getEmail());
         assertEquals("Nguyen Van Test", dto.getFullName());
         assertEquals("STAFF", dto.getRole());
+
+        AccountDTO directDto = AccountDTO.fromEntity(account);
+        assertNotNull(directDto);
+        assertEquals(dto, directDto);
+
+        Account convertedBack = directDto.toEntity();
+        assertNotNull(convertedBack);
+        assertEquals(account.getId(), convertedBack.getId());
+        assertEquals(account.getEmail(), convertedBack.getEmail());
     }
 
     @Test

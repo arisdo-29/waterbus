@@ -17,8 +17,6 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
-// Module: BE3 (Tân) - Soát vé (Staff Check-in) theo M4 & M5
-// Endpoint nằm dưới /admin/** để được bảo vệ bởi AdminInterceptor (chỉ STAFF và ADMIN được truy cập)
 @Controller
 @RequestMapping("/admin/checkin")
 public class AdminCheckinController {
@@ -26,7 +24,6 @@ public class AdminCheckinController {
     private final TicketService ticketService;
     private final TripService tripService;
 
-    // Constructor Injection
     public AdminCheckinController(TicketService ticketService, TripService tripService) {
         this.ticketService = ticketService;
         this.tripService = tripService;
@@ -43,7 +40,6 @@ public class AdminCheckinController {
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         Integer staffId = loginAccount != null ? loginAccount.getId() : null;
 
-        // 1. Lấy danh sách chuyến hôm nay cho dropdown chọn chuyến
         List<AdminTripDTO> allTrips = tripService.getTripsForAdmin();
         LocalDate today = LocalDate.now();
         List<AdminTripDTO> tripsToday = allTrips.stream()
@@ -58,7 +54,6 @@ public class AdminCheckinController {
         }
         model.addAttribute("tripsToday", tripsToday);
 
-        // 2. Xác định chuyến đang chọn (selectedTrip)
         AdminTripDTO selectedTrip = null;
         if (tripId != null) {
             selectedTrip = allTrips.stream().filter(t -> t.id().equals(tripId)).findFirst().orElse(null);
@@ -74,14 +69,12 @@ public class AdminCheckinController {
         model.addAttribute("selectedTripId", selectedTrip != null ? selectedTrip.id() : null);
         model.addAttribute("isTripMismatch", false);
 
-        // 3. Tra cứu mã vé hoặc mã đơn (nếu có tham số ticketCode)
         if (ticketCode != null && !ticketCode.trim().isEmpty()) {
             String cleanCode = ticketCode.trim().toUpperCase();
             model.addAttribute("ticketCode", cleanCode);
 
             try {
                 if (cleanCode.startsWith("BK")) {
-                    // Tra cứu theo mã đơn (Group check-in)
                     BookingCheckinDTO bookingCheckin = ticketService.getBookingCheckinInfo(cleanCode, staffId, "MANUAL");
                     model.addAttribute("previewBooking", bookingCheckin);
                     if (selectedTrip != null && bookingCheckin.getTripId() != null
@@ -90,7 +83,6 @@ public class AdminCheckinController {
                         model.addAttribute("mismatchTripCode", bookingCheckin.getTripCode());
                     }
                 } else {
-                    // Tra cứu theo mã vé đơn lẻ
                     TicketCheckinDTO ticket = ticketService.getTicketInfoWithLog(cleanCode, staffId, "MANUAL");
                     model.addAttribute("previewTicket", ticket);
                     if (selectedTrip != null && ticket.getTripId() != null
@@ -107,7 +99,6 @@ public class AdminCheckinController {
             }
         }
 
-        // 4. Danh sách hành khách của chuyến đang chọn (Passenger Manifest)
         if (selectedTrip != null) {
             List<TicketCheckinDTO> manifest = ticketService.getPassengerManifest(selectedTrip.id());
             long totalCount = manifest.size();
@@ -115,7 +106,6 @@ public class AdminCheckinController {
             model.addAttribute("totalPassengers", totalCount);
             model.addAttribute("boardedPassengers", boardedCount);
 
-            // Áp dụng bộ lọc
             List<TicketCheckinDTO> filteredManifest = manifest.stream()
                     .filter(t -> {
                         if ("unboarded".equalsIgnoreCase(filter)) return t.isValid();

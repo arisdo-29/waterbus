@@ -11,8 +11,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 
-// Module: BE3 - Tài khoản, Loại vé & Khuyến mãi. Mọi URL của controller này bắt đầu bằng /admin/promotions
-// View đặt trong templates/admin/promotion/ (giao diện: Tân)
 @Controller
 @RequestMapping("/admin/promotions")
 public class PromotionController {

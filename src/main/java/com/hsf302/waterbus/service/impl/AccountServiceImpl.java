@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-// Module: BE3 - Tài khoản, Loại vé & Khuyến mãi.
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -64,18 +63,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDTO toDTO(Account account) {
-        if (account == null) {
-            return null;
-        }
-        return new AccountDTO(
-                account.getId(),
-                account.getEmail(),
-                account.getFullName(),
-                account.getPhone(),
-                account.getRole(),
-                account.getStatus(),
-                account.getCreatedAt()
-        );
+        return AccountDTO.fromEntity(account);
     }
 
     @Override
@@ -101,7 +89,7 @@ public class AccountServiceImpl implements AccountService {
         account.setPhone(phone != null ? phone.trim() : null);
 
         Account saved = accountRepository.save(account);
-        return toDTO(saved);
+        return AccountDTO.fromEntity(saved);
     }
 
     @Override
@@ -134,7 +122,7 @@ public class AccountServiceImpl implements AccountService {
         Pageable pageable = PageRequest.of(pageNum, pageSize);
 
         Page<Account> accounts = accountRepository.searchAccounts(cleanKeyword, cleanRole, cleanStatus, pageable);
-        return accounts.map(this::toDTO);
+        return accounts.map(AccountDTO::fromEntity);
     }
 
     @Override
@@ -159,7 +147,7 @@ public class AccountServiceImpl implements AccountService {
         account.setCreatedAt(LocalDateTime.now());
 
         Account saved = accountRepository.save(account);
-        return toDTO(saved);
+        return AccountDTO.fromEntity(saved);
     }
 
     @Override
@@ -187,7 +175,7 @@ public class AccountServiceImpl implements AccountService {
 
         target.setRole(upperRole);
         Account saved = accountRepository.save(target);
-        return toDTO(saved);
+        return AccountDTO.fromEntity(saved);
     }
 
     @Override
@@ -208,7 +196,7 @@ public class AccountServiceImpl implements AccountService {
         target.setStatus(nextStatus);
 
         Account saved = accountRepository.save(target);
-        return toDTO(saved);
+        return AccountDTO.fromEntity(saved);
     }
 
     @Override

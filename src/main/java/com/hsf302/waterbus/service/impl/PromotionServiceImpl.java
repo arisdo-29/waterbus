@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-// Module: BE3 - Tài khoản, Loại vé & Khuyến mãi.
 @Service
 public class PromotionServiceImpl implements PromotionService {
 
@@ -107,14 +106,14 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     public List<PromotionDTO> getAllPromotions() {
         return promotionRepository.findAll().stream()
-                .map(this::toDTO)
+                .map(PromotionDTO::fromEntity)
                 .toList();
     }
 
     @Override
     public PromotionDTO getPromotionById(int id) {
         return promotionRepository.findById(id)
-                .map(this::toDTO)
+                .map(PromotionDTO::fromEntity)
                 .orElse(null);
     }
 
@@ -176,19 +175,6 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     private PromotionDTO toDTO(Promotion p) {
-        return new PromotionDTO(
-                p.getId(),
-                p.getCode(),
-                p.getName(),
-                p.getDiscountType(),
-                p.getDiscountValue(),
-                p.getMaxDiscount(),
-                p.getMinOrderAmount(),
-                p.getStartAt(),
-                p.getEndAt(),
-                p.getUsageLimit(),
-                p.getUsedCount(),
-                p.getIsActive()
-        );
+        return PromotionDTO.fromEntity(p);
     }
 }

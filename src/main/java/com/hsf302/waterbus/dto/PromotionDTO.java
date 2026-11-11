@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Promotion;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -65,6 +66,43 @@ public class PromotionDTO implements Serializable {
         this.usageLimit = usageLimit;
         this.usedCount = usedCount != null ? usedCount : 0;
         this.isActive = isActive != null ? isActive : true;
+    }
+
+    public static PromotionDTO fromEntity(Promotion p) {
+        if (p == null) {
+            return null;
+        }
+        return new PromotionDTO(
+                p.getId(),
+                p.getCode(),
+                p.getName(),
+                p.getDiscountType(),
+                p.getDiscountValue(),
+                p.getMaxDiscount(),
+                p.getMinOrderAmount(),
+                p.getStartAt(),
+                p.getEndAt(),
+                p.getUsageLimit(),
+                p.getUsedCount(),
+                p.getIsActive()
+        );
+    }
+
+    public Promotion toEntity() {
+        Promotion p = new Promotion();
+        p.setId(this.id);
+        p.setCode(this.code);
+        p.setName(this.name);
+        p.setDiscountType(this.discountType);
+        p.setDiscountValue(this.discountValue);
+        p.setMaxDiscount("FIXED".equalsIgnoreCase(this.discountType) ? null : this.maxDiscount);
+        p.setMinOrderAmount(this.minOrderAmount != null ? this.minOrderAmount : java.math.BigDecimal.ZERO);
+        p.setStartAt(this.startAt);
+        p.setEndAt(this.endAt);
+        p.setUsageLimit(this.usageLimit);
+        p.setUsedCount(this.usedCount != null ? this.usedCount : 0);
+        p.setIsActive(this.isActive != null ? this.isActive : true);
+        return p;
     }
 
     public Integer getId() {

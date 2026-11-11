@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// Module: BE3 - Tài khoản, Loại vé & Khuyến mãi. Mọi URL của controller này bắt đầu bằng /auth
-// View đặt trong templates/auth/ (giao diện: Tân)
 @Controller
 @RequestMapping("/auth")
 public class AuthController {
@@ -61,7 +59,7 @@ public class AuthController {
             return "auth/login";
         }
 
-        AccountDTO accountDTO = accountService.toDTO(account);
+        AccountDTO accountDTO = AccountDTO.fromEntity(account);
         session.setAttribute("loginAccount", accountDTO);
 
         if ("STAFF".equalsIgnoreCase(accountDTO.getRole())) {

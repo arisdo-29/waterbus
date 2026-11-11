@@ -88,6 +88,30 @@ class TripCancellationRefundTest {
                 .map(day -> day.revenue()).reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
+    @Test
+    void revenueSubtractsCompletedRefundOnRefundDate() {
+        tripService.cancelTrip(tripId, "Tàu hỏng");
+        entityManager.flush();
+        int refundId = jdbc.queryForObject("SELECT id FROM refund WHERE booking_id = ?", Integer.class,
+                id("booking", "booking_code", "CANCEL_PAID"));
+        refundService.markRefunded(refundId, "BANK-REFUND", LocalDateTime.now(), "Đã hoàn tiền");
+        entityManager.flush();
+
+        LocalDate paymentDate = LocalDate.now();
+        LocalDate refundDate = paymentDate.plusDays(1);
+        jdbc.update("UPDATE refund SET refunded_at = ? WHERE id = ?", refundDate.atTime(9, 30), refundId);
+        entityManager.clear();
+
+        var paymentReport = revenueService.getReport(paymentDate, paymentDate);
+        assertEquals(new BigDecimal("20000"), paymentReport.summary().totalRevenue());
+        assertEquals(BigDecimal.ZERO, paymentReport.summary().totalRefunded());
+
+        var refundReport = revenueService.getReport(refundDate, refundDate);
+        assertEquals(new BigDecimal("-20000"), refundReport.summary().totalRevenue());
+        assertEquals(new BigDecimal("20000"), refundReport.summary().totalRefunded());
+        assertEquals(refundReport.summary().totalRevenue(), refundReport.dailyRevenue().get(0).revenue());
+    }
+
     private void booking(String code, String status, int amount) {
         LocalDateTime now = LocalDateTime.now();
         jdbc.update("INSERT INTO booking (booking_code, contact_name, contact_phone, contact_email, "

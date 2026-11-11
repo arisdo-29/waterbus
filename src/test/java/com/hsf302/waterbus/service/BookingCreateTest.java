@@ -2,6 +2,7 @@ package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
+import com.hsf302.waterbus.dto.BookingTripDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Ticket;
@@ -136,6 +137,12 @@ class BookingCreateTest {
         // Simulate two requests that both read the seat as available before either inserts its ticket.
         Seat staleAvailability = seatRepository.findById(seatA1).orElseThrow();
         doReturn(List.of(staleAvailability)).when(tripServiceSpy).getAvailableSeats(tripId);
+        // Trong test, cả request chạy chung transaction của test nên sau lỗi trùng ghế JPA còn giữ vé lỗi;
+        // câu truy vấn kế tiếp sẽ cố ghi vé đó và báo AssertionFailure. Lấy sẵn thông tin chuyến để lúc vẽ lại
+        // checkout không phải hỏi DB. (App thật không bị: createBooking có transaction riêng, lỗi thì Spring
+        // gọi entityManager.clear() trong JpaTransactionManager.doRollback.)
+        BookingTripDTO tripInfo = tripService.getBookableTrip(tripId, s1, s2);
+        doReturn(tripInfo).when(tripServiceSpy).getBookableTrip(tripId, s1, s2);
 
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         String html = mvc.perform(post("/booking").param("acceptPolicy", "true")
@@ -164,9 +171,49 @@ class BookingCreateTest {
         assertInvalid(tripId, List.of(seatA1), s1, s2, "SAIMA", "0901234567", "Mã khuyến mãi không hợp lệ");
         assertInvalid(tripId, List.of(seatA1), s1, s2, "", "12345", "Số điện thoại");
         assertInvalid(tripId, List.of(), s1, s2, "", "0901234567", "ít nhất 1 ghế");
+        assertInvalid(tripId, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), s1, s2, "", "0901234567",
+                "tối đa 10 ghế"); // 11 ghế -> chặn ngay, chưa cần xem ghế có trống không
         assertInvalid(-1, List.of(seatA1), s1, s2, "", "0901234567", "Ghế vừa có người đặt"); // chuyến không tồn tại
         assertThat(count("booking")).isZero();
         assertThat(count("ticket")).isZero();
+    }
+
+    @Test
+    void stopsOnlineSalesByTimeShipReachesBoardingStation() throws Exception {
+        // Tuyến S1 -> S2 -> S3 mất 20 phút mỗi chặng. Tàu rời S1 sau 5 phút nữa -> tới S2 sau 25 phút
+        int routeId = id("route", "code", "TEST_R1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 20 WHERE route_id = ? AND station_id = ?", routeId, s2);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 40 WHERE route_id = ? AND station_id = ?", routeId, s3);
+        int busId = id("waterbus", "code", "TEST_WB1");
+        int soonTripId = trip("TEST_TRIP_SOON", routeId, busId, LocalDateTime.now().plusMinutes(5), "SCHEDULED");
+
+        // Lên ở S1: tàu tới sau 5 phút, chưa tới mốc 10 phút -> ngừng bán, không lưu gì
+        assertInvalid(soonTripId, List.of(seatA1), s1, s3, "", "0901234567", "ngừng bán vé online");
+        assertThat(count("booking")).isZero();
+
+        // Lên ở S2: tàu tới sau 25 phút -> vẫn bán (trước đây tính theo giờ rời S1 nên bị chặn nhầm)
+        Booking booking = bookingService.createBooking(soonTripId, List.of(seatA1), ticketTypeId, s2, s3,
+                "", null, "Lan", "0901234567", "lan@example.com");
+        assertThat(booking.getStatus()).isEqualTo("PENDING");
+
+        // Trang checkout dùng cùng luật: S1 -> về trang tìm chuyến; S2 -> vào được, giờ hiện là giờ tàu tới S2
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc.perform(checkout(soonTripId, s1, s3)).andExpect(redirectedUrl("/trips"));
+        MvcResult result = mvc.perform(checkout(soonTripId, s2, s3))
+                .andExpect(view().name("booking/checkout"))
+                .andReturn();
+        BookingTripDTO trip = (BookingTripDTO) result.getModelAndView().getModel().get("trip");
+        assertThat(trip.getDepartureTime()).isAfter(LocalDateTime.now().plusMinutes(20)); // khoảng 25 phút nữa
+    }
+
+    // POST /booking/checkout với ghế A2 (A1 đã được đặt ở trên)
+    private MockHttpServletRequestBuilder checkout(int trip, int from, int to) {
+        return post("/booking/checkout")
+                .param("tripId", String.valueOf(trip))
+                .param("seatIds", String.valueOf(seatA2))
+                .param("ticketTypeId", String.valueOf(ticketTypeId))
+                .param("fromStationId", String.valueOf(from))
+                .param("toStationId", String.valueOf(to));
     }
 
     @Test

@@ -67,7 +67,7 @@ public class PaymentController {
             flash.addFlashAttribute("successMessage", "Thanh toán thành công! Vé của bạn đã sẵn sàng.");
             return "redirect:/booking/" + booking.getBookingCode();
         } catch (IllegalArgumentException ex) {
-            // Đơn đã trả tiền / hết hạn -> quay lại trang thanh toán, báo đỏ
+            // Đơn đã trả tiền / hết hạn / mã KM hết lượt -> quay lại trang thanh toán, báo đỏ
             flash.addFlashAttribute("errorMessage", ex.getMessage());
             return "redirect:/payment/" + booking.getBookingCode();
         }
@@ -96,7 +96,7 @@ public class PaymentController {
             // "redirect:" + địa chỉ đầy đủ https://... -> trình duyệt tự chuyển sang trang VNPay
             return "redirect:" + url;
         } catch (IllegalArgumentException ex) {
-            // Đơn đã trả tiền / hết hạn / chuyến bị huỷ... -> quay lại trang thanh toán, báo đỏ
+            // Đơn đã trả tiền / hết hạn / chuyến bị huỷ / mã KM hết lượt -> quay lại trang thanh toán, báo đỏ
             flash.addFlashAttribute("errorMessage", ex.getMessage());
             return "redirect:/payment/" + booking.getBookingCode();
         }

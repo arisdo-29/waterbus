@@ -13,6 +13,10 @@ import org.springframework.validation.Errors;
 // Module: BE4 - Đặt vé & Thanh toán
 // Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface BookingService {
+    // Số ghế tối đa trong 1 đơn. Trang chọn ghế (app.js) cũng chặn 10 ghế, nhưng request có thể bị sửa tay
+    // nên server phải tự kiểm tra lại. Dùng chung cho BookingForm (@Size) và createBooking.
+    int MAX_SEATS_PER_BOOKING = 10;
+
     /** Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService. */
     Booking createBooking(int tripId, List<Integer> seatIds, int ticketTypeId, int fromStationId, int toStationId, String promoCode, Integer accountId, String contactName, String contactPhone, String contactEmail);
 
@@ -47,8 +51,12 @@ public interface BookingService {
     /** Tạm tính = giá loại vé x số ghế. */
     BigDecimal calculateSubtotal(int ticketTypeId, int seatCount);
 
-    /** Thông tin chuyến để hiển thị trên trang checkout (qua TripService.getBookableTrip). Không tìm thấy hoặc chuyến không còn SCHEDULED -> null. */
-    BookingTripDTO getTripInfo(int tripId);
+    /**
+     * Thông tin chuyến cho trang checkout, giờ tính theo chặng khách chọn (qua TripService.getBookableTrip).
+     * null nếu: không có chuyến, chuyến không còn SCHEDULED, chuyến không đi qua chặng này,
+     * hoặc đã ngừng bán online (tàu sắp tới bến đi).
+     */
+    BookingTripDTO getTripInfo(int tripId, int fromStationId, int toStationId);
 
     /**
      * Vé ưu đãi (loại vé requiresVerification = true): kiểm tra họ tên + năm sinh của từng ghế.

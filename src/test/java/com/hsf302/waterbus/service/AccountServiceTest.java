@@ -183,6 +183,21 @@ class AccountServiceTest {
     }
 
     @Test
+    void testChangePassword_SameAsCurrentPassword_ThrowsException() {
+        Account account = new Account();
+        account.setId(5);
+        account.setPasswordHash(passwordEncoder.encode("SamePass@123"));
+
+        when(accountRepository.findById(5)).thenReturn(Optional.of(account));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                accountService.changePassword(5, "SamePass@123", "SamePass@123")
+        );
+        assertTrue(ex.getMessage().contains("Mật khẩu mới phải khác mật khẩu hiện tại."));
+        verify(accountRepository, never()).save(account);
+    }
+
+    @Test
     void testCreateStaffAccount_Success() {
         when(accountRepository.existsByEmailIgnoreCase("staff@waterbus.vn")).thenReturn(false);
         when(accountRepository.save(any(Account.class))).thenAnswer(i -> {

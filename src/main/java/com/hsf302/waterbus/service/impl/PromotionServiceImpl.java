@@ -96,11 +96,15 @@ public class PromotionServiceImpl implements PromotionService {
         if (promoCode == null || promoCode.trim().isEmpty()) {
             return;
         }
-        promotionRepository.findByCodeIgnoreCase(promoCode.trim()).ifPresent(promo -> {
+        Promotion promo = promotionRepository.findByCodeIgnoreCase(promoCode.trim()).orElse(null);
+        if (promo != null) {
             int current = promo.getUsedCount() != null ? promo.getUsedCount() : 0;
+            if (promo.getUsageLimit() != null && current >= promo.getUsageLimit()) {
+                throw new IllegalArgumentException("Mã khuyến mãi đã hết lượt sử dụng.");
+            }
             promo.setUsedCount(current + 1);
             promotionRepository.save(promo);
-        });
+        }
     }
 
     @Override

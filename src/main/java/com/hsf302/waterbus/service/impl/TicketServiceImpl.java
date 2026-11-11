@@ -166,11 +166,30 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        // Kiểm tra khung giờ khởi hành (chỉ kiểm tra nếu có departureTime và không có override)
+        // Kiểm tra khung giờ khởi hành và ngày khởi hành (chỉ kiểm tra nếu có departureTime và không có override)
         if (ticket.getTrip() != null && ticket.getTrip().getDepartureTime() != null && !overrideTripTime) {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime departure = ticket.getTrip().getDepartureTime();
-            // Nếu chuyến đã chạy quá 15 phút
+
+            // 1. Chuyến ngày khác (không phải hôm nay)
+            if (!now.toLocalDate().isEqual(departure.toLocalDate())) {
+                String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " khởi hành ngày "
+                        + departure.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        + ", không phải hôm nay. Cần xác nhận Override để soát vé!";
+                logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
+                throw new IllegalStateException(msg);
+            }
+
+            // 2. Soát quá sớm (trước giờ khởi hành trên 60 phút)
+            if (now.isBefore(departure.minusMinutes(60))) {
+                String msg = "Chưa đến giờ soát vé cho chuyến " + ticket.getTrip().getTripCode()
+                        + " (khởi hành lúc " + departure.format(TIME_FORMAT)
+                        + "). Chỉ được soát vé trước giờ khởi hành tối đa 60 phút. Cần xác nhận Override để soát vé sớm!";
+                logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
+                throw new IllegalStateException(msg);
+            }
+
+            // 3. Soát quá muộn (chuyến đã chạy quá 15 phút)
             if (now.isAfter(departure.plusMinutes(15))) {
                 String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã khởi hành lúc " + departure.format(TIME_FORMAT) + ". Cần xác nhận Override để soát vé muộn!";
                 logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);

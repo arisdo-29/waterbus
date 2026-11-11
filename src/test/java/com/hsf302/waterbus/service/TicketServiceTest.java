@@ -91,8 +91,8 @@ class TicketServiceTest {
         trip.setTripCode("TRIP_TEST_1");
         trip.setRoute(route);
         trip.setWaterbus(waterbus);
-        trip.setDepartureTime(LocalDateTime.now().plusHours(2));
-        trip.setArrivalTime(LocalDateTime.now().plusHours(3));
+        trip.setDepartureTime(LocalDateTime.now().plusMinutes(30));
+        trip.setArrivalTime(LocalDateTime.now().plusMinutes(75));
         trip.setStatus("SCHEDULED");
         trip = tripRepository.save(trip);
 
@@ -327,5 +327,43 @@ class TicketServiceTest {
         assertNotNull(manifest);
         assertFalse(manifest.isEmpty());
         assertTrue(manifest.stream().anyMatch(t -> "TK_VALID_01".equals(t.getTicketCode())));
+    }
+
+    @Test
+    @DisplayName("Soát vé chuyến ngày khác -> ném ngoại lệ IllegalStateException yêu cầu Override")
+    void checkIn_differentDate_throwsException() {
+        Trip trip = validTicket.getTrip();
+        trip.setDepartureTime(LocalDateTime.now().plusDays(1));
+        tripRepository.save(trip);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn("TK_VALID_01");
+        });
+        assertTrue(ex.getMessage().contains("không phải hôm nay"));
+    }
+
+    @Test
+    @DisplayName("Soát vé quá sớm (> 60 phút trước khởi hành) -> ném ngoại lệ IllegalStateException")
+    void checkIn_tooEarly_throwsException() {
+        Trip trip = validTicket.getTrip();
+        trip.setDepartureTime(LocalDateTime.now().plusHours(3));
+        tripRepository.save(trip);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn("TK_VALID_01");
+        });
+        assertTrue(ex.getMessage().contains("Chỉ được soát vé trước giờ khởi hành tối đa 60 phút"));
+    }
+
+    @Test
+    @DisplayName("Soát vé quá sớm nhưng có xác nhận Override -> soát vé thành công")
+    void checkIn_overrideTime_success() {
+        Trip trip = validTicket.getTrip();
+        trip.setDepartureTime(LocalDateTime.now().plusHours(3));
+        tripRepository.save(trip);
+
+        TicketCheckinDTO result = ticketService.checkIn("TK_VALID_01", 1, "MANUAL", true);
+        assertNotNull(result);
+        assertEquals("USED", result.getStatus());
     }
 }

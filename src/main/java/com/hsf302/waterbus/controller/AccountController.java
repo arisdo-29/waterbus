@@ -29,6 +29,7 @@ public class AccountController {
     public String viewProfile(HttpSession session, Model model) {
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         if (loginAccount == null) {
+            session.setAttribute("redirectAfterLogin", "/account/profile");
             return "redirect:/auth/login";
         }
 
@@ -50,12 +51,23 @@ public class AccountController {
                                 RedirectAttributes redirectAttributes) {
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         if (loginAccount == null) {
+            session.setAttribute("redirectAfterLogin", "/account/profile");
             return "redirect:/auth/login";
         }
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("account", loginAccount);
             return "account/profile";
+        }
+
+        String trimmedName = request.getFullName() == null ? "" : request.getFullName().trim();
+        String trimmedPhone = request.getPhone() == null ? "" : request.getPhone().trim();
+        String currentName = loginAccount.getFullName() == null ? "" : loginAccount.getFullName().trim();
+        String currentPhone = loginAccount.getPhone() == null ? "" : loginAccount.getPhone().trim();
+
+        if (trimmedName.equals(currentName) && trimmedPhone.equals(currentPhone)) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Bạn chưa thay đổi thông tin nào.");
+            return "redirect:/account/profile";
         }
 
         try {
@@ -78,6 +90,7 @@ public class AccountController {
     public String showChangePasswordForm(HttpSession session, Model model) {
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         if (loginAccount == null) {
+            session.setAttribute("redirectAfterLogin", "/account/change-password");
             return "redirect:/auth/login";
         }
 

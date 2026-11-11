@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = "spring.jpa.open-in-view=false")
@@ -21,6 +22,12 @@ class AuthAndAdminViewTests {
     @Autowired
     private WebApplicationContext context;
 
+    @Autowired
+    private com.hsf302.waterbus.repository.AccountRepository accountRepository;
+
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder =
+            new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+
     private MockMvc mvc;
     private MockHttpSession adminSession;
     private MockHttpSession customerSession;
@@ -28,6 +35,17 @@ class AuthAndAdminViewTests {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
+
+        if (accountRepository.findByEmailIgnoreCase("customer@gmail.com").isEmpty()) {
+            com.hsf302.waterbus.entity.Account acc = new com.hsf302.waterbus.entity.Account();
+            acc.setEmail("customer@gmail.com");
+            acc.setPasswordHash(passwordEncoder.encode("Customer@123"));
+            acc.setFullName("Khách Hàng Test");
+            acc.setPhone("0901234567");
+            acc.setRole("CUSTOMER");
+            acc.setStatus("ACTIVE");
+            accountRepository.save(acc);
+        }
 
         adminSession = new MockHttpSession();
         adminSession.setAttribute("loginAccount", new AccountDTO(1, "admin@test.com", "Admin Tân", "0900000001", "ADMIN", "ACTIVE"));
@@ -46,10 +64,14 @@ class AuthAndAdminViewTests {
 
     @Test
     void testRegisterPageRenders() throws Exception {
-        mvc.perform(get("/auth/register"))
+        String html = mvc.perform(get("/auth/register"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("auth/register"))
-                .andExpect(model().attributeExists("registerRequest"));
+                .andExpect(model().attributeExists("registerRequest"))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("pattern=\"0[0-9]{9}\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("maxlength=\"10\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("inputmode=\"numeric\""));
     }
 
     @Test
@@ -98,5 +120,35 @@ class AuthAndAdminViewTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("account/change-password"))
                 .andExpect(model().attributeExists("changePasswordRequest"));
+    }
+
+    @Test
+    void testLogin_RedirectAfterLoginSession() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("redirectAfterLogin", "/account/profile");
+
+        mvc.perform(post("/auth/login")
+                        .session(session)
+                        .param("email", "customer@gmail.com")
+                        .param("password", "Customer@123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/account/profile"));
+    }
+
+    @Test
+    void testLogin_RedirectQueryParam() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+
+        // 1. User visits /auth/login?redirect=/my-bookings
+        mvc.perform(get("/auth/login").param("redirect", "/my-bookings").session(session))
+                .andExpect(status().isOk());
+
+        // 2. User submits credentials
+        mvc.perform(post("/auth/login")
+                        .session(session)
+                        .param("email", "customer@gmail.com")
+                        .param("password", "Customer@123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/my-bookings"));
     }
 }

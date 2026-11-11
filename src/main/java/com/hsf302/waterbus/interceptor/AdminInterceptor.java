@@ -33,8 +33,23 @@ public class AdminInterceptor implements HandlerInterceptor {
         HttpSession session = request.getSession(false);
         AccountDTO account = (session != null) ? (AccountDTO) session.getAttribute("loginAccount") : null;
 
-        // 1. Chưa đăng nhập -> chuyển hướng về trang đăng nhập
+        // 1. Chưa đăng nhập -> lưu đường dẫn nội bộ và chuyển hướng về trang đăng nhập
         if (account == null) {
+            String uri = request.getRequestURI();
+            if (uri != null) {
+                String query = request.getQueryString();
+                String targetUrl = (query != null && !query.isEmpty()) ? uri + "?" + query : uri;
+                String contextPath = request.getContextPath();
+                if (contextPath != null && !contextPath.isEmpty() && targetUrl.startsWith(contextPath)) {
+                    targetUrl = targetUrl.substring(contextPath.length());
+                }
+                if (targetUrl.startsWith("/") && !targetUrl.startsWith("//") && !targetUrl.contains("\\")) {
+                    HttpSession newSession = request.getSession(true);
+                    if (newSession != null) {
+                        newSession.setAttribute("redirectAfterLogin", targetUrl);
+                    }
+                }
+            }
             response.sendRedirect(request.getContextPath() + "/auth/login?error=unauthorized");
             return false;
         }

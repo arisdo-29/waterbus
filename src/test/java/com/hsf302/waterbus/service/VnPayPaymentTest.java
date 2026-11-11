@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.FlashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,7 +48,7 @@ class VnPayPaymentTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        // Dữ liệu mẫu giống PaymentMockTest
+        // Dữ liệu mẫu giống PaymentServiceTest
         jdbc.update("INSERT INTO station (code, name, is_active) VALUES ('TEST_S1', 'Ben mot', 1)");
         jdbc.update("INSERT INTO station (code, name, is_active) VALUES ('TEST_S2', 'Ben hai', 1)");
         int s1 = id("station", "code", "TEST_S1");
@@ -150,6 +151,24 @@ class VnPayPaymentTest {
         assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
                 .containsExactly("VALID", "VALID");
         assertThat(promotionUsedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void successBannerShowsOnlyOnceAfterPaying() throws Exception {
+        // Ngay sau khi VNPay trả về thành công (còn flash) -> trang vé hiện banner "Đặt vé thành công!"
+        FlashMap paidFlash = mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
+                .andExpect(redirectedUrl("/booking/" + booking.getBookingCode()))
+                .andReturn().getFlashMap();
+        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()).flashAttrs(paidFlash))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(detail).contains("Đặt vé thành công!");
+
+        // Tải lại / vào xem vé lần sau (hết flash) -> không hiện banner nữa
+        String reload = mvc.perform(get("/booking/" + booking.getBookingCode()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(reload).doesNotContain("Đặt vé thành công!");
     }
 
     @Test

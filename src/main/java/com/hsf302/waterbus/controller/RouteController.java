@@ -5,7 +5,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import com.hsf302.waterbus.dto.RouteDTO;
 import com.hsf302.waterbus.dto.StationDTO;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,10 +25,8 @@ public class RouteController {
     @GetMapping
     public String index(Model model) {
         List<RouteDTO> routes = routeService.getActiveRouteViews();
-        Map<Integer, List<StationDTO>> stopsByRoute = new LinkedHashMap<>();
-        for (RouteDTO route : routes) {
-            stopsByRoute.put(route.id(), routeService.getStationViewsOfRoute(route.id()));
-        }
+        // Gom bến theo tuyến đã chuyển vào service (getRouteViewsWithStops)
+        Map<Integer, List<StationDTO>> stopsByRoute = routeService.getRouteViewsWithStops();
         model.addAttribute("routes", routes);
         model.addAttribute("stopsByRoute", stopsByRoute);
         return "route/index";

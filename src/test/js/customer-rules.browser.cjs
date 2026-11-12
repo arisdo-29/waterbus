@@ -53,6 +53,12 @@ const fs = require('node:fs');
             await verify.setViewportSize({ width, height: 900 });
             assert(await verify.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         }
+        const phone = verify.locator('#contactPhone');
+        for (const [value, valid] of [['0900000000', true], [' 0900000000 ', true],
+                ['090 000 0000', false], ['   ', false], ['090000000', false]]) {
+            await phone.fill(value);
+            assert.equal(await phone.evaluate(input => input.checkValidity()), valid, 'Phone: ' + value);
+        }
         assert.deepEqual(errors, []);
         console.log('Customer rules: passenger age, both payment locks and verification layout passed.');
     } finally {

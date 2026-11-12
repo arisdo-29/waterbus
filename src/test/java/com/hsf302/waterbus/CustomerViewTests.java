@@ -222,6 +222,17 @@ class CustomerViewTests {
     }
 
     @Test
+    void verificationViewRendersWithOnlyBookingCodeAndAllowsSurroundingPhoneWhitespace() throws Exception {
+        Map<String, Object> model = Map.of("bookingCode", "REAL-42");
+        String initial = render("verify", model);
+        assertThat(initial).contains("action=\"/booking/REAL-42/verify\"", "method=\"post\"")
+                .doesNotContain("is-invalid", "data-qr-value", "maxlength=\"10\"");
+        String submitted = render("verify", model,
+                get("/__test/views/verify").param("contactPhone", " 0900000000 "));
+        assertThat(submitted).contains("value=\" 0900000000 \"", "pattern=\"\\s*0[0-9]{9}\\s*\"");
+    }
+
+    @Test
     void ticketViewShowsCashAndPastTripWithoutChangingTripCompletedLabel() throws Exception {
         Map<String, Object> model = fixture("PAID");
         Map<String, Object> payment = new HashMap<>();

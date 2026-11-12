@@ -18,7 +18,7 @@
                     <div class="mb-3">
                         <label class="form-label" for="contactPhone">Số điện thoại đặt vé</label>
                         <input class="form-control" id="contactPhone" name="contactPhone" type="tel"
-                               inputmode="numeric" autocomplete="tel" pattern="0[0-9]{9}" maxlength="10" required
+                               inputmode="numeric" autocomplete="tel" pattern="\s*0[0-9]{9}\s*" required
                                th:value="${param.contactPhone}" th:classappend="${verificationError != null} ? 'is-invalid'"
                                aria-describedby="verificationError">
                         <div id="verificationError" class="invalid-feedback" th:text="${verificationError}"></div>

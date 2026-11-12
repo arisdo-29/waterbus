@@ -4,7 +4,8 @@
    ---------------------------------------------------------------------
    Cách chạy: mở file trong SSMS (hoặc Azure Data Studio), bấm Execute.
    Script chạy lại được nhiều lần: nó xóa bảng cũ rồi tạo lại.
-   Dữ liệu mẫu (giờ chạy, số phút giữa các bến) chỉ để test, nhóm tự chỉnh.
+   Đã gộp schema/seed 22/10, 08/11, 12/11. Không chạy lại migration cũ sau script này.
+   Lịch mẫu còn chờ phân công tàu TI7: giữ PR Draft đến khi hết chồng giờ.
    FILE CHUNG - thay đổi schema: tạo file mới trong database/changes/
    ===================================================================== */
 
@@ -14,7 +15,19 @@ GO
 USE WaterbusDB;
 GO
 
+-- Cần cho filtered unique index chống trùng ghế, kể cả khi chạy bằng sqlcmd.
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
 /* ---------- Xóa bảng cũ (theo thứ tự con -> cha) ---------- */
+DROP TABLE IF EXISTS refund;
+DROP TABLE IF EXISTS ticket_scan_log;
 DROP TABLE IF EXISTS ticket;
 DROP TABLE IF EXISTS payment;
 DROP TABLE IF EXISTS booking;
@@ -103,6 +116,7 @@ CREATE TABLE trip (
     waterbus_id     INT               NOT NULL,
     departure_time  DATETIME2(0)      NOT NULL,
     arrival_time    DATETIME2(0)      NOT NULL,
+    cancel_reason   NVARCHAR(255)     NULL,
     status          VARCHAR(20)       NOT NULL CONSTRAINT DF_trip_status DEFAULT 'SCHEDULED',
     CONSTRAINT PK_trip PRIMARY KEY (id),
     CONSTRAINT UQ_trip_code UNIQUE (trip_code),
@@ -194,7 +208,7 @@ CREATE INDEX IX_booking_account ON booking(account_id);
 CREATE TABLE payment (
     id               INT IDENTITY(1,1) NOT NULL,
     booking_id       INT               NOT NULL,
-    method           VARCHAR(20)       NOT NULL,      -- MOCK | VNPAY | MOMO
+    method           VARCHAR(20)       NOT NULL,      -- VNPAY | CASH; MOCK/MOMO cho du lieu cu
     amount           DECIMAL(12,0)     NOT NULL,
     status           VARCHAR(20)       NOT NULL CONSTRAINT DF_payment_status DEFAULT 'PENDING',
     transaction_ref  VARCHAR(100)      NULL,          -- mã giao dịch cổng thanh toán trả về
@@ -203,7 +217,7 @@ CREATE TABLE payment (
     CONSTRAINT PK_payment PRIMARY KEY (id),
     CONSTRAINT UQ_payment_booking UNIQUE (booking_id),               -- 1 booking - 0..1 payment
     CONSTRAINT FK_payment_booking FOREIGN KEY (booking_id) REFERENCES booking(id),
-    CONSTRAINT CK_payment_method CHECK (method IN ('MOCK','VNPAY','MOMO')),
+    CONSTRAINT CK_payment_method CHECK (method IN ('MOCK','VNPAY','MOMO','CASH')),
     CONSTRAINT CK_payment_status CHECK (status IN ('PENDING','SUCCESS','FAILED')),
     CONSTRAINT CK_payment_amount CHECK (amount >= 0)
 );
@@ -220,6 +234,8 @@ CREATE TABLE ticket (
     price            DECIMAL(12,0)     NOT NULL,      -- chụp lại giá lúc mua
     status           VARCHAR(20)       NOT NULL CONSTRAINT DF_ticket_status DEFAULT 'HOLD',
     checked_in_at    DATETIME2(0)      NULL,
+    passenger_name   NVARCHAR(100)     NULL,
+    birth_year       INT               NULL,
     CONSTRAINT PK_ticket PRIMARY KEY (id),
     CONSTRAINT UQ_ticket_code UNIQUE (ticket_code),
     CONSTRAINT FK_ticket_booking      FOREIGN KEY (booking_id)      REFERENCES booking(id),
@@ -228,6 +244,7 @@ CREATE TABLE ticket (
     CONSTRAINT FK_ticket_type         FOREIGN KEY (ticket_type_id)  REFERENCES ticket_type(id),
     CONSTRAINT FK_ticket_from_station FOREIGN KEY (from_station_id) REFERENCES station(id),
     CONSTRAINT FK_ticket_to_station   FOREIGN KEY (to_station_id)   REFERENCES station(id),
+    CONSTRAINT CK_ticket_birth_year CHECK (birth_year IS NULL OR birth_year >= 1900),
     CONSTRAINT CK_ticket_stations CHECK (from_station_id <> to_station_id),
     CONSTRAINT CK_ticket_price    CHECK (price >= 0),
     CONSTRAINT CK_ticket_status   CHECK (status IN ('HOLD','VALID','USED','CANCELLED'))
@@ -238,35 +255,85 @@ CREATE UNIQUE INDEX UX_ticket_trip_seat_active
     ON ticket(trip_id, seat_id)
     WHERE status IN ('HOLD','VALID','USED');
 CREATE INDEX IX_ticket_booking ON ticket(booking_id);
+
+CREATE TABLE ticket_scan_log (
+    id            INT IDENTITY(1,1) NOT NULL,
+    ticket_code   VARCHAR(30)       NULL,          -- mã nhập/quét được, có thể sai nên không FK
+    booking_code  VARCHAR(20)       NULL,
+    trip_id       INT               NULL,
+    staff_id      INT               NOT NULL,      -- account STAFF/ADMIN thao tác
+    action        VARCHAR(20)       NOT NULL,
+    result        VARCHAR(10)       NOT NULL,
+    source        VARCHAR(20)       NOT NULL,
+    message       NVARCHAR(255)     NULL,
+    created_at    DATETIME2(0)      NOT NULL CONSTRAINT DF_scan_created DEFAULT SYSDATETIME(),
+    CONSTRAINT PK_ticket_scan_log PRIMARY KEY (id),
+    CONSTRAINT FK_scan_trip  FOREIGN KEY (trip_id)  REFERENCES trip(id),
+    CONSTRAINT FK_scan_staff FOREIGN KEY (staff_id) REFERENCES account(id),
+    CONSTRAINT CK_scan_action CHECK (action IN ('VIEW','CHECKIN','REJECT')),
+    CONSTRAINT CK_scan_result CHECK (result IN ('SUCCESS','FAILED')),
+    CONSTRAINT CK_scan_source CHECK (source IN ('MANUAL','QR','MANIFEST','OVERRIDE'))
+);
+
+CREATE TABLE refund (
+    id               INT IDENTITY(1,1) NOT NULL,
+    booking_id       INT               NOT NULL,
+    amount           DECIMAL(12,0)     NOT NULL,
+    status           VARCHAR(10)       NOT NULL CONSTRAINT DF_refund_status DEFAULT 'PENDING',
+    reason           NVARCHAR(255)     NOT NULL,
+    transaction_ref  VARCHAR(100)      NULL,
+    note             NVARCHAR(255)     NULL,
+    processed_by     INT               NULL,          -- account ADMIN xử lý
+    refunded_at      DATETIME2(0)      NULL,
+    created_at       DATETIME2(0)      NOT NULL CONSTRAINT DF_refund_created DEFAULT SYSDATETIME(),
+    CONSTRAINT PK_refund PRIMARY KEY (id),
+    CONSTRAINT UQ_refund_booking UNIQUE (booking_id),               -- 1 booking - 0..1 refund
+    CONSTRAINT FK_refund_booking   FOREIGN KEY (booking_id)   REFERENCES booking(id),
+    CONSTRAINT FK_refund_processor FOREIGN KEY (processed_by) REFERENCES account(id),
+    CONSTRAINT CK_refund_amount CHECK (amount >= 0),
+    CONSTRAINT CK_refund_status CHECK (status IN ('PENDING','DONE'))
+);
+CREATE INDEX IX_scan_staff_created ON ticket_scan_log(staff_id, created_at);
+CREATE INDEX IX_scan_trip ON ticket_scan_log(trip_id);
+
 GO
 
 /* =====================================================================
    4. DỮ LIỆU MẪU
    ===================================================================== */
 
--- Bến (theo tuyến Bạch Đằng - Linh Đông)
-INSERT INTO station (code, name, address) VALUES
- ('BD',  N'Bạch Đằng',        N'Tôn Đức Thắng, Bến Nghé, Quận 1'),
- ('BA',  N'Bình An',          N'Đường số 21, Bình An, TP. Thủ Đức'),
- ('TD',  N'Thanh Đa',         N'Bình Quới, Bình Thạnh'),
- ('HBC', N'Hiệp Bình Chánh',  N'Hiệp Bình Chánh, TP. Thủ Đức'),
- ('LD',  N'Linh Đông',        N'Linh Đông, TP. Thủ Đức');
+-- 8 ben va 6 tuyen tu du lieu da chot ngay 22/10/2026.
+SET IDENTITY_INSERT station ON;
+INSERT INTO station (id, code, name, address) VALUES
+ (1, 'BD',  N'Bạch Đằng',       N'Bến Bạch Đằng, 10B Tôn Đức Thắng, phường Sài Gòn'),
+ (2, 'TT',  N'Thủ Thiêm',       N'Bến tàu Thủ Thiêm, khu đô thị Thủ Thiêm, phường An Khánh'),
+ (3, 'BS',  N'Ba Son',          N'Bến tàu Ba Son, cạnh ga metro Ba Son, phường Sài Gòn'),
+ (4, 'BA',  N'Bình An',         N'Đường số 21, phường An Khánh'),
+ (5, 'TDN', N'Thảo Điền',       N'Bến tàu Thảo Điền, phường An Khánh'),
+ (6, 'TD',  N'Thanh Đa',        N'Bán đảo Thanh Đa, phường Bình Quới'),
+ (7, 'HBC', N'Hiệp Bình Chánh', N'Gần Giga Mall, phường Hiệp Bình'),
+ (8, 'LD',  N'Linh Đông',       N'Bến Linh Đông, phường Thủ Đức');
+SET IDENTITY_INSERT station OFF;
 
--- Tuyến: mỗi chiều 1 route
 INSERT INTO route (code, name, description) VALUES
- ('R1',   N'Bạch Đằng - Linh Đông', N'Tuyến số 1, chiều đi'),
- ('R1-R', N'Linh Đông - Bạch Đằng', N'Tuyến số 1, chiều về'),
- ('R2',   N'Bạch Đằng - Bình An',   N'Chuyến ngắn buổi tối, chiều đi'),
- ('R2-R', N'Bình An - Bạch Đằng',   N'Chuyến ngắn buổi tối, chiều về');
+    ('R1',   N'Bạch Đằng - Linh Đông', N'Tuyến số 1, chiều đi: 8 bến, khoảng 11 km, khoảng 60 phút'),
+    ('R1-R', N'Linh Đông - Bạch Đằng', N'Tuyến số 1, chiều về: 8 bến, khoảng 11 km, khoảng 60 phút'),
+    ('R2',   N'Bạch Đằng - Thảo Điền', N'Chuyến ngắn chạy cả ngày tới 23h, chiều đi (5 bến, khoảng 27 phút)'),
+    ('R2-R', N'Thảo Điền - Bạch Đằng', N'Chuyến ngắn chạy cả ngày tới 23h, chiều về (5 bến, khoảng 27 phút)'),
+    ('R3',   N'Bạch Đằng - Thủ Thiêm', N'Chuyến đưa đón qua sông cuối ngày, chiều đi (khoảng 5 phút)'),
+    ('R3-R', N'Thủ Thiêm - Bạch Đằng', N'Chuyến đưa đón qua sông đầu ngày, chiều về (khoảng 5 phút)');
 
--- Thứ tự bến (số phút là số liệu giả định để test)
 INSERT INTO route_station (route_id, station_id, stop_order, minutes_from_start)
 SELECT r.id, s.id, v.stop_order, v.minutes
 FROM (VALUES
-    ('R1','BD',1,0),  ('R1','BA',2,10),  ('R1','TD',3,25),  ('R1','HBC',4,40),  ('R1','LD',5,52),
-    ('R1-R','LD',1,0),('R1-R','HBC',2,12),('R1-R','TD',3,27),('R1-R','BA',4,42),('R1-R','BD',5,52),
-    ('R2','BD',1,0),  ('R2','BA',2,10),
-    ('R2-R','BA',1,0),('R2-R','BD',2,10)
+    ('R1','BD',1,0),   ('R1','TT',2,5),   ('R1','BS',3,10),  ('R1','BA',4,22),
+    ('R1','TDN',5,27), ('R1','TD',6,40),  ('R1','HBC',7,50), ('R1','LD',8,60),
+    ('R1-R','LD',1,0),  ('R1-R','HBC',2,10), ('R1-R','TD',3,20), ('R1-R','TDN',4,33),
+    ('R1-R','BA',5,38), ('R1-R','BS',6,50),  ('R1-R','TT',7,55), ('R1-R','BD',8,60),
+    ('R2','BD',1,0),   ('R2','TT',2,5),   ('R2','BS',3,10),  ('R2','BA',4,22),  ('R2','TDN',5,27),
+    ('R2-R','TDN',1,0),('R2-R','BA',2,5), ('R2-R','BS',3,17),('R2-R','TT',4,22),('R2-R','BD',5,27),
+    ('R3','BD',1,0),   ('R3','TT',2,5),
+    ('R3-R','TT',1,0), ('R3-R','BD',2,5)
 ) AS v(route_code, station_code, stop_order, minutes)
 JOIN route   r ON r.code = v.route_code
 JOIN station s ON s.code = v.station_code;
@@ -290,17 +357,45 @@ INSERT INTO ticket_type (code, name, price, requires_verification, description) 
  ('SENIOR_70', N'Người từ 70 tuổi trở lên', 0,     1, N'Xuất trình CCCD khi lên tàu'),
  ('PRIORITY',  N'Người khuyết tật, thương binh', 0, 1, N'Xuất trình giấy tờ khi lên tàu');
 
--- Chuyến: 7 ngày tính từ hôm nay (giờ chạy là số liệu giả định)
+-- Lịch giờ gốc 22/10; chưa chốt phân công tàu TI7, PR phải giữ Draft.
+-- weekend_only = 1: chuyến "S", chỉ chạy thứ 7, chủ nhật (và ngày lễ - không xét ở đây)
+-- Mã D/S ghi trong cột cuối để đối chiếu với lịch thật, không lưu vào DB.
 ;WITH days AS (
     SELECT 0 AS d UNION ALL SELECT d + 1 FROM days WHERE d < 6
 ),
 sched AS (
     SELECT * FROM (VALUES
-        ('R1',  'WB01', '07:00'), ('R1',  'WB01', '10:30'), ('R1',  'WB01', '14:00'), ('R1',  'WB01', '17:30'),
-        ('R1-R','WB01', '08:15'), ('R1-R','WB01', '11:45'), ('R1-R','WB01', '15:15'), ('R1-R','WB01', '18:45'),
-        ('R2',  'WB02', '17:00'), ('R2',  'WB02', '18:00'), ('R2',  'WB02', '19:00'), ('R2',  'WB02', '20:00'),
-        ('R2-R','WB02', '17:30'), ('R2-R','WB02', '18:30'), ('R2-R','WB02', '19:30'), ('R2-R','WB02', '20:30')
-    ) AS s(route_code, waterbus_code, dep)
+        -- Tuyến số 1, chiều đi (Bạch Đằng -> Linh Đông)
+        ('R1',  'WB01', '08:30', 0, 'D1'),  ('R1',  'WB02', '09:30', 1, 'S1'),
+        ('R1',  'WB01', '11:00', 0, 'D7'),  ('R1',  'WB01', '14:30', 0, 'D11'),
+        ('R1',  'WB01', '17:10', 0, 'D19'),
+        -- Tuyến số 1, chiều về (Linh Đông -> Bạch Đằng)
+        ('R1-R','WB01', '09:45', 0, 'D4'),  ('R1-R','WB02', '11:00', 1, 'S2'),
+        ('R1-R','WB01', '13:15', 0, 'D8'),  ('R1-R','WB01', '16:00', 0, 'D14'),
+        ('R1-R','WB01', '18:25', 0, 'D20'),
+        -- Chuyến ngắn Bạch Đằng -> Thảo Điền
+        ('R2',  'WB02', '09:00', 0, 'D3'),  ('R2',  'WB02', '10:30', 0, 'D5'),
+        ('R2',  'WB02', '13:00', 1, 'S3'),  ('R2',  'WB02', '13:30', 0, 'D9'),
+        ('R2',  'WB02', '15:00', 1, 'S5'),  ('R2',  'WB02', '15:30', 0, 'D13'),
+        ('R2',  'WB02', '16:30', 0, 'D15'), ('R2',  'WB02', '17:00', 0, 'D17'),
+        ('R2',  'WB02', '18:10', 0, 'D21'), ('R2',  'WB02', '18:45', 0, 'D23'),
+        ('R2',  'WB02', '19:30', 0, 'D25'), ('R2',  'WB02', '19:45', 1, 'S7'),
+        ('R2',  'WB02', '20:15', 0, 'D27'), ('R2',  'WB02', '21:15', 0, 'D29'),
+        ('R2',  'WB02', '21:45', 0, 'D31'), ('R2',  'WB02', '22:00', 1, 'S9'),
+        ('R2',  'WB02', '22:45', 0, 'D33'),
+        -- Chuyến ngắn Thảo Điền -> Bạch Đằng
+        ('R2-R','WB02', '09:40', 0, 'D2'),  ('R2-R','WB02', '11:15', 0, 'D6'),
+        ('R2-R','WB02', '14:00', 1, 'S4'),  ('R2-R','WB02', '14:30', 0, 'D10'),
+        ('R2-R','WB02', '15:45', 1, 'S6'),  ('R2-R','WB02', '16:15', 0, 'D12'),
+        ('R2-R','WB02', '17:15', 0, 'D16'), ('R2-R','WB02', '18:00', 0, 'D18'),
+        ('R2-R','WB02', '18:50', 0, 'D22'), ('R2-R','WB02', '19:30', 0, 'D24'),
+        ('R2-R','WB02', '20:30', 0, 'D26'), ('R2-R','WB02', '20:45', 1, 'S8'),
+        ('R2-R','WB02', '21:00', 0, 'D28'), ('R2-R','WB02', '22:00', 0, 'D30'),
+        ('R2-R','WB02', '22:30', 0, 'D32'), ('R2-R','WB02', '22:45', 1, 'S10'),
+        -- Đưa đón Bạch Đằng <-> Thủ Thiêm (lịch thật không đặt mã chuyến)
+        ('R3',  'WB01', '23:10', 0, '-'),   ('R3',  'WB01', '23:20', 0, '-'),
+        ('R3-R','WB01', '08:15', 0, '-'),   ('R3-R','WB01', '08:40', 0, '-')
+    ) AS s(route_code, waterbus_code, dep, weekend_only, real_code)
 ),
 x AS (
     SELECT r.id AS route_id, w.id AS waterbus_id, r.code AS route_code, s.dep,
@@ -311,11 +406,17 @@ x AS (
     CROSS JOIN sched s
     JOIN route r    ON r.code = s.route_code
     JOIN waterbus w ON w.code = s.waterbus_code
+    -- 1900-01-01 là thứ 2 => % 7 = 5 là thứ 7, 6 là chủ nhật (không phụ thuộc SET DATEFIRST)
+    WHERE s.weekend_only = 0
+       OR DATEDIFF(DAY, '19000101', DATEADD(DAY, d.d, CAST(SYSDATETIME() AS DATE))) % 7 IN (5, 6)
 )
 INSERT INTO trip (trip_code, route_id, waterbus_id, departure_time, arrival_time, status)
-SELECT CONCAT(CONVERT(CHAR(8), departure_time, 112), '-', route_code, '-', REPLACE(dep, ':', '')),
-       route_id, waterbus_id, departure_time, DATEADD(MINUTE, duration, departure_time), 'SCHEDULED'
-FROM x;
+SELECT CONCAT(CONVERT(CHAR(8), x.departure_time, 112), '-', x.route_code, '-', REPLACE(x.dep, ':', '')),
+       x.route_id, x.waterbus_id, x.departure_time, DATEADD(MINUTE, x.duration, x.departure_time), 'SCHEDULED'
+FROM x
+WHERE NOT EXISTS (SELECT 1 FROM trip t
+                  WHERE t.trip_code = CONCAT(CONVERT(CHAR(8), x.departure_time, 112), '-', x.route_code, '-', REPLACE(x.dep, ':', '')));
+
 
 -- Tài khoản mẫu (mật khẩu đã mã hóa BCrypt)
 --   admin@waterbus.vn    / Admin@123
@@ -337,7 +438,7 @@ SET IDENTITY_INSERT account OFF;
 -- Khuyến mãi mẫu
 INSERT INTO promotion (code, name, discount_type, discount_value, max_discount, min_order_amount,
                        start_at, end_at, usage_limit) VALUES
- ('WELCOME10', N'Giảm 10% cho đơn đầu tiên', 'PERCENT', 10, 10000, 0,
+ ('WELCOME10', N'Giảm 10%, tối đa 10.000 đ', 'PERCENT', 10, 10000, 0,
      CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 3, CAST(SYSDATETIME() AS DATE)), 100),
  ('GIAM5K',    N'Giảm 5.000đ cho đơn từ 30.000đ', 'FIXED', 5000, NULL, 30000,
      CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 1, CAST(SYSDATETIME() AS DATE)), NULL),
@@ -385,7 +486,10 @@ UNION ALL SELECT 'ticket_type', COUNT(*) FROM ticket_type
 UNION ALL SELECT 'account', COUNT(*) FROM account
 UNION ALL SELECT 'promotion', COUNT(*) FROM promotion
 UNION ALL SELECT 'booking', COUNT(*) FROM booking
-UNION ALL SELECT 'ticket', COUNT(*) FROM ticket;
+UNION ALL SELECT 'ticket', COUNT(*) FROM ticket
+UNION ALL SELECT 'payment', COUNT(*) FROM payment
+UNION ALL SELECT 'refund', COUNT(*) FROM refund
+UNION ALL SELECT 'ticket_scan_log', COUNT(*) FROM ticket_scan_log;
 
 -- Ghế còn trống của 1 chuyến (câu truy vấn mẫu cho màn hình chọn ghế)
 -- SELECT s.* FROM seat s

@@ -28,8 +28,10 @@ Mất khoảng 30-45 phút. Làm theo thứ tự, xong bước nào tích bướ
 ## 3. Tạo database
 
 Mở SSMS → *File → Open* → `database/WaterbusDB_SQLServer.sql` → **Execute** (F5).
-Script tạo database `WaterbusDB`, 12 bảng và dữ liệu mẫu (5 bến, 4 tuyến, 3 tàu, chuyến 7 ngày tới,
-4 tài khoản, 3 mã khuyến mãi). Chạy lại bao nhiêu lần cũng được (nó xoá bảng cũ rồi tạo lại).
+Script KH3 tạo database `WaterbusDB`, 14 bảng và dữ liệu mẫu (8 bến, 6 tuyến, chuyến 7 ngày tới,
+4 tài khoản, 3 mã khuyến mãi). Đã gộp ba migration lịch sử; máy mới chỉ chạy một file.
+Chạy lại sẽ xoá bảng và dữ liệu cũ rồi tạo lại, kể cả bảng hoàn tiền và nhật ký soát vé.
+Lịch phân công tàu còn chờ TI7, chỉ dùng làm demo khi kiểm tra chồng giờ trả kết quả rỗng.
 
 Tài khoản mẫu: `admin@waterbus.vn / Admin@123`, `staff@waterbus.vn / Staff@123`, `customer@gmail.com / Customer@123`.
 
@@ -44,8 +46,8 @@ Mã khuyến mãi mẫu: `WELCOME10` (giảm 10%, tối đa 10.000đ), `GIAM5K` 
 thẳng sang **PAID** (vé VALID), **không** chuyển sang trang VNPay. Mỗi lần demo tốn 1 lượt; hết 5 lượt thì
 reset `used_count` (`UPDATE promotion SET used_count = 0 WHERE code = 'FREE100'`) hoặc chạy lại script.
 
-> Khi `database/changes/` có file mới (bạn khác đổi bảng), chạy thêm file đó, hoặc chạy lại script chính
-> nếu Leader đã gộp vào.
+DB đang sử dụng cần CASH và tên WELCOME10 mới: chạy `database/changes/2026-11-13_db_tien-mat-ten-khuyen-mai.sql`.
+Xem `database/changes/README.md` để phân biệt nâng cấp DB cũ với khởi tạo mới; không chạy lại migration lịch sử trên DB mới.
 
 ## 4. Mở project bằng IntelliJ
 

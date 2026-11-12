@@ -4,9 +4,10 @@
 
 1. Tạo database: mở SSMS, chạy `database/WaterbusDB_SQLServer.sql` (tạo `WaterbusDB` + dữ liệu mẫu).
    **Chạy lại script ngay trước buổi demo**: chuyến mẫu chỉ có 7 ngày kể từ ngày chạy script.
-   Sau đó chạy lần lượt các file trong `database/changes/` theo thứ tự ngày (thiếu file thì đặt vé sẽ lỗi `Invalid column name`).
-   Nếu DB đã từng chạy `2026-11-08_db_hanh-khach-soat-ve-hoan-tien.sql`, trước khi chạy lại script chính phải
-   `DROP TABLE IF EXISTS refund; DROP TABLE IF EXISTS ticket_scan_log;` (2 bảng này có khoá ngoại tới bảng chính).
+   Script KH3 đã gộp schema/seed của ba migration cũ và tự xoá bảng phụ theo đúng thứ tự khoá ngoại;
+   máy mới không cần chạy thêm các migration lịch sử. DB đang dùng chỉ cần nâng cấp CASH/tên mã thì chạy
+   `database/changes/2026-11-13_db_tien-mat-ten-khuyen-mai.sql`, không xoá-tạo DB cần giữ dữ liệu.
+   Lịch phân công tàu còn chờ TI7; chưa dùng nhánh KH3 làm dữ liệu demo chính thức trước khi hết chồng giờ.
 2. Cấu hình mật khẩu SQL Server: copy `src/main/resources/application-local.properties.example`
    thành `application-local.properties`, sửa `spring.datasource.password` (file này bị gitignore). Chi tiết ở `docs/SETUP.md`.
 3. Chạy: `./mvnw spring-boot:run` (Windows: `mvnw.cmd spring-boot:run`), mở http://localhost:8080.

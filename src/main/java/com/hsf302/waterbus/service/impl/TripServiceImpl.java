@@ -118,13 +118,7 @@ public class TripServiceImpl implements TripService {
             throw new IllegalArgumentException("Tàu đã có chuyến khác trùng giờ. Vui lòng chọn tàu hoặc giờ khác.");
         }
 
-        var trip = new Trip();
-        trip.setTripCode(nextTripCode(form));
-        trip.setRoute(route);
-        trip.setWaterbus(waterbus);
-        trip.setDepartureTime(departureTime);
-        trip.setArrivalTime(arrivalTime);
-        trip.setStatus("SCHEDULED");
+        var trip = form.toEntity(route, waterbus, nextTripCode(form), departureTime, arrivalTime);
         tripRepository.save(trip);
     }
 

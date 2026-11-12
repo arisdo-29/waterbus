@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Waterbus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -22,6 +23,15 @@ public class AdminWaterbusForm {
 
     @NotBlank(message = "Vui lòng chọn trạng thái.")
     private String status = "ACTIVE";
+
+    public Waterbus toEntity() {
+        Waterbus waterbus = new Waterbus();
+        waterbus.setCode(code.trim());
+        waterbus.setName(name.trim());
+        waterbus.setCapacity(capacity);
+        waterbus.setStatus(status.trim());
+        return waterbus;
+    }
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }

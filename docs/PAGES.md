@@ -72,6 +72,9 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
   mỗi phần tử `tickets` thêm `passengerName`, `birthYear` (null nếu vé thường), nên có thêm `requiresVerification` (nhãn "Mang giấy tờ gốc";
   nếu thiếu, FE coi vé có `birthYear` là vé ưu đãi). Booking `REFUNDED` không có `refund` vẫn hiện banner "Đã hoàn tiền" với `totalAmount`.
 - `booking/history`: mỗi phần tử `bookings` thêm `refundStatus` (null / `PENDING` / `DONE`).
+- **Trạng thái vé hiển thị (TR5):** `tickets[].status` có thêm mã **`PASSED`** = vé `VALID` của chuyến đã `COMPLETED`
+  (chỉ đổi chữ hiển thị, DB vẫn `VALID`). **Cần Khuyên** thêm nhãn "Đã qua chuyến" cho `PASSED` trong fragment `statusBadge`;
+  chưa thêm thì badge in nguyên chữ `PASSED`. Chuyến `DEPARTED` vẫn đặt vé và thanh toán được cho khách lên ở bến giữa (tới mốc ngừng bán).
 - **Quyền xem đơn (TR2):** `GET /booking/{bookingCode}`, `POST /booking/{bookingCode}/cancel`, `GET /payment/{bookingCode}`,
   `POST /payment/{bookingCode}/vnpay` chỉ cho chủ đơn, STAFF/ADMIN, hoặc trình duyệt đã được phép (session `viewableBookingCodes`:
   vừa đặt đơn khách vãng lai, hoặc đã nhập đúng SĐT ở `/booking/{bookingCode}/verify`). Đơn của tài khoản mà chưa đăng nhập →

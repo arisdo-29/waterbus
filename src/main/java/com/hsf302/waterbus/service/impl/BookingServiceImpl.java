@@ -409,10 +409,9 @@ public class BookingServiceImpl implements BookingService {
                 errors.rejectValue("birthYears[" + i + "]", "passenger.age",
                         "Vé người cao tuổi chỉ dành cho hành khách từ 70 tuổi trở lên.");
             }
-            if ("PRIORITY".equals(ticketType.getCode()) && age < 13) {
-                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
-                        "Vé ưu tiên chỉ dành cho hành khách từ 13 tuổi trở lên.");
-            }
+            // Vé ưu tiên (PRIORITY: người khuyết tật, thương binh) KHÔNG giới hạn tuổi: nhóm không có vé trẻ em,
+            // nên nếu chặn dưới 13 tuổi thì trẻ khuyết tật không mua được vé miễn phí nào.
+            // Nhân viên vẫn xác minh giấy tờ khi khách lên tàu.
         }
     }
 

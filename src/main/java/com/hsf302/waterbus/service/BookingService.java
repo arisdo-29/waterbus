@@ -8,6 +8,7 @@ import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import org.springframework.validation.Errors;
 
 // Module: BE4 - Đặt vé & Thanh toán
@@ -20,6 +21,28 @@ public interface BookingService {
     // Số vé ưu đãi (loại vé cần xác minh giấy tờ, thường miễn phí) tối đa trong 1 đơn.
     // Giới hạn để 1 người không giữ được hàng loạt ghế miễn phí.
     int MAX_PRIORITY_TICKETS_PER_BOOKING = 2;
+
+    // Kết quả kiểm tra "người đang dùng web có được xem đơn này không" (dùng chung cho xem đơn, huỷ đơn,
+    // trang thanh toán, nút VNPay). Controller dựa vào kết quả để chọn trang chuyển tới.
+    enum ViewAccess {
+        ALLOWED,    // được xem
+        NOT_FOUND,  // không có đơn này
+        NEED_LOGIN, // đơn của 1 tài khoản nhưng chưa đăng nhập
+        NOT_OWNER,  // đăng nhập tài khoản khác (không phải chủ đơn, không phải nhân viên)
+        NEED_PHONE  // đơn khách vãng lai, trình duyệt này chưa được phép -> phải nhập đúng SĐT
+    }
+
+    /**
+     * Kiểm tra quyền xem 1 đơn. Mã đơn chỉ 8 chữ số nên KHÔNG được coi biết mã là đủ.
+     * loginAccountId, loginRole: tài khoản đang đăng nhập (null nếu chưa đăng nhập).
+     * viewableBookingCodes: các mã đơn trình duyệt này đã được phép xem (vừa đặt, hoặc đã nhập đúng SĐT).
+     * Controller tự lấy các giá trị này từ session rồi truyền vào (không truyền HttpSession vào service).
+     */
+    ViewAccess checkViewAccess(String bookingCode, Integer loginAccountId, String loginRole,
+                               Set<String> viewableBookingCodes);
+
+    /** SĐT nhập vào có đúng là SĐT liên hệ của đơn không (dùng cho trang xác minh đơn khách vãng lai). */
+    boolean verifyContactPhone(String bookingCode, String contactPhone);
 
     /**
      * Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService.

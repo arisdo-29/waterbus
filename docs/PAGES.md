@@ -25,6 +25,8 @@ Người: **Khuyên** (BE1) · **Trí** (BE2) · **Tân** (BE3) · **Trâm** (BE
 | M5 | `POST /payment/{bookingCode}/vnpay` | redirect sang cổng VNPay | - | Trâm | Đơn không còn `PENDING`/quá hạn → redirect `/payment/{bookingCode}` + flash `errorMessage` | `bankCode` (không bắt buộc, đặt trên URL action, VD `/payment/{bookingCode}/vnpay?bankCode=VNPAYQR`): `VNPAYQR` = mở thẳng màn hình QR, `VNBANK` = mở thẳng trang thẻ ATM nội địa, bỏ trống (hoặc mã khác) = trang chọn phương thức của VNPay |
 | M5 | `GET /payment/vnpay-return` | redirect | - | Trâm | Thành công → `/booking/{bookingCode}` + flash `successMessage`; thất bại/huỷ → `/payment/{bookingCode}` + flash `errorMessage` | tham số `vnp_*` do VNPay gửi về |
 | M1 | `GET /booking/{bookingCode}` | `booking/detail` | Khuyên | Trâm | `booking` (`bookingCode`, `status`, `contactName`, `contactPhone`, `contactEmail`, `totalAmount`, `createdAt`, `paidAt`), `trip`, `tickets` (mỗi vé: `ticketCode`, `seatCode`, `fromStation`, `toStation`, `price`, `status`) | |
+| TR2 | `GET /booking/{bookingCode}/verify` | `booking/verify` (**chưa có - KH5 Khuyên**) | Khuyên | Trâm | `bookingCode`; lỗi nhập sai SĐT qua flash `errorMessage` (fragment alerts) | `<form method="post">` tới `/booking/{bookingCode}/verify`, field **`contactPhone`** |
+| TR2 | `POST /booking/{bookingCode}/verify` | redirect | - | Trâm | Đúng SĐT liên hệ của đơn khách vãng lai → `/booking/{bookingCode}` (trình duyệt này được xem đơn); sai → `/booking/{bookingCode}/verify` + flash `errorMessage` = "Số điện thoại không khớp với đơn đặt vé này." | |
 | M4 | `POST /booking/{bookingCode}/cancel` | redirect `/booking/{bookingCode}` | Khuyên (nút "Huỷ đơn" trên `booking/detail`) | Trâm | flash `successMessage` = "Đã huỷ đơn." hoặc `errorMessage` (không tìm thấy đơn / đơn không còn `PENDING` / không phải đơn của tài khoản đang đăng nhập) | Nút **chỉ hiện khi `booking.status == 'PENDING'`**; `<form method="post">` tới `/booking/{bookingCode}/cancel`, không cần field |
 | M2 | `GET /auth/login` | `auth/login` | Tân | Tân | `errorMessage` (nếu sai) | → `POST /auth/login`: `email`, `password` |
 | M2 | `GET /auth/register` | `auth/register` | Tân | Tân | `errorMessage` | → `POST /auth/register`: `email`, `password`, `fullName`, `phone` |
@@ -70,6 +72,11 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
   mỗi phần tử `tickets` thêm `passengerName`, `birthYear` (null nếu vé thường), nên có thêm `requiresVerification` (nhãn "Mang giấy tờ gốc";
   nếu thiếu, FE coi vé có `birthYear` là vé ưu đãi). Booking `REFUNDED` không có `refund` vẫn hiện banner "Đã hoàn tiền" với `totalAmount`.
 - `booking/history`: mỗi phần tử `bookings` thêm `refundStatus` (null / `PENDING` / `DONE`).
+- **Quyền xem đơn (TR2):** `GET /booking/{bookingCode}`, `POST /booking/{bookingCode}/cancel`, `GET /payment/{bookingCode}`,
+  `POST /payment/{bookingCode}/vnpay` chỉ cho chủ đơn, STAFF/ADMIN, hoặc trình duyệt đã được phép (session `viewableBookingCodes`:
+  vừa đặt đơn khách vãng lai, hoặc đã nhập đúng SĐT ở `/booking/{bookingCode}/verify`). Đơn của tài khoản mà chưa đăng nhập →
+  `/auth/login` (đăng nhập xong quay lại đúng trang); tài khoản khác → `/` + flash "Bạn không có quyền xem đơn đặt vé này.";
+  đơn khách vãng lai mở trên trình duyệt khác → `/booking/{bookingCode}/verify`. Luật nằm ở `BookingService.checkViewAccess`.
 - Field mới trên DTO đã có (`tickets[]`, `bookings[]`) được template đọc qua `${@view.prop(obj, 'tenField')}` (bean `ViewPropertyHelper`):
   DTO chưa có field thì coi như null, không lỗi 500. Thêm field vào DTO là giao diện tự hiện.
 

@@ -191,9 +191,7 @@ public class TripServiceImpl implements TripService {
                     int routeId = trip.getRoute().getId();
                     Segment segment = segments.computeIfAbsent(routeId,
                             id -> segmentForRoute(id, fromStationId, toStationId));
-                    return new TripSearchDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                            trip.getDepartureTime().plusMinutes(segment.departureMinutes()),
-                            trip.getDepartureTime().plusMinutes(segment.arrivalMinutes()),
+                    return TripSearchDTO.forSegment(trip, segment.departureMinutes(), segment.arrivalMinutes(),
                             seatRepository.countAvailableSeats(trip.getId(), trip.getWaterbus().getId()));
                 })
                 .toList();
@@ -221,8 +219,7 @@ public class TripServiceImpl implements TripService {
                 .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
                 .filter(trip -> trip.getDepartureTime()
                         .isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES)))
-                .map(trip -> new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                        trip.getDepartureTime(), trip.getArrivalTime()))
+                .map(BookingTripDTO::fromEntity)
                 .orElse(null);
     }
 
@@ -240,8 +237,7 @@ public class TripServiceImpl implements TripService {
                     if (!boardingTime.isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES))) {
                         return null;
                     }
-                    return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                            boardingTime, trip.getDepartureTime().plusMinutes(segment.arrivalMinutes()));
+                    return BookingTripDTO.forSegment(trip, segment.departureMinutes(), segment.arrivalMinutes());
                 })
                 .orElse(null);
     }
@@ -260,8 +256,7 @@ public class TripServiceImpl implements TripService {
                     Set<Integer> availableIds = getAvailableSeats(tripId).stream()
                             .map(Seat::getId).collect(Collectors.toSet());
                     return seatRepository.findActiveSeats(trip.getWaterbus().getId()).stream()
-                            .map(seat -> new SeatDTO(seat.getId(), seat.getSeatCode(), seat.getSeatRow(),
-                                    seat.getSeatCol(), availableIds.contains(seat.getId())))
+                            .map(seat -> SeatDTO.fromEntity(seat, availableIds.contains(seat.getId())))
                             .toList();
                 })
                 .orElseGet(List::of);

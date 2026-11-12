@@ -4,6 +4,7 @@ import com.hsf302.waterbus.entity.Route;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.entity.Waterbus;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -19,6 +20,7 @@ public class AdminTripForm {
     private Integer waterbusId;
 
     @NotNull(message = "Vui lòng nhập giờ khởi hành.")
+    @Future(message = "Giờ khởi hành phải ở trong tương lai.")
     private LocalDateTime departureTime;
 
     @NotBlank(message = "Vui lòng chọn trạng thái.")

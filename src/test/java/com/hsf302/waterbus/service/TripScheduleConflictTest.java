@@ -93,6 +93,29 @@ class TripScheduleConflictTest {
         assertEquals(3, jdbc.queryForObject("SELECT COUNT(*) FROM trip WHERE route_id = ?", Integer.class, routeId));
     }
 
+    @Test
+    void rejectsPastDepartureInServiceAndShowsFieldErrorOnForm() throws Exception {
+        LocalDateTime past = LocalDateTime.now().minusMinutes(1).withSecond(0).withNano(0);
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> tripService.createAdminTrip(form(busId, past)));
+        assertTrue(error.getMessage().contains("tương lai"));
+        assertThrows(IllegalArgumentException.class,
+                () -> tripService.createAdminTrip(form(busId, LocalDateTime.now().withSecond(59))));
+
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        AccountDTO admin = new AccountDTO(1, "admin@test.vn", "Admin", null, "ADMIN", "ACTIVE");
+        mvc.perform(post("/admin/trips/save")
+                        .sessionAttr("loginAccount", admin)
+                        .param("routeId", String.valueOf(routeId))
+                        .param("waterbusId", String.valueOf(busId))
+                        .param("departureTime", past.toString())
+                        .param("status", "SCHEDULED"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/trip/form"))
+                .andExpect(model().attributeHasFieldErrors("trip", "departureTime"));
+        assertEquals(3, jdbc.queryForObject("SELECT COUNT(*) FROM trip WHERE route_id = ?", Integer.class, routeId));
+    }
+
     private AdminTripForm form(int waterbusId, LocalDateTime departure) {
         AdminTripForm form = new AdminTripForm();
         form.setRouteId(routeId);

@@ -28,6 +28,18 @@ public interface TicketService {
     BookingCheckinDTO getBookingCheckinInfo(String bookingCode, Integer staffAccountId, String source);
 
     /**
+     * Tính toán giờ lên tàu thực tế theo bến khách lên:
+     * departure_time + minutes_from_start của bến xuất phát trên vé.
+     */
+    java.time.LocalDateTime calculateBoardingTime(String ticketCode);
+
+    /**
+     * Kiểm tra vé có nằm ngoài khung giờ soát vé hợp lệ [-60 phút, +15 phút]
+     * so với giờ lên tàu thực tế hay không.
+     */
+    boolean isOutsideCheckinWindow(String ticketCode);
+
+    /**
      * Thực hiện soát vé: kiểm tra tính hợp lệ và chuyển status sang 'USED', ghi nhận checked_in_at.
      * @param ticketCode mã vé cần soát
      * @return TicketCheckinDTO chứa thông tin vé sau khi đã cập nhật sang 'USED'

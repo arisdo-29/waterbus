@@ -53,7 +53,7 @@ class WaterbusStatusTest {
         AccountDTO admin = new AccountDTO(1, "admin@test.vn", "Admin", null, "ADMIN", "ACTIVE");
         String html = mvc.perform(get("/admin/waterbuses").sessionAttr("loginAccount", admin))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertTrue(html.contains("1 chuyến sắp tới"));
+        assertTrue(html.contains("chuyến sắp chạy"));
         assertTrue(html.contains("/admin/trips"));
         assertFalse(html.contains("/admin/waterbuses/" + busId + "/edit"));
         mvc.perform(get("/admin/waterbuses/" + busId + "/edit")

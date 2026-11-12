@@ -67,6 +67,24 @@ public class RefundServiceImpl implements RefundService {
         }
     }
 
+    @Override
+    @Transactional
+    public void createForInvalidPayment(int bookingId, String reason) {
+        if (refundRepository.existsByBookingId(bookingId)) {
+            return;
+        }
+        if (reason == null || reason.isBlank() || reason.length() > 255) {
+            throw new IllegalArgumentException("Lý do hoàn tiền phải có từ 1 đến 255 ký tự.");
+        }
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt vé."));
+        Refund refund = new Refund();
+        refund.setBooking(booking);
+        refund.setAmount(booking.getTotalAmount());
+        refund.setReason(reason.trim());
+        refundRepository.save(refund);
+    }
+
     private void cancelTickets(List<Ticket> tickets) {
         for (Ticket ticket : tickets) {
             if ("HOLD".equals(ticket.getStatus()) || "VALID".equals(ticket.getStatus())

@@ -31,13 +31,15 @@ public class TicketCheckinDTO implements Serializable {
     private final Integer birthYear;
     private final Integer passengerAge;
     private final Boolean requiresVerification;
+    private final boolean outsideWindow;
 
     // Full constructor
     public TicketCheckinDTO(String ticketCode, String bookingCode, String passengerName, String passengerPhone,
                             String tripCode, Integer tripId, String routeName, String fromStationName, String toStationName,
                             LocalDateTime departureTime, String seatCode, String waterbusName,
                             String ticketTypeName, String ticketTypeCode, BigDecimal price, String status,
-                            LocalDateTime checkedInAt, Integer birthYear, Integer passengerAge, Boolean requiresVerification) {
+                            LocalDateTime checkedInAt, Integer birthYear, Integer passengerAge, Boolean requiresVerification,
+                            boolean outsideWindow) {
         this.ticketCode = ticketCode;
         this.bookingCode = bookingCode;
         this.passengerName = passengerName;
@@ -58,6 +60,17 @@ public class TicketCheckinDTO implements Serializable {
         this.birthYear = birthYear;
         this.passengerAge = passengerAge;
         this.requiresVerification = requiresVerification != null ? requiresVerification : false;
+        this.outsideWindow = outsideWindow;
+    }
+
+    public TicketCheckinDTO(String ticketCode, String bookingCode, String passengerName, String passengerPhone,
+                            String tripCode, Integer tripId, String routeName, String fromStationName, String toStationName,
+                            LocalDateTime departureTime, String seatCode, String waterbusName,
+                            String ticketTypeName, String ticketTypeCode, BigDecimal price, String status,
+                            LocalDateTime checkedInAt, Integer birthYear, Integer passengerAge, Boolean requiresVerification) {
+        this(ticketCode, bookingCode, passengerName, passengerPhone, tripCode, tripId, routeName, fromStationName,
+                toStationName, departureTime, seatCode, waterbusName, ticketTypeName, ticketTypeCode, price, status,
+                checkedInAt, birthYear, passengerAge, requiresVerification, false);
     }
 
     // Backward-compatible constructor
@@ -70,7 +83,7 @@ public class TicketCheckinDTO implements Serializable {
                 checkedInAt, null, null, false);
     }
 
-    public static TicketCheckinDTO fromEntity(Ticket ticket) {
+    public static TicketCheckinDTO fromEntity(Ticket ticket, boolean outsideWindow) {
         if (ticket == null) {
             return null;
         }
@@ -125,8 +138,13 @@ public class TicketCheckinDTO implements Serializable {
                 ticket.getCheckedInAt(),
                 birthYear,
                 passengerAge,
-                requiresVerification
+                requiresVerification,
+                outsideWindow
         );
+    }
+
+    public static TicketCheckinDTO fromEntity(Ticket ticket) {
+        return fromEntity(ticket, false);
     }
 
     public String getTicketCode() {
@@ -207,6 +225,10 @@ public class TicketCheckinDTO implements Serializable {
 
     public Boolean getRequiresVerification() {
         return requiresVerification;
+    }
+
+    public boolean isOutsideWindow() {
+        return outsideWindow;
     }
 
     public boolean isValid() {

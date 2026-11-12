@@ -20,11 +20,12 @@ public class BookingCheckinDTO implements Serializable {
     private final LocalDateTime departureTime;
     private final String status;
     private final List<TicketCheckinDTO> tickets;
+    private final boolean outsideWindow;
 
     public BookingCheckinDTO(String bookingCode, String contactName, String contactPhone,
                              String tripCode, Integer tripId, String routeName,
                              String fromStationName, String toStationName, LocalDateTime departureTime,
-                             String status, List<TicketCheckinDTO> tickets) {
+                             String status, List<TicketCheckinDTO> tickets, boolean outsideWindow) {
         this.bookingCode = bookingCode;
         this.contactName = contactName;
         this.contactPhone = contactPhone;
@@ -36,9 +37,19 @@ public class BookingCheckinDTO implements Serializable {
         this.departureTime = departureTime;
         this.status = status;
         this.tickets = tickets;
+        this.outsideWindow = outsideWindow;
     }
 
-    public static BookingCheckinDTO fromEntity(Booking booking, Trip trip, List<Ticket> tickets, String fromStationName, String toStationName) {
+    public BookingCheckinDTO(String bookingCode, String contactName, String contactPhone,
+                             String tripCode, Integer tripId, String routeName,
+                             String fromStationName, String toStationName, LocalDateTime departureTime,
+                             String status, List<TicketCheckinDTO> tickets) {
+        this(bookingCode, contactName, contactPhone, tripCode, tripId, routeName,
+                fromStationName, toStationName, departureTime, status, tickets, false);
+    }
+
+    public static BookingCheckinDTO fromEntity(Booking booking, Trip trip, List<Ticket> tickets,
+                                              String fromStationName, String toStationName, boolean outsideWindow) {
         if (booking == null) {
             return null;
         }
@@ -60,8 +71,39 @@ public class BookingCheckinDTO implements Serializable {
                 toStationName != null ? toStationName : "",
                 departureTime,
                 booking.getStatus(),
-                ticketDTOs
+                ticketDTOs,
+                outsideWindow
         );
+    }
+
+    public static BookingCheckinDTO from(Booking booking, Trip trip, List<TicketCheckinDTO> ticketDTOs,
+                                         String fromStationName, String toStationName, boolean outsideWindow) {
+        if (booking == null) {
+            return null;
+        }
+        String routeName = (trip != null && trip.getRoute() != null) ? trip.getRoute().getName() : "";
+        String tripCode = (trip != null) ? trip.getTripCode() : "";
+        Integer tripId = (trip != null) ? trip.getId() : null;
+        LocalDateTime departureTime = (trip != null) ? trip.getDepartureTime() : null;
+
+        return new BookingCheckinDTO(
+                booking.getBookingCode(),
+                booking.getContactName(),
+                booking.getContactPhone(),
+                tripCode,
+                tripId,
+                routeName,
+                fromStationName != null ? fromStationName : "",
+                toStationName != null ? toStationName : "",
+                departureTime,
+                booking.getStatus(),
+                ticketDTOs != null ? ticketDTOs : List.of(),
+                outsideWindow
+        );
+    }
+
+    public static BookingCheckinDTO fromEntity(Booking booking, Trip trip, List<Ticket> tickets, String fromStationName, String toStationName) {
+        return fromEntity(booking, trip, tickets, fromStationName, toStationName, false);
     }
 
     public String getBookingCode() {
@@ -102,6 +144,10 @@ public class BookingCheckinDTO implements Serializable {
 
     public String getStatus() {
         return status;
+    }
+
+    public boolean isOutsideWindow() {
+        return outsideWindow;
     }
 
     public List<TicketCheckinDTO> getTickets() {

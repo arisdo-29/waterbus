@@ -263,8 +263,7 @@ public class TripServiceImpl implements TripService {
                     Set<Integer> availableIds = getAvailableSeats(tripId).stream()
                             .map(Seat::getId).collect(Collectors.toSet());
                     return seatRepository.findActiveSeats(trip.getWaterbus().getId()).stream()
-                            .map(seat -> new SeatDTO(seat.getId(), seat.getSeatCode(), seat.getSeatRow(),
-                                    seat.getSeatCol(), availableIds.contains(seat.getId())))
+                            .map(seat -> SeatDTO.fromEntity(seat, availableIds.contains(seat.getId())))
                             .toList();
                 })
                 .orElseGet(List::of);

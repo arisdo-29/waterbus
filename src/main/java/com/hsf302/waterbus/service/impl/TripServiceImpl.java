@@ -66,7 +66,8 @@ public class TripServiceImpl implements TripService {
     public List<AdminTripDTO> getTodayTrips() {
         LocalDate today = LocalDate.now();
         return tripRepository.findDepartingBetween(today.atStartOfDay(), today.plusDays(1).atStartOfDay())
-                .stream().filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .stream().filter(trip -> "SCHEDULED".equals(trip.getStatus())
+                        || "DEPARTED".equals(trip.getStatus()))
                 .map(AdminTripDTO::fromEntity)
                 .toList();
     }
@@ -217,7 +218,8 @@ public class TripServiceImpl implements TripService {
     @Transactional(readOnly = true)
     public BookingTripDTO getBookableTrip(int tripId) {
         return tripRepository.findById(tripId)
-                .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .filter(trip -> "SCHEDULED".equals(trip.getStatus())
+                        || "DEPARTED".equals(trip.getStatus()))
                 .filter(trip -> trip.getDepartureTime()
                         .isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES)))
                 .map(BookingTripDTO::fromEntity)
@@ -228,7 +230,8 @@ public class TripServiceImpl implements TripService {
     @Transactional(readOnly = true)
     public BookingTripDTO getBookableTrip(int tripId, int fromStationId, int toStationId) {
         return tripRepository.findById(tripId)
-                .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .filter(trip -> "SCHEDULED".equals(trip.getStatus())
+                        || "DEPARTED".equals(trip.getStatus()))
                 .filter(trip -> Boolean.TRUE.equals(trip.getRoute().getIsActive()))
                 .filter(trip -> "ACTIVE".equals(trip.getWaterbus().getStatus()))
                 .map(trip -> {

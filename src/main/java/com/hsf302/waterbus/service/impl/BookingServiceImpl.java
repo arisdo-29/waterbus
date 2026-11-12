@@ -122,8 +122,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 3. Chuyến: phải tồn tại và còn đang mở bán
+        // TR5: SCHEDULED (chưa rời bến đầu) hoặc DEPARTED (đã rời bến đầu, job TI1 của Trí tự đổi) đều còn bán,
+        // vì khách ở bến giữa vẫn mua được cho tới mốc ngừng bán của bến mình (isOnlineSalesClosed ở bước 4).
+        // Giống cách TripService của Trí lọc chuyến ở trang tìm chuyến / chọn ghế.
         Trip trip = tripService.getTripById(tripId);
-        if (trip == null || !"SCHEDULED".equals(trip.getStatus())) {
+        if (trip == null || !("SCHEDULED".equals(trip.getStatus()) || "DEPARTED".equals(trip.getStatus()))) {
             throw new IllegalArgumentException("Chuyến tàu này không còn nhận đặt vé.");
         }
 
@@ -566,6 +569,11 @@ public class BookingServiceImpl implements BookingService {
         String status = t.getStatus();
         if ("HOLD".equals(status) && isHoldExpired(t.getBooking())) {
             status = "CANCELLED";
+        }
+        // TR5: vé còn hợp lệ (VALID) của chuyến đã kết thúc (COMPLETED) -> hiển thị mã PASSED ("Đã qua chuyến"),
+        // để khách không tưởng vé vẫn dùng được. Chỉ đổi chữ hiển thị, DB vẫn là VALID (giống vé HOLD ở trên).
+        if ("VALID".equals(status) && "COMPLETED".equals(t.getTrip().getStatus())) {
+            status = "PASSED";
         }
         return status;
     }

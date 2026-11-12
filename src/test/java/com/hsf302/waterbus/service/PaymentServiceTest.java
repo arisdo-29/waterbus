@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.controller.BookingAccessHelper;
+import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Payment;
 import jakarta.persistence.EntityManager;
@@ -31,6 +32,7 @@ class PaymentServiceTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private BookingService bookingService;
     @Autowired private PaymentService paymentService;
+    @Autowired private TripService tripService;
     @Autowired private EntityManager entityManager;
     @Autowired private WebApplicationContext context;
 
@@ -86,6 +88,24 @@ class PaymentServiceTest {
         assertThat(jdbc.queryForObject("SELECT used_count FROM promotion WHERE code = 'TEST10'", Integer.class))
                 .isEqualTo(1);
         assertThat(count("payment")).isEqualTo(1);
+    }
+
+    @Test
+    void canStillPayAfterTripDepartedAndPaidTicketShowsPassedAfterTripCompleted() {
+        // Trong lúc khách đang thanh toán, tàu rời bến đầu -> job TI1 đổi chuyến sang DEPARTED
+        tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("DEPARTED");
+        assertThat(paymentService.getCannotPayReason(booking.getId())).isNull(); // vẫn thanh toán được
+        paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
+        assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
+                .containsExactly("VALID", "VALID");
+
+        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PASSED ("Đã qua chuyến"), DB vẫn là VALID
+        tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("COMPLETED");
+        assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
+                .containsExactly("PASSED", "PASSED");
+        entityManager.flush();
+        assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
+                .containsExactly("VALID", "VALID");
     }
 
     @Test

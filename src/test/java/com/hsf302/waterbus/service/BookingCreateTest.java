@@ -212,6 +212,27 @@ class BookingCreateTest {
     }
 
     @Test
+    void departedTripStillSellsToLaterStationsButCompletedTripDoesNot() {
+        // Tuyến S1 -> S2 -> S3 mất 20 phút mỗi chặng. Tàu đã RỜI S1 cách đây 5 phút (job TI1 đổi sang DEPARTED)
+        int routeId = id("route", "code", "TEST_R1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 20 WHERE route_id = ? AND station_id = ?", routeId, s2);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 40 WHERE route_id = ? AND station_id = ?", routeId, s3);
+        int busId = id("waterbus", "code", "TEST_WB1");
+        int departedTripId = trip("TEST_TRIP_DEP", routeId, busId, LocalDateTime.now().minusMinutes(5), "DEPARTED");
+
+        // Lên ở S2: tàu tới sau 15 phút, chưa tới mốc ngừng bán 10 phút -> vẫn đặt được
+        Booking booking = BookingTestHelper.createBooking(bookingService, departedTripId, List.of(seatA1),
+                ticketTypeId, s2, s3, "", null, "Lan", "0901234567", "lan@example.com");
+        assertThat(booking.getStatus()).isEqualTo("PENDING");
+        // Lên ở S1: tàu đã rời bến này -> ngừng bán
+        assertInvalid(departedTripId, List.of(seatA2), s1, s3, "", "0901234567", "ngừng bán vé online");
+
+        // Chuyến đã kết thúc (COMPLETED) -> không bán nữa
+        int completedTripId = trip("TEST_TRIP_DONE", routeId, busId, LocalDateTime.now().plusHours(3), "COMPLETED");
+        assertInvalid(completedTripId, List.of(seatA1), s2, s3, "", "0901234567", "không còn nhận đặt vé");
+    }
+
+    @Test
     void stopsOnlineSalesByTimeShipReachesBoardingStation() throws Exception {
         // Tuyến S1 -> S2 -> S3 mất 20 phút mỗi chặng. Tàu rời S1 sau 5 phút nữa -> tới S2 sau 25 phút
         int routeId = id("route", "code", "TEST_R1");

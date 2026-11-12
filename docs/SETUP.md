@@ -29,9 +29,20 @@ Mất khoảng 30-45 phút. Làm theo thứ tự, xong bước nào tích bướ
 
 Mở SSMS → *File → Open* → `database/WaterbusDB_SQLServer.sql` → **Execute** (F5).
 Script tạo database `WaterbusDB`, 12 bảng và dữ liệu mẫu (5 bến, 4 tuyến, 3 tàu, chuyến 7 ngày tới,
-3 tài khoản, 2 mã khuyến mãi). Chạy lại bao nhiêu lần cũng được (nó xoá bảng cũ rồi tạo lại).
+4 tài khoản, 3 mã khuyến mãi). Chạy lại bao nhiêu lần cũng được (nó xoá bảng cũ rồi tạo lại).
 
 Tài khoản mẫu: `admin@waterbus.vn / Admin@123`, `staff@waterbus.vn / Staff@123`, `customer@gmail.com / Customer@123`.
+
+Super admin (id = 0): `superadmin@waterbus.vn / SuperAdmin@123`. Không hiện trong danh sách tài khoản ở trang admin,
+không bị đổi quyền, khoá hay reset mật khẩu. DB tạo trước ngày 12/11/2026 thì chạy thêm
+`database/changes/2026-11-12_leader_super-admin.sql`.
+
+Mã khuyến mãi mẫu: `WELCOME10` (giảm 10%, tối đa 10.000đ), `GIAM5K` (giảm 5.000đ cho đơn từ 30.000đ),
+`FREE100` (giảm 100%, dùng tối đa 5 lần, hạn 1 tháng).
+
+**Kịch bản demo đơn 0 đ:** đặt vé bất kỳ, nhập mã `FREE100` ở bước đặt vé → tổng tiền 0 đ → đơn chuyển
+thẳng sang **PAID** (vé VALID), **không** chuyển sang trang VNPay. Mỗi lần demo tốn 1 lượt; hết 5 lượt thì
+reset `used_count` (`UPDATE promotion SET used_count = 0 WHERE code = 'FREE100'`) hoặc chạy lại script.
 
 > Khi `database/changes/` có file mới (bạn khác đổi bảng), chạy thêm file đó, hoặc chạy lại script chính
 > nếu Leader đã gộp vào.

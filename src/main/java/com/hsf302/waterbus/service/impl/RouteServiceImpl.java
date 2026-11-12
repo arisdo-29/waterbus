@@ -42,33 +42,37 @@ public class RouteServiceImpl implements RouteService {
 
     @Override
     public List<RouteDTO> getActiveRouteViews() {
-        return getActiveRoutes().stream().map(this::toDTO).toList();
+        return getActiveRoutes().stream().map(RouteDTO::fromEntity).toList();
     }
 
     @Override
     public List<StationDTO> getStationViewsOfRoute(int routeId) {
         return getStopsOfRoute(routeId).stream().map(RouteStation::getStation)
-                .map(s -> new StationDTO(s.getId(), s.getCode(), s.getName(), s.getAddress(), s.getIsActive()))
+                .map(StationDTO::fromEntity)
                 .toList();
     }
 
     @Override
+    public Map<Integer, List<StationDTO>> getRouteViewsWithStops() {
+        // Gom bến theo tuyến (key = id tuyến, giữ thứ tự tuyến) cho trang /routes
+        Map<Integer, List<StationDTO>> stopsByRoute = new LinkedHashMap<>();
+        for (RouteDTO route : getActiveRouteViews()) {
+            stopsByRoute.put(route.id(), getStationViewsOfRoute(route.id()));
+        }
+        return stopsByRoute;
+    }
+
+    @Override
     public List<RouteDTO> getRoutesForAdmin() {
-        return routeRepository.findAllByOrderByIdAsc().stream().map(this::toDTO).toList();
+        return routeRepository.findAllByOrderByIdAsc().stream().map(RouteDTO::fromEntity).toList();
     }
 
     @Override
     public RouteForm getRouteForEdit(int routeId) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tuyến cần sửa."));
-        RouteForm form = new RouteForm();
-        form.setId(route.getId());
-        form.setCode(route.getCode());
-        form.setName(route.getName());
-        form.setDescription(route.getDescription());
-        form.setIsActive(route.getIsActive());
-        form.setStationIds(getStopsOfRoute(routeId).stream().map(s -> s.getStation().getId()).toList());
-        return form;
+        return RouteForm.fromEntity(route,
+                getStopsOfRoute(routeId).stream().map(s -> s.getStation().getId()).toList());
     }
 
     @Override
@@ -95,10 +99,7 @@ public class RouteServiceImpl implements RouteService {
         if (Boolean.TRUE.equals(form.getIsActive()) && stations.values().stream().anyMatch(s -> !s.getIsActive())) {
             throw new IllegalArgumentException("Tuyến hoạt động chỉ được sử dụng bến đang hoạt động.");
         }
-        route.setCode(form.getCode());
-        route.setName(form.getName());
-        route.setDescription(form.getDescription());
-        route.setIsActive(form.getIsActive());
+        form.applyTo(route);
         routeRepository.saveAndFlush(route);
 
         List<RouteStation> existing = getStopsOfRoute(route.getId());
@@ -140,9 +141,5 @@ public class RouteServiceImpl implements RouteService {
     private Route requireForUpdate(int routeId) {
         return routeRepository.findForUpdate(routeId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tuyến cần sửa hoặc ngừng hoạt động."));
-    }
-
-    private RouteDTO toDTO(Route route) {
-        return new RouteDTO(route.getId(), route.getCode(), route.getName(), route.getDescription(), route.getIsActive());
     }
 }

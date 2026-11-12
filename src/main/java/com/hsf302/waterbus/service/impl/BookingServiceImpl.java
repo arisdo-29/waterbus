@@ -155,6 +155,10 @@ public class BookingServiceImpl implements BookingService {
         if (ticketType == null) {
             throw new IllegalArgumentException("Loại vé không hợp lệ.");
         }
+        // Vé ưu đãi: phải đăng nhập và tối đa 2 vé mỗi đơn (xem checkPriorityTicketRules)
+        if (Boolean.TRUE.equals(ticketType.getRequiresVerification())) {
+            checkPriorityTicketRules(accountId, seatIds.size());
+        }
 
         // 6. Tính tiền: giá vé lấy từ getPrice, giảm giá lấy từ calculateDiscount
         BigDecimal price = ticketTypeService.getPrice(ticketTypeId);
@@ -232,6 +236,19 @@ public class BookingServiceImpl implements BookingService {
             promotionService.increaseUsedCount(promotion.getCode());
         }
         return toDTO(booking); // trả DTO cho controller, entity không ra khỏi service
+    }
+
+    // Luật riêng của vé ưu đãi (loại vé cần xác minh giấy tờ, thường miễn phí -> đơn PAID ngay, không phải trả tiền).
+    // Không chặn thì khách vãng lai giữ được hàng loạt ghế miễn phí mà không tốn gì và không để lại danh tính.
+    private void checkPriorityTicketRules(Integer accountId, int seatCount) {
+        // accountId = null nghĩa là khách vãng lai (chưa đăng nhập)
+        if (accountId == null) {
+            throw new IllegalArgumentException("Vui lòng đăng nhập để đặt vé ưu đãi.");
+        }
+        if (seatCount > BookingService.MAX_PRIORITY_TICKETS_PER_BOOKING) {
+            throw new IllegalArgumentException("Mỗi đơn chỉ được đặt tối đa "
+                    + BookingService.MAX_PRIORITY_TICKETS_PER_BOOKING + " vé ưu đãi.");
+        }
     }
 
     // Đã ngừng bán online chưa: khi tàu tới bến khách lên chỉ còn ONLINE_SALES_CUTOFF_MINUTES phút
@@ -392,10 +409,9 @@ public class BookingServiceImpl implements BookingService {
                 errors.rejectValue("birthYears[" + i + "]", "passenger.age",
                         "Vé người cao tuổi chỉ dành cho hành khách từ 70 tuổi trở lên.");
             }
-            if ("PRIORITY".equals(ticketType.getCode()) && age < 13) {
-                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
-                        "Vé ưu tiên chỉ dành cho hành khách từ 13 tuổi trở lên.");
-            }
+            // Vé ưu tiên (PRIORITY: người khuyết tật, thương binh) KHÔNG giới hạn tuổi: nhóm không có vé trẻ em,
+            // nên nếu chặn dưới 13 tuổi thì trẻ khuyết tật không mua được vé miễn phí nào.
+            // Nhân viên vẫn xác minh giấy tờ khi khách lên tàu.
         }
     }
 

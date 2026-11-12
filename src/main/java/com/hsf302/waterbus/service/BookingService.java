@@ -17,6 +17,10 @@ public interface BookingService {
     // nên server phải tự kiểm tra lại. Dùng chung cho BookingForm (@Size) và createBooking.
     int MAX_SEATS_PER_BOOKING = 10;
 
+    // Số vé ưu đãi (loại vé cần xác minh giấy tờ, thường miễn phí) tối đa trong 1 đơn.
+    // Giới hạn để 1 người không giữ được hàng loạt ghế miễn phí.
+    int MAX_PRIORITY_TICKETS_PER_BOOKING = 2;
+
     /**
      * Tạo booking PENDING + vé HOLD, expires_at = now + 10 phút. Gọi TripService/TicketTypeService/PromotionService.
      * Nhận nguyên form trang checkout (chuyến, ghế, loại vé, bến, mã KM, thông tin liên hệ) thay cho 10-12 tham số rời.

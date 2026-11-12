@@ -84,9 +84,9 @@ public class AdminTripController {
     }
 
     private String form(Model model) {
-        model.addAttribute("routes", routeService.getActiveRoutes());
-        model.addAttribute("waterbuses", waterbusService.getWaterbuses().stream()
-                .filter(waterbus -> "ACTIVE".equals(waterbus.getStatus())).toList());
+        model.addAttribute("routes", routeService.getActiveRouteViews());
+        model.addAttribute("waterbuses", waterbusService.getWaterbusViews().stream()
+                .filter(waterbus -> "ACTIVE".equals(waterbus.status())).toList());
         return "admin/trip/form";
     }
 }

@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Route;
 import jakarta.validation.constraints.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,26 @@ public class RouteForm {
     @NotNull(message = "Vui lòng chọn ít nhất hai bến.")
     @Size(min = 2, message = "Tuyến cần ít nhất hai bến khác nhau.")
     private List<@NotNull(message = "Vui lòng chọn bến.") @Positive(message = "ID bến không hợp lệ.") Integer> stationIds = new ArrayList<>();
+
+    // Đổ dữ liệu tuyến có sẵn + danh sách id bến (theo stop_order) vào form để mở trang sửa
+    public static RouteForm fromEntity(Route r, List<Integer> stationIds) {
+        RouteForm form = new RouteForm();
+        form.setId(r.getId());
+        form.setCode(r.getCode());
+        form.setName(r.getName());
+        form.setDescription(r.getDescription());
+        form.setIsActive(r.getIsActive());
+        form.setStationIds(stationIds);
+        return form;
+    }
+
+    // Chép phần thông tin tuyến từ form sang entity (không chép id; danh sách bến do service xử lý)
+    public void applyTo(Route r) {
+        r.setCode(code);
+        r.setName(name);
+        r.setDescription(description);
+        r.setIsActive(isActive);
+    }
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }

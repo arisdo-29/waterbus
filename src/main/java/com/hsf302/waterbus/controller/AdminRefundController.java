@@ -5,6 +5,8 @@ import com.hsf302.waterbus.service.RefundService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,6 +47,12 @@ public class AdminRefundController {
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }
+        return "redirect:/admin/refunds";
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleInvalidParameter(RedirectAttributes flash) {
+        flash.addFlashAttribute("errorMessage", "Mã hoàn tiền không hợp lệ.");
         return "redirect:/admin/refunds";
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Controller
 @RequestMapping("/admin/trips")
@@ -88,5 +90,11 @@ public class AdminTripController {
         model.addAttribute("waterbuses", waterbusService.getWaterbuses().stream()
                 .filter(waterbus -> "ACTIVE".equals(waterbus.getStatus())).toList());
         return "admin/trip/form";
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleInvalidParameter(RedirectAttributes flash) {
+        flash.addFlashAttribute("errorMessage", "Mã chuyến hoặc tham số không hợp lệ.");
+        return "redirect:/admin/trips";
     }
 }

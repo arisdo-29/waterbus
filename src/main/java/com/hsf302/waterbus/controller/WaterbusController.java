@@ -11,6 +11,9 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -84,6 +87,12 @@ public class WaterbusController {
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }
+        return "redirect:/admin/waterbuses";
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
+    public String handleInvalidParameter(RedirectAttributes flash) {
+        flash.addFlashAttribute("errorMessage", "Mã tàu hoặc trạng thái không hợp lệ.");
         return "redirect:/admin/waterbuses";
     }
 }

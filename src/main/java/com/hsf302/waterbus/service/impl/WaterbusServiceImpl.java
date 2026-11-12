@@ -40,18 +40,14 @@ public class WaterbusServiceImpl implements WaterbusService {
             throw new IllegalArgumentException("Chỉ có thể thêm tàu mới.");
         }
         String code = form.getCode().trim();
-        String status = form.getStatus();
+        String status = form.getStatus() == null ? null : form.getStatus().trim();
         if (!Set.of("ACTIVE", "MAINTENANCE", "INACTIVE").contains(status)) {
             throw new IllegalArgumentException("Trạng thái tàu không hợp lệ.");
         }
         waterbusRepository.findFirstByCodeIgnoreCase(code).ifPresent(existing -> {
             throw new IllegalArgumentException("Mã tàu đã được sử dụng.");
         });
-        Waterbus waterbus = new Waterbus();
-        waterbus.setCode(code);
-        waterbus.setName(form.getName().trim());
-        waterbus.setCapacity(form.getCapacity());
-        waterbus.setStatus(status);
+        Waterbus waterbus = form.toEntity();
         waterbus = waterbusRepository.save(waterbus);
         java.util.ArrayList<Seat> newSeats = new java.util.ArrayList<>();
         for (int index = 1; index <= form.getCapacity(); index++) {

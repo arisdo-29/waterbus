@@ -3,6 +3,7 @@ package com.hsf302.waterbus.service.impl;
 import com.hsf302.waterbus.entity.Waterbus;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.dto.AdminWaterbusForm;
+import com.hsf302.waterbus.dto.WaterbusDTO;
 import com.hsf302.waterbus.repository.WaterbusRepository;
 import com.hsf302.waterbus.repository.SeatRepository;
 import com.hsf302.waterbus.repository.TripRepository;
@@ -31,6 +32,12 @@ public class WaterbusServiceImpl implements WaterbusService {
     @Transactional(readOnly = true)
     public List<Waterbus> getWaterbuses() {
         return waterbusRepository.findAllByOrderByIdAsc();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WaterbusDTO> getWaterbusViews() {
+        return waterbusRepository.findAllByOrderByIdAsc().stream().map(WaterbusDTO::fromEntity).toList();
     }
 
     @Override

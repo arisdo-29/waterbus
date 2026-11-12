@@ -30,34 +30,28 @@ public class StationServiceImpl implements StationService {
     @Override
     public List<StationDTO> getStations() {
         return stationRepository.findAll().stream()
-                .map(this::toDTO)
+                .map(StationDTO::fromEntity)
                 .toList();
     }
 
     @Override
     public List<StationDTO> getActiveStations() {
         return stationRepository.findByIsActiveTrueOrderByIdAsc().stream()
-                .map(this::toDTO)
+                .map(StationDTO::fromEntity)
                 .toList();
     }
 
     @Override
     public StationDTO getStationById(int stationId) {
         return stationRepository.findById(stationId)
-                .map(this::toDTO)
+                .map(StationDTO::fromEntity)
                 .orElse(null);
     }
 
     @Override
     public StationForm getStationForEdit(int stationId) {
         Station station = requireStation(stationId);
-        StationForm form = new StationForm();
-        form.setId(station.getId());
-        form.setCode(station.getCode());
-        form.setName(station.getName());
-        form.setAddress(station.getAddress());
-        form.setIsActive(station.getIsActive());
-        return form;
+        return StationForm.fromEntity(station);
     }
 
     @Override
@@ -69,10 +63,7 @@ public class StationServiceImpl implements StationService {
                 throw new IllegalArgumentException("Mã bến đã tồn tại. Vui lòng chọn mã khác.");
             }
         });
-        station.setCode(form.getCode());
-        station.setName(form.getName());
-        station.setAddress(form.getAddress());
-        station.setIsActive(form.getIsActive());
+        form.applyTo(station);
         return stationRepository.saveAndFlush(station).getId();
     }
 
@@ -87,9 +78,5 @@ public class StationServiceImpl implements StationService {
     private Station requireStation(int stationId) {
         return stationRepository.findById(stationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bến cần sửa hoặc ẩn."));
-    }
-
-    private StationDTO toDTO(Station s) {
-        return new StationDTO(s.getId(), s.getCode(), s.getName(), s.getAddress(), s.getIsActive());
     }
 }

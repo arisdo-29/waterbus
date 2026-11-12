@@ -130,9 +130,10 @@ class BookingExpiryCancelTest {
         String url = "/booking/" + ofLan.getBookingCode();
 
         // Chưa đăng nhập -> không phải chủ đơn -> lỗi
+        // TR2: giờ không huỷ được và được đưa sang trang đăng nhập (đăng nhập xong quay lại đúng trang đơn)
         mvc.perform(post(url + "/cancel"))
-                .andExpect(redirectedUrl(url))
-                .andExpect(flash().attribute("errorMessage", "Bạn không có quyền huỷ đơn này."));
+                .andExpect(redirectedUrl("/auth/login"));
+        assertThat(status(ofLan)).isEqualTo("PENDING"); // chưa bị huỷ
         // Đăng nhập đúng chủ đơn -> huỷ thành công
         mvc.perform(post(url + "/cancel").sessionAttr("loginAccount", lan))
                 .andExpect(redirectedUrl(url))

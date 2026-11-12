@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
@@ -462,6 +463,46 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
         releaseHoldTickets(booking.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true) // đọc tài khoản chủ đơn (quan hệ LAZY)
+    public ViewAccess checkViewAccess(String bookingCode, Integer loginAccountId, String loginRole,
+                                      Set<String> viewableBookingCodes) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) {
+            return ViewAccess.NOT_FOUND;
+        }
+        // Nhân viên, quản trị xem được mọi đơn (soát vé, đặt hộ, hỗ trợ khách tại bến)
+        if ("STAFF".equalsIgnoreCase(loginRole) || "ADMIN".equalsIgnoreCase(loginRole)) {
+            return ViewAccess.ALLOWED;
+        }
+        // Đơn gắn tài khoản -> chỉ chính chủ đơn
+        if (booking.getAccount() != null) {
+            if (loginAccountId == null) {
+                return ViewAccess.NEED_LOGIN;
+            }
+            if (booking.getAccount().getId().equals(loginAccountId)) {
+                return ViewAccess.ALLOWED;
+            }
+            return ViewAccess.NOT_OWNER;
+        }
+        // Đơn khách vãng lai -> chỉ trình duyệt đã được phép (vừa đặt đơn này, hoặc đã nhập đúng SĐT)
+        if (viewableBookingCodes != null && viewableBookingCodes.contains(booking.getBookingCode())) {
+            return ViewAccess.ALLOWED;
+        }
+        return ViewAccess.NEED_PHONE;
+    }
+
+    @Override
+    public boolean verifyContactPhone(String bookingCode, String contactPhone) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElse(null);
+        // Chỉ đơn khách vãng lai mới xác minh bằng SĐT; đơn của tài khoản thì phải đăng nhập
+        if (booking == null || booking.getAccount() != null || isBlank(contactPhone)) {
+            return false;
+        }
+        // SĐT trong DB đã được bỏ khoảng trắng lúc đặt -> so với SĐT khách nhập (cũng bỏ khoảng trắng)
+        return contactPhone.trim().equals(booking.getContactPhone());
     }
 
     // Sinh 8 chữ số ngẫu nhiên cho mã đơn, thử lại nếu mã đã có trong DB

@@ -5,6 +5,7 @@ import com.hsf302.waterbus.dto.VnPayResult;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.VnPayService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,20 +24,29 @@ public class PaymentController {
 
     private final BookingService bookingService; // cùng module BE4: đọc thông tin đơn
     private final VnPayService vnPayService;     // cổng VNPay Sandbox (cách thanh toán duy nhất)
+    private final BookingAccessHelper bookingAccess; // TR2: ai được xem/thanh toán đơn (dùng chung với BookingController)
 
-    public PaymentController(BookingService bookingService, VnPayService vnPayService) {
+    public PaymentController(BookingService bookingService, VnPayService vnPayService,
+                             BookingAccessHelper bookingAccess) {
         this.bookingService = bookingService;
         this.vnPayService = vnPayService;
+        this.bookingAccess = bookingAccess;
     }
 
     // GET /payment/BK12345678 -> trang thanh toán của đơn (làm giống detail() trong BookingController)
     @GetMapping("/{bookingCode}")
-    public String index(@PathVariable String bookingCode, Model model, RedirectAttributes flash) {
+    public String index(@PathVariable String bookingCode, HttpSession session, Model model,
+                        RedirectAttributes flash) {
         BookingDTO booking = bookingService.getBookingDetail(bookingCode);
         if (booking == null) {
             // Sai mã đơn -> về trang chủ và báo lỗi
             flash.addFlashAttribute("errorMessage", "Không tìm thấy đơn đặt vé có mã " + bookingCode + ".");
             return "redirect:/";
+        }
+        // TR2: trang thanh toán cũng hiện họ tên, ghế... -> chỉ người được xem đơn mới vào được
+        String blocked = bookingAccess.redirectIfCannotView(bookingCode, "/payment/" + bookingCode, session, flash);
+        if (blocked != null) {
+            return blocked;
         }
         // Tên attribute đúng theo docs/PAGES.md: booking, trip, tickets
         model.addAttribute("booking", booking);
@@ -50,13 +60,18 @@ public class PaymentController {
     // bỏ trống -> VNPay hiện trang cho khách tự chọn phương thức
     @PostMapping("/{bookingCode}/vnpay")
     public String payVnPay(@PathVariable String bookingCode, @RequestParam(required = false) String bankCode,
-                           HttpServletRequest request, RedirectAttributes flash) {
+                           HttpServletRequest request, HttpSession session, RedirectAttributes flash) {
         // Lấy DTO của đơn (không lấy entity): controller chỉ cần biết đơn có tồn tại không và mã đơn
         BookingDTO booking = bookingService.getBookingDetail(bookingCode);
         if (booking == null) {
             // Sai mã đơn -> không có trang thanh toán để quay về -> về trang chủ
             flash.addFlashAttribute("errorMessage", "Không tìm thấy đơn đặt vé có mã " + bookingCode + ".");
             return "redirect:/";
+        }
+        // TR2: chỉ người được xem đơn mới được bấm thanh toán (đăng nhập xong quay lại trang thanh toán)
+        String blocked = bookingAccess.redirectIfCannotView(bookingCode, "/payment/" + bookingCode, session, flash);
+        if (blocked != null) {
+            return blocked;
         }
         // Không cần tự kiểm tra máy chủ đã có khoá VNPay chưa: createPaymentUrl đã kiểm tra
         // và ném IllegalArgumentException -> rơi vào catch bên dưới như mọi lỗi khác

@@ -326,13 +326,24 @@ INSERT INTO account (email, password_hash, full_name, phone, role) VALUES
  ('staff@waterbus.vn',  '$2a$10$HNNXWkyVXfQ/B9k8XNi9Hut9AN5HIGZS0VlejEeJF52NNAtojv.7a', N'Nhân viên bến', '0900000002', 'STAFF'),
  ('customer@gmail.com', '$2a$10$7K3UB/0aoVCKOX29nBbndO3nQmwCwumb11EHBibUaRAJ7pMVLG5dK', N'Nguyễn Văn A',  '0900000003', 'CUSTOMER');
 
+-- Super admin id = 0 (AccountService.SUPER_ADMIN_ID): không bị đổi quyền/khoá/reset mật khẩu.
+--   superadmin@waterbus.vn / SuperAdmin@123
+-- Chèn SAU 3 tài khoản trên nên chúng vẫn giữ id 1, 2, 3.
+SET IDENTITY_INSERT account ON;
+INSERT INTO account (id, email, password_hash, full_name, phone, role) VALUES
+ (0, 'superadmin@waterbus.vn', '$2a$10$ZovUZgJ.m6ejc9p2fYelQueDB3a/rEhDydGii95HwtIAbtKQVXR6u', N'Super Admin', '0900000000', 'ADMIN');
+SET IDENTITY_INSERT account OFF;
+
 -- Khuyến mãi mẫu
 INSERT INTO promotion (code, name, discount_type, discount_value, max_discount, min_order_amount,
                        start_at, end_at, usage_limit) VALUES
  ('WELCOME10', N'Giảm 10% cho đơn đầu tiên', 'PERCENT', 10, 10000, 0,
      CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 3, CAST(SYSDATETIME() AS DATE)), 100),
  ('GIAM5K',    N'Giảm 5.000đ cho đơn từ 30.000đ', 'FIXED', 5000, NULL, 30000,
-     CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 1, CAST(SYSDATETIME() AS DATE)), NULL);
+     CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 1, CAST(SYSDATETIME() AS DATE)), NULL),
+ -- Mã demo đơn 0 đ: giảm 100%, không trần -> tổng tiền 0 -> đơn PAID ngay, không qua VNPay
+ ('FREE100',   N'Miễn phí 100% (demo)', 'PERCENT', 100, NULL, 0,
+     CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 1, CAST(SYSDATETIME() AS DATE)), 5);
 
 -- 1 đơn mẫu ĐÃ THANH TOÁN: 2 vé thường, chuyến R1 gần nhất, ghế A1, A2, chặng Bạch Đằng -> Thanh Đa
 DECLARE @trip INT = (SELECT TOP 1 t.id FROM trip t JOIN route r ON r.id = t.route_id

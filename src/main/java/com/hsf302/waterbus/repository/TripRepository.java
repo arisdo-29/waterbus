@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface TripRepository extends JpaRepository<Trip, Integer> {
     long countByWaterbusIdAndStatusAndDepartureTimeAfter(Integer waterbusId, String status,
                                                           LocalDateTime departureTime);
+    long countByRouteIdAndStatusAndDepartureTimeAfter(Integer routeId, String status,
+                                                      LocalDateTime departureTime);
     @Query("SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus ORDER BY t.departureTime DESC, t.id DESC")
     List<Trip> findAllForAdmin();
 

@@ -9,10 +9,12 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 // Module: BE2 - Tàu, Ghế & Chuyến. Mọi URL của controller này bắt đầu bằng /trips
 // View đặt trong templates/trip/ (giao diện: Trí)
@@ -68,5 +70,11 @@ public class TripController {
         model.addAttribute("fromStation", stationService.getStationById(fromStationId));
         model.addAttribute("toStation", stationService.getStationById(toStationId));
         return "trip/seats";
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleInvalidParameter(RedirectAttributes flash) {
+        flash.addFlashAttribute("errorMessage", "Đường dẫn hoặc tham số tìm chuyến không hợp lệ.");
+        return "redirect:/trips";
     }
 }

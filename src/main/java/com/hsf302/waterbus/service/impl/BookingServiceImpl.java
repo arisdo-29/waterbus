@@ -300,7 +300,7 @@ public class BookingServiceImpl implements BookingService {
             return null;
         }
         // Mọi vé trong 1 đơn cùng 1 chuyến -> lấy chuyến của vé đầu tiên
-        return toTripDTO(tickets.get(0).getTrip());
+        return BookingTripDTO.fromEntity(tickets.get(0).getTrip()); // Entity -> DTO do BookingTripDTO lo (B2 của Trí)
     }
 
     @Override
@@ -319,11 +319,9 @@ public class BookingServiceImpl implements BookingService {
         List<SeatDTO> selectedSeats = new ArrayList<>();
         for (Seat seat : tripService.getAvailableSeats(tripId)) {
             if (seatIds.contains(seat.getId())) {
-                // TODO chờ B3: Trí merge SeatDTO.fromEntity thì đổi dòng dưới thành SeatDTO.fromEntity(seat)
-                // (tạm tự dựng DTO ở đây để controller không phải nhận entity Seat).
+                // Entity -> DTO do SeatDTO.fromEntity của Trí lo (B3), để controller không phải nhận entity Seat.
                 // available = true vì ghế lấy từ danh sách ghế còn trống.
-                selectedSeats.add(new SeatDTO(seat.getId(), seat.getSeatCode(), seat.getSeatRow(),
-                        seat.getSeatCol(), true));
+                selectedSeats.add(SeatDTO.fromEntity(seat, true));
             }
         }
         return selectedSeats;
@@ -513,11 +511,5 @@ public class BookingServiceImpl implements BookingService {
             status = "CANCELLED";
         }
         return status;
-    }
-
-    // TODO chờ B2: khi Trí merge BookingTripDTO.fromEntity(trip) vào develop thì gọi hàm đó và xoá toTripDTO
-    private BookingTripDTO toTripDTO(Trip trip) {
-        return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                trip.getDepartureTime(), trip.getArrivalTime());
     }
 }

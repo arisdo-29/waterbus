@@ -157,10 +157,9 @@ public class BookingController {
         model.addAttribute("booking", booking);
         model.addAttribute("trip", bookingService.getTripOfBooking(booking.getId()));
         model.addAttribute("tickets", bookingService.getTicketsOfBooking(booking.getId()));
-        // TODO chờ B6: RefundService (module Trí) đang trả entity Refund -> view vẫn nhận entity.
-        // Khi Trí có DTO hoàn tiền (status, amount, refundedAt, transactionRef) thì đổi sang DTO đó;
-        // giữ tên attribute "refund" vì template booking/detail đang đọc refund.status/amount/refundedAt/transactionRef.
-        model.addAttribute("refund", refundService.getRefundOfBooking(booking.getId()));
+        // Hoàn tiền: dùng DTO của Trí (B6, RefundViewDTO: status, amount, refundedAt, transactionRef), không đưa entity Refund ra view.
+        // Giữ tên attribute "refund" vì template booking/detail đang đọc refund.status/amount/refundedAt/transactionRef.
+        model.addAttribute("refund", refundService.getRefundViewOfBooking(booking.getId()));
         model.addAttribute("tripCancelReason", bookingService.getTripCancelReason(booking.getId()));
         // payment: PaymentInfoDTO (method, transactionRef) hoặc null nếu đơn chưa có payment
         model.addAttribute("payment", paymentService.getPaymentOfBooking(booking.getId()));

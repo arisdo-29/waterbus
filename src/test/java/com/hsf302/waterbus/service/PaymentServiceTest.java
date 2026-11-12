@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.controller.BookingAccessHelper;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Payment;
 import jakarta.persistence.EntityManager;
@@ -105,7 +106,7 @@ class PaymentServiceTest {
     @Test
     void paymentPageShowsBookingTripAndTickets() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        String html = mvc.perform(get("/payment/" + booking.getBookingCode()))
+        String html = mvc.perform(get("/payment/" + booking.getBookingCode()).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andExpect(view().name("payment/index"))
                 .andExpect(model().attributeExists("booking", "trip", "tickets"))
@@ -137,7 +138,7 @@ class PaymentServiceTest {
         // Test này không khai báo vnpay.tmn-code / vnpay.hash-secret -> giống máy chưa điền khoá VNPay.
         // Phải về trang thanh toán kèm lời báo, không được ra trang lỗi 500
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay"))
+        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage",
                         "Hiện chưa thanh toán được qua VNPay. Vui lòng thử lại sau hoặc liên hệ nhân viên."));

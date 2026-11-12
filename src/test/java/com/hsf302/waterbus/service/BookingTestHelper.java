@@ -3,7 +3,9 @@ package com.hsf302.waterbus.service;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.BookingForm;
 import com.hsf302.waterbus.entity.Booking;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 // Dùng chung cho các test BE4 cần tạo đơn.
 // createBooking giờ nhận BookingForm và trả BookingDTO (giống controller gọi), nhưng nhiều test cần ENTITY
@@ -28,6 +30,15 @@ final class BookingTestHelper {
         form.setContactEmail(contactEmail);
         form.setAcceptPolicy(true);
         return form;
+    }
+
+    // TR2: giá trị cho session "viewableBookingCodes" = giả lập "chính trình duyệt vừa đặt đơn này",
+    // để test mở được trang xem đơn / thanh toán của đơn khách vãng lai.
+    // Dùng: .sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(mãĐơn))
+    static Set<String> viewable(String bookingCode) {
+        Set<String> codes = new HashSet<>();
+        codes.add(bookingCode);
+        return codes;
     }
 
     // Tạo đơn đúng cách controller gọi (form + accountId), rồi lấy lại entity của đơn đó cho test dùng tiếp.

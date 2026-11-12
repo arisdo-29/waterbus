@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.controller.BookingAccessHelper;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.service.impl.VnPayServiceImpl;
 import jakarta.persistence.EntityManager;
@@ -124,12 +125,12 @@ class VnPayPaymentTest {
     @Test
     void vnPayButtonPassesBankCodeToPaymentUrl() throws Exception {
         // Giống form trang thanh toán: bankCode nằm trên URL action, kèm field method
-        String qrUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay?bankCode=VNPAYQR").param("method", "VNPAY"))
+        String qrUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay?bankCode=VNPAYQR").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(qrUrl).startsWith("https://sandbox.vnpayment.vn/").contains("&vnp_BankCode=VNPAYQR&");
 
-        String plainUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+        String plainUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(plainUrl).startsWith("https://sandbox.vnpayment.vn/").doesNotContain("vnp_BankCode");
@@ -159,13 +160,13 @@ class VnPayPaymentTest {
         FlashMap paidFlash = mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/booking/" + booking.getBookingCode()))
                 .andReturn().getFlashMap();
-        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()).flashAttrs(paidFlash))
+        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()).flashAttrs(paidFlash).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(detail).contains("Đặt vé thành công!");
 
         // Tải lại / vào xem vé lần sau (hết flash) -> không hiện banner nữa
-        String reload = mvc.perform(get("/booking/" + booking.getBookingCode()))
+        String reload = mvc.perform(get("/booking/" + booking.getBookingCode()).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(reload).doesNotContain("Đặt vé thành công!");
@@ -244,7 +245,7 @@ class VnPayPaymentTest {
         useUpPromotion();
 
         // Bấm nút VNPay -> không sang VNPay, quay lại trang thanh toán kèm lời báo
-        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage",
                         "Mã khuyến mãi TEST10 đã hết lượt sử dụng. Vui lòng đặt vé lại không dùng mã này."));

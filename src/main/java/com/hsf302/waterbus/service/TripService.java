@@ -22,6 +22,9 @@ public interface TripService {
 
     TripManifestDTO getManifest(int tripId);
 
+    /** HỢP ĐỒNG cho BE1: số chuyến SCHEDULED của tuyến có giờ khởi hành trong tương lai. */
+    long countUpcomingTripsOfRoute(int routeId);
+
     void createAdminTrip(AdminTripForm form);
 
     void cancelTrip(int tripId, String reason);

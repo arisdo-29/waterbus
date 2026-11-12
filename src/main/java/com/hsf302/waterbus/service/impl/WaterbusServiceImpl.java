@@ -79,6 +79,13 @@ public class WaterbusServiceImpl implements WaterbusService {
         }
         Waterbus waterbus = waterbusRepository.findById(waterbusId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tàu."));
+        if ("ACTIVE".equals(waterbus.getStatus()) && !"ACTIVE".equals(status)) {
+            long upcomingTrips = countUpcomingScheduledTrips(waterbusId);
+            if (upcomingTrips > 0) {
+                throw new IllegalArgumentException("Còn " + upcomingTrips
+                        + " chuyến sắp chạy, hãy huỷ chuyến trước khi đổi trạng thái tàu.");
+            }
+        }
         waterbus.setStatus(status);
     }
 

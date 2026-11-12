@@ -55,8 +55,7 @@ public class TripServiceImpl implements TripService {
     @Transactional(readOnly = true)
     public List<AdminTripDTO> getTripsForAdmin() {
         return tripRepository.findAllForAdmin().stream()
-                .map(trip -> new AdminTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
-                        trip.getWaterbus().getName(), trip.getDepartureTime(), trip.getArrivalTime(), trip.getStatus(),
+                .map(trip -> AdminTripDTO.fromEntity(trip,
                         ticketService.getPassengerManifest(trip.getId()).stream()
                                 .filter(ticket -> ticket.isValid() || ticket.isUsed()).count()))
                 .toList();
@@ -68,9 +67,7 @@ public class TripServiceImpl implements TripService {
         LocalDate today = LocalDate.now();
         return tripRepository.findDepartingBetween(today.atStartOfDay(), today.plusDays(1).atStartOfDay())
                 .stream().filter(trip -> "SCHEDULED".equals(trip.getStatus()))
-                .map(trip -> new AdminTripDTO(trip.getId(), trip.getTripCode(),
-                        trip.getRoute().getName(), trip.getWaterbus().getName(),
-                        trip.getDepartureTime(), trip.getArrivalTime(), trip.getStatus()))
+                .map(AdminTripDTO::fromEntity)
                 .toList();
     }
 

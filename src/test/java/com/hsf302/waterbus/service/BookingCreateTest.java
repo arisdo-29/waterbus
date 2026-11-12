@@ -173,6 +173,30 @@ class BookingCreateTest {
     }
 
     @Test
+    void priorityTicketsNeedLoginAndAtMostTwoPerBooking() {
+        // Loại vé ưu đãi: cần xác minh giấy tờ, miễn phí (đơn 0 đ được PAID ngay, không cần trả tiền)
+        jdbc.update("INSERT INTO ticket_type (code, name, price, requires_verification, is_active) "
+                + "VALUES ('TEST_FREE', 'Ve uu dai', 0, 1, 1)");
+        int priorityTypeId = id("ticket_type", "code", "TEST_FREE");
+        AccountDTO lan = account("lan@example.com");
+
+        // Khách vãng lai (accountId = null) -> phải đăng nhập
+        assertThatThrownBy(() -> BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1),
+                priorityTypeId, s1, s2, "", null, "Lan", "0901234567", "lan@example.com"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Vui lòng đăng nhập để đặt vé ưu đãi.");
+        // Đã đăng nhập nhưng 3 vé ưu đãi trong 1 đơn -> quá 2 vé
+        assertThatThrownBy(() -> BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1, seatA2, seatA3),
+                priorityTypeId, s1, s2, "", lan.getId(), "Lan", "0901234567", "lan@example.com"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("tối đa 2 vé ưu đãi");
+        assertThat(count("booking")).isZero(); // 2 lần bị chặn -> chưa giữ ghế nào
+
+        // Đã đăng nhập, 2 vé -> hợp lệ: đơn 0 đ được PAID ngay
+        Booking booking = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1, seatA2),
+                priorityTypeId, s1, s2, "", lan.getId(), "Lan", "0901234567", "lan@example.com");
+        assertThat(booking.getStatus()).isEqualTo("PAID");
+    }
+
+    @Test
     void rejectsInvalidInputWithoutSavingAnything() {
         assertInvalid(tripId, List.of(seatA1), s3, s1, "", "0901234567", "không đúng với tuyến"); // đi ngược chiều
         assertInvalid(tripId, List.of(seatA1), s1, offRouteStation, "", "0901234567", "không đúng với tuyến");

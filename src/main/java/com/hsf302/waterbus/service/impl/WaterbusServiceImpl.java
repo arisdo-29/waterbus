@@ -3,6 +3,7 @@ package com.hsf302.waterbus.service.impl;
 import com.hsf302.waterbus.entity.Waterbus;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.dto.AdminWaterbusForm;
+import com.hsf302.waterbus.dto.WaterbusDTO;
 import com.hsf302.waterbus.repository.WaterbusRepository;
 import com.hsf302.waterbus.repository.SeatRepository;
 import com.hsf302.waterbus.repository.TripRepository;
@@ -34,24 +35,26 @@ public class WaterbusServiceImpl implements WaterbusService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<WaterbusDTO> getWaterbusViews() {
+        return waterbusRepository.findAllByOrderByIdAsc().stream().map(WaterbusDTO::fromEntity).toList();
+    }
+
+    @Override
     @Transactional
     public void saveWaterbus(AdminWaterbusForm form) {
         if (form.getId() != null) {
             throw new IllegalArgumentException("Chỉ có thể thêm tàu mới.");
         }
         String code = form.getCode().trim();
-        String status = form.getStatus();
+        String status = form.getStatus() == null ? null : form.getStatus().trim();
         if (!Set.of("ACTIVE", "MAINTENANCE", "INACTIVE").contains(status)) {
             throw new IllegalArgumentException("Trạng thái tàu không hợp lệ.");
         }
         waterbusRepository.findFirstByCodeIgnoreCase(code).ifPresent(existing -> {
             throw new IllegalArgumentException("Mã tàu đã được sử dụng.");
         });
-        Waterbus waterbus = new Waterbus();
-        waterbus.setCode(code);
-        waterbus.setName(form.getName().trim());
-        waterbus.setCapacity(form.getCapacity());
-        waterbus.setStatus(status);
+        Waterbus waterbus = form.toEntity();
         waterbus = waterbusRepository.save(waterbus);
         java.util.ArrayList<Seat> newSeats = new java.util.ArrayList<>();
         for (int index = 1; index <= form.getCapacity(); index++) {

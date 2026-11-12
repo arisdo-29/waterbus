@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Trip;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -20,6 +21,17 @@ public class BookingTripDTO implements Serializable {
         this.routeName = routeName;
         this.departureTime = departureTime;
         this.arrivalTime = arrivalTime;
+    }
+
+    public static BookingTripDTO fromEntity(Trip trip) {
+        return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
+                trip.getDepartureTime(), trip.getArrivalTime());
+    }
+
+    public static BookingTripDTO forSegment(Trip trip, int departureMinutes, int arrivalMinutes) {
+        return new BookingTripDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
+                trip.getDepartureTime().plusMinutes(departureMinutes),
+                trip.getDepartureTime().plusMinutes(arrivalMinutes));
     }
 
     public Integer getId() {

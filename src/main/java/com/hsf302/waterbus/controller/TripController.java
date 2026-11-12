@@ -64,7 +64,7 @@ public class TripController {
         }
         model.addAttribute("trip", trip);
         model.addAttribute("seats", tripService.getSeatMap(id));
-        model.addAttribute("ticketTypes", ticketTypeService.getActiveTicketTypes());
+        model.addAttribute("ticketTypes", ticketTypeService.getActiveTicketTypeDTOs());
         model.addAttribute("fromStationId", fromStationId);
         model.addAttribute("toStationId", toStationId);
         model.addAttribute("fromStation", stationService.getStationById(fromStationId));

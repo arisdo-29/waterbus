@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Trip;
 import java.time.LocalDateTime;
 
 public class TripSearchDTO {
@@ -18,6 +19,13 @@ public class TripSearchDTO {
         this.departureTime = departureTime;
         this.arrivalTime = arrivalTime;
         this.availableSeats = availableSeats;
+    }
+
+    public static TripSearchDTO forSegment(Trip trip, int departureMinutes, int arrivalMinutes,
+                                           long availableSeats) {
+        return new TripSearchDTO(trip.getId(), trip.getTripCode(), trip.getRoute().getName(),
+                trip.getDepartureTime().plusMinutes(departureMinutes),
+                trip.getDepartureTime().plusMinutes(arrivalMinutes), availableSeats);
     }
 
     public Integer getId() {

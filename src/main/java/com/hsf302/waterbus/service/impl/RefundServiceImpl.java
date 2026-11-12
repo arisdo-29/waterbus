@@ -2,6 +2,7 @@ package com.hsf302.waterbus.service.impl;
 
 import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.RefundAdminDTO;
+import com.hsf302.waterbus.dto.RefundViewDTO;
 import com.hsf302.waterbus.entity.Account;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Refund;
@@ -85,17 +86,19 @@ public class RefundServiceImpl implements RefundService {
         List<Refund> refunds = status == null || status.isBlank()
                 ? refundRepository.findAllByOrderByCreatedAtDesc()
                 : refundRepository.findByStatusOrderByCreatedAtDesc(status);
-        return refunds.stream().map(refund -> new RefundAdminDTO(refund.getId(),
-                refund.getBooking().getBookingCode(), refund.getAmount(), refund.getStatus(),
-                refund.getReason(), refund.getBooking().getContactName(),
-                refund.getBooking().getContactPhone(), refund.getBooking().getContactEmail(),
-                refund.getTransactionRef(), refund.getRefundedAt())).toList();
+        return refunds.stream().map(RefundAdminDTO::fromEntity).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Refund getRefundOfBooking(int bookingId) {
         return refundRepository.findByBookingId(bookingId).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RefundViewDTO getRefundViewOfBooking(int bookingId) {
+        return refundRepository.findByBookingId(bookingId).map(RefundViewDTO::fromEntity).orElse(null);
     }
 
     @Override

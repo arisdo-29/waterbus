@@ -7,6 +7,8 @@ import java.util.List;
 
 // Module: BE1 - Tuyến & Bến
 public interface RouteStationRepository extends JpaRepository<RouteStation, Integer> {
+    boolean existsByStationIdAndRouteIsActiveTrue(int stationId);
+
     @EntityGraph(attributePaths = "station")
     List<RouteStation> findByRouteIdOrderByStopOrderAsc(int routeId);
 }

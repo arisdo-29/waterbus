@@ -64,7 +64,7 @@ class StationRouteAdminTests {
     }
 
     @Test
-    void stationCreateEditHideAndCheckboxMarkerWorkWithoutDeletingMemberships() throws Exception {
+    void stationCannotBeHiddenByButtonOrCheckboxUntilItsRoutesAreInactive() throws Exception {
         MvcResult createdResult = mvc.perform(post("/admin/stations/save").session(session).param("code", "NEW")
                         .param("name", "Bến mới tiếng Việt").param("address", "Địa chỉ mới")
                         .param("_isActive", "on").param("isActive", "true").param("unexpectedField", "ignored"))
@@ -77,6 +77,22 @@ class StationRouteAdminTests {
         int routeId = routeService.saveRoute(route("R", true, created.getId(), second));
         long memberships = stops.count();
         mvc.perform(post("/admin/stations/save").session(session).param("id", created.getId().toString())
+                        .param("code", "NEW").param("name", "Tên đang hoạt động").param("isActive", "true"))
+                .andExpect(redirectedUrl("/admin/stations"));
+        mvc.perform(post("/admin/stations/save").session(session).param("id", created.getId().toString())
+                        .param("code", "NEW").param("name", "Tên đã sửa").param("_isActive", "on"))
+                .andExpect(view().name("admin/station/form")).andExpect(model().hasErrors())
+                .andExpect(model().attributeExists("errorMessage"));
+        mvc.perform(post("/admin/stations/" + second + "/delete").session(session))
+                .andExpect(redirectedUrl("/admin/stations")).andExpect(flash().attributeExists("errorMessage"));
+        entityManager.clear();
+        assertThat(stations.findById(created.getId()).orElseThrow().getIsActive()).isTrue();
+        assertThat(stations.findById(created.getId()).orElseThrow().getName()).isEqualTo("Tên đang hoạt động");
+        assertThat(stations.findById(second).orElseThrow().getIsActive()).isTrue();
+        assertThat(stops.count()).isEqualTo(memberships);
+
+        routeService.hideRoute(routeId);
+        mvc.perform(post("/admin/stations/save").session(session).param("id", created.getId().toString())
                         .param("code", "NEW").param("name", "Tên đã sửa").param("_isActive", "on"))
                 .andExpect(redirectedUrl("/admin/stations"));
         entityManager.clear();
@@ -87,7 +103,7 @@ class StationRouteAdminTests {
                 .andExpect(redirectedUrl("/admin/stations")).andExpect(flash().attributeExists("successMessage"));
         assertThat(stations.count()).isEqualTo(2);
         assertThat(stops.count()).isEqualTo(memberships);
-        assertThat(routes.findById(routeId).orElseThrow().getIsActive()).isTrue();
+        assertThat(routes.findById(routeId).orElseThrow().getIsActive()).isFalse();
         mvc.perform(get("/stations")).andExpect(status().isOk()).andExpect(view().name("station/list"));
     }
 

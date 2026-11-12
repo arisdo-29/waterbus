@@ -4,6 +4,7 @@ import com.hsf302.waterbus.dto.StationDTO;
 import com.hsf302.waterbus.dto.StationForm;
 import com.hsf302.waterbus.entity.Station;
 import com.hsf302.waterbus.repository.StationRepository;
+import com.hsf302.waterbus.repository.RouteStationRepository;
 import com.hsf302.waterbus.service.StationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +22,12 @@ import java.util.List;
 public class StationServiceImpl implements StationService {
 
     private final StationRepository stationRepository;
+    private final RouteStationRepository routeStationRepository;
 
     // Constructor injection (khuyên dùng thay cho @Autowired trên field)
-    public StationServiceImpl(StationRepository stationRepository) {
+    public StationServiceImpl(StationRepository stationRepository, RouteStationRepository routeStationRepository) {
         this.stationRepository = stationRepository;
+        this.routeStationRepository = routeStationRepository;
     }
 
     @Override
@@ -63,6 +66,9 @@ public class StationServiceImpl implements StationService {
                 throw new IllegalArgumentException("Mã bến đã tồn tại. Vui lòng chọn mã khác.");
             }
         });
+        if (station.getId() != null && Boolean.FALSE.equals(form.getIsActive())) {
+            requireNoActiveRoute(station.getId());
+        }
         form.applyTo(station);
         return stationRepository.saveAndFlush(station).getId();
     }
@@ -71,6 +77,7 @@ public class StationServiceImpl implements StationService {
     @Transactional
     public void hideStation(int stationId) {
         Station station = requireStation(stationId);
+        requireNoActiveRoute(stationId);
         station.setIsActive(false);
         stationRepository.flush();
     }
@@ -78,5 +85,12 @@ public class StationServiceImpl implements StationService {
     private Station requireStation(int stationId) {
         return stationRepository.findById(stationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bến cần sửa hoặc ẩn."));
+    }
+
+    private void requireNoActiveRoute(int stationId) {
+        // Dùng chung cho nút ẩn và bỏ chọn trạng thái trong form sửa bến.
+        if (routeStationRepository.existsByStationIdAndRouteIsActiveTrue(stationId)) {
+            throw new IllegalArgumentException("Bến còn thuộc tuyến đang hoạt động. Vui lòng ngừng tuyến trước khi ẩn bến.");
+        }
     }
 }

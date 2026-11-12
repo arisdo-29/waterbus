@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.dto;
 
+import com.hsf302.waterbus.entity.Station;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -25,6 +26,11 @@ public class StationDTO implements Serializable {
         this.name = name;
         this.address = address;
         this.isActive = isActive;
+    }
+
+    // Chuyển Entity -> DTO đặt ngay trong DTO; ServiceImpl chỉ gọi StationDTO::fromEntity
+    public static StationDTO fromEntity(Station s) {
+        return new StationDTO(s.getId(), s.getCode(), s.getName(), s.getAddress(), s.getIsActive());
     }
 
     public Integer getId() {

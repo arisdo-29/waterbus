@@ -54,7 +54,7 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
 (tương tự `contactPhone`, `contactEmail`, `promoCode`). **Giữ `th:value` như hiện tại**, không đổi sang `th:field`, để vẫn
 ưu tiên giá trị vừa nhập và tự điền từ `session.loginAccount` (#26). Lỗi `seatIds` (ô ẩn) chỉ hiện qua `errorMessage`.
 
-**Vé ưu đãi, chính sách, hoàn tiền (FE Khuyên đã làm, chờ BE4 Trâm):**
+**Vé ưu đãi, chính sách, hoàn tiền (đã có FE/BE, các sửa lỗi TR theo phân công 12/11 vẫn đang chờ):**
 
 - Quy tắc: loại vé `requiresVerification = true` (`SENIOR_70`, `PRIORITY`, giá 0 đ) cần họ tên + năm sinh cho **mỗi ghế**.
   Năm sinh 1900..năm hiện tại; `SENIOR_70`: năm đi − năm sinh ≥ 70; `PRIORITY`: ≥ 13. Không tải ảnh giấy tờ,
@@ -65,7 +65,7 @@ thêm `th:object="${bookingForm}"` vào thẻ `<form>` và dưới mỗi ô, ví
   lỗi gắn vào `passengerNames` / `birthYears` (cả danh sách) hiện cuối khung hành khách; lỗi `acceptPolicy` hiện dưới ô tick.
   Template giữ giá trị đã nhập từ request parameters. `ticketType` của checkout cần có `code`, `requiresVerification`.
 - `booking/detail` thêm model: `refund` (có thể null: `status` PENDING/DONE, `amount`, `reason`, `transactionRef`, `refundedAt`),
-  `tripCancelReason` (có thể null), `payment` (có thể null: `method` MOCK/VNPAY, `transactionRef`);
+  `tripCancelReason` (có thể null), `payment` (có thể null: `method` VNPAY, hoặc MOCK/MOMO của dữ liệu cũ, `transactionRef`);
   mỗi phần tử `tickets` thêm `passengerName`, `birthYear` (null nếu vé thường), nên có thêm `requiresVerification` (nhãn "Mang giấy tờ gốc";
   nếu thiếu, FE coi vé có `birthYear` là vé ưu đãi). Booking `REFUNDED` không có `refund` vẫn hiện banner "Đã hoàn tiền" với `totalAmount`.
 - `booking/history`: mỗi phần tử `bookings` thêm `refundStatus` (null / `PENDING` / `DONE`).

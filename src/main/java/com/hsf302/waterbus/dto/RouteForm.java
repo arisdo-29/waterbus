@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.dto;
 
 import com.hsf302.waterbus.entity.Route;
+import com.hsf302.waterbus.entity.RouteStation;
 import jakarta.validation.constraints.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,15 +23,21 @@ public class RouteForm {
     @Size(min = 2, message = "Tuyến cần ít nhất hai bến khác nhau.")
     private List<@NotNull(message = "Vui lòng chọn bến.") @Positive(message = "ID bến không hợp lệ.") Integer> stationIds = new ArrayList<>();
 
-    // Đổ dữ liệu tuyến có sẵn + danh sách id bến (theo stop_order) vào form để mở trang sửa
-    public static RouteForm fromEntity(Route r, List<Integer> stationIds) {
+    @NotNull(message = "Vui lòng nhập số phút cho từng bến.")
+    @Size(min = 2, message = "Vui lòng nhập số phút cho ít nhất hai bến.")
+    private List<@NotNull(message = "Vui lòng nhập số phút của bến.")
+            @Min(value = 0, message = "Số phút không được âm.") Integer> minutesFromStart = new ArrayList<>();
+
+    // Hai danh sách lấy từ cùng thứ tự bến để số phút không bị ghép nhầm.
+    public static RouteForm fromEntity(Route r, List<RouteStation> stops) {
         RouteForm form = new RouteForm();
         form.setId(r.getId());
         form.setCode(r.getCode());
         form.setName(r.getName());
         form.setDescription(r.getDescription());
         form.setIsActive(r.getIsActive());
-        form.setStationIds(stationIds);
+        form.setStationIds(stops.stream().map(stop -> stop.getStation().getId()).toList());
+        form.setMinutesFromStart(stops.stream().map(RouteStation::getMinutesFromStart).toList());
         return form;
     }
 
@@ -54,4 +61,6 @@ public class RouteForm {
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public List<Integer> getStationIds() { return stationIds; }
     public void setStationIds(List<Integer> stationIds) { this.stationIds = stationIds; }
+    public List<Integer> getMinutesFromStart() { return minutesFromStart; }
+    public void setMinutesFromStart(List<Integer> minutesFromStart) { this.minutesFromStart = minutesFromStart; }
 }

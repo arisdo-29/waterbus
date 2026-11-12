@@ -241,6 +241,29 @@ class VnPayPaymentTest {
     }
 
     @Test
+    void paidButInvalidBookingGetsOnePendingRefund() throws Exception {
+        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1)); // khách trả tiền khi đơn đã hết hạn giữ chỗ
+
+        // VNPay báo trả tiền thành công -> lưu payment SUCCESS + tạo khoản chờ hoàn tiền cho khách
+        mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()));
+        // Khách bấm F5 trang kết quả -> VNPay gửi lại y hệt -> KHÔNG tạo khoản hoàn thứ 2
+        mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()));
+        entityManager.flush();
+
+        // Đúng 1 khoản hoàn: PENDING, đủ số tiền khách đã trả (27.000 đ), ghi rõ lý do
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM refund WHERE booking_id = ?", Integer.class, booking.getId()))
+                .isEqualTo(1);
+        assertThat(jdbc.queryForMap("SELECT status, amount, reason FROM refund WHERE booking_id = ?", booking.getId()))
+                .containsEntry("status", "PENDING")
+                .containsEntry("reason", "Thanh toán sau khi đơn hết hạn");
+        assertThat(jdbc.queryForObject("SELECT amount FROM refund WHERE booking_id = ?", java.math.BigDecimal.class,
+                booking.getId())).isEqualByComparingTo("27000");
+        assertThat(count("payment")).isEqualTo(1); // vẫn chỉ 1 payment
+    }
+
+    @Test
     void usedUpPromotionShowsMessageInsteadOfErrorPage() throws Exception {
         useUpPromotion();
 

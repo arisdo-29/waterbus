@@ -34,7 +34,7 @@ public interface TripService {
 
     List<TripSearchDTO> searchTripResults(int fromStationId, int toStationId, LocalDate date);
 
-    /** Thông tin chuyến cho trang chọn ghế; null nếu không có chuyến hoặc chuyến không SCHEDULED. */
+    /** Thông tin chuyến cho trang chọn ghế; null nếu chuyến không còn bán vé. */
     BookingTripDTO getBookableTrip(int tripId);
 
     /** Giờ tại hai bến đã chọn cho trang chọn ghế; null nếu chuyến không đi qua chặng này. */

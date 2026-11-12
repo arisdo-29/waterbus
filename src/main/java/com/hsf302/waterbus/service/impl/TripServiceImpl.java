@@ -66,7 +66,8 @@ public class TripServiceImpl implements TripService {
     public List<AdminTripDTO> getTodayTrips() {
         LocalDate today = LocalDate.now();
         return tripRepository.findDepartingBetween(today.atStartOfDay(), today.plusDays(1).atStartOfDay())
-                .stream().filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .stream().filter(trip -> "SCHEDULED".equals(trip.getStatus())
+                        || "DEPARTED".equals(trip.getStatus()))
                 .map(AdminTripDTO::fromEntity)
                 .toList();
     }
@@ -99,6 +100,13 @@ public class TripServiceImpl implements TripService {
         if (!"SCHEDULED".equals(form.getStatus())) {
             throw new IllegalArgumentException("Chuyến mới phải ở trạng thái Đã lên lịch.");
         }
+        if (form.getDepartureTime() == null) {
+            throw new IllegalArgumentException("Vui lòng nhập giờ khởi hành.");
+        }
+        LocalDateTime departureTime = form.getDepartureTime().withSecond(0).withNano(0);
+        if (!departureTime.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Giờ khởi hành phải ở trong tương lai.");
+        }
         var route = routeService.getActiveRoutes().stream()
                 .filter(candidate -> candidate.getId().equals(form.getRouteId())).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Tuyến không tồn tại hoặc đã ngừng hoạt động."));
@@ -116,7 +124,6 @@ public class TripServiceImpl implements TripService {
         // Routes without configured travel times use the same 50-minute estimate as the demo schedule.
         if (duration <= 0) duration = 50;
 
-        LocalDateTime departureTime = form.getDepartureTime().withSecond(0).withNano(0);
         LocalDateTime arrivalTime = departureTime.plusMinutes(duration);
         if (tripRepository.countScheduledOverlaps(waterbus.getId(), departureTime, arrivalTime) > 0) {
             throw new IllegalArgumentException("Tàu đã có chuyến khác trùng giờ. Vui lòng chọn tàu hoặc giờ khác.");
@@ -217,7 +224,8 @@ public class TripServiceImpl implements TripService {
     @Transactional(readOnly = true)
     public BookingTripDTO getBookableTrip(int tripId) {
         return tripRepository.findById(tripId)
-                .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .filter(trip -> "SCHEDULED".equals(trip.getStatus())
+                        || "DEPARTED".equals(trip.getStatus()))
                 .filter(trip -> trip.getDepartureTime()
                         .isAfter(LocalDateTime.now().plusMinutes(ONLINE_SALES_CUTOFF_MINUTES)))
                 .map(BookingTripDTO::fromEntity)
@@ -228,7 +236,8 @@ public class TripServiceImpl implements TripService {
     @Transactional(readOnly = true)
     public BookingTripDTO getBookableTrip(int tripId, int fromStationId, int toStationId) {
         return tripRepository.findById(tripId)
-                .filter(trip -> "SCHEDULED".equals(trip.getStatus()))
+                .filter(trip -> "SCHEDULED".equals(trip.getStatus())
+                        || "DEPARTED".equals(trip.getStatus()))
                 .filter(trip -> Boolean.TRUE.equals(trip.getRoute().getIsActive()))
                 .filter(trip -> "ACTIVE".equals(trip.getWaterbus().getStatus()))
                 .map(trip -> {

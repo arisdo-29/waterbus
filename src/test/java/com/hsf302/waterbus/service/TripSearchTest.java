@@ -3,6 +3,7 @@ package com.hsf302.waterbus.service;
 import com.hsf302.waterbus.controller.TripController;
 import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.entity.Trip;
+import com.hsf302.waterbus.job.TripStatusJob;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TripSearchTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private TripService tripService;
+    @Autowired private TripStatusJob tripStatusJob;
     @Autowired private TripController tripController;
     @Autowired private WebApplicationContext context;
 
@@ -68,7 +70,7 @@ class TripSearchTest {
         trip("TEST_SEARCH_T2", routeId, busId, date.atTime(12, 0), "SCHEDULED");
         trip("TEST_SEARCH_OLD", routeId, busId, date.minusDays(1).atTime(8, 0), "SCHEDULED");
         trip("TEST_SEARCH_NEXT", routeId, busId, date.plusDays(1).atTime(8, 0), "SCHEDULED");
-        trip("TEST_SEARCH_DONE", routeId, busId, date.atTime(9, 0), "DEPARTED");
+        trip("TEST_SEARCH_DONE", routeId, busId, date.atTime(9, 0), "COMPLETED");
         trip("TEST_SEARCH_CLOSED", closedRouteId, busId, date.atTime(10, 0), "SCHEDULED");
     }
 
@@ -97,6 +99,50 @@ class TripSearchTest {
                         .map(Trip::getTripCode).toList());
         assertNull(tripService.getBookableTrip(id("trip", "trip_code", "TEST_SEARCH_PAST")));
         assertTrue(tripService.getBookableTrip(id("trip", "trip_code", "TEST_SEARCH_FUTURE")) != null);
+    }
+
+    @Test
+    void updatesTripStatusAtDepartureAndArrivalWithoutChangingCancelledTrips() {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        LocalDateTime now = LocalDateTime.now();
+        trip("TI1_FUTURE", routeId, busId, now.plusMinutes(20), "SCHEDULED");
+        trip("TI1_RUNNING", routeId, busId, now.minusMinutes(5), "SCHEDULED");
+        trip("TI1_ARRIVED", routeId, busId, now.minusMinutes(40), "SCHEDULED");
+        trip("TI1_OLD_DEPARTED", routeId, busId, now.minusMinutes(40), "DEPARTED");
+        trip("TI1_CANCELLED", routeId, busId, now.minusMinutes(40), "CANCELLED");
+
+        tripStatusJob.updateTripStatuses();
+
+        assertEquals("SCHEDULED", tripStatus("TI1_FUTURE"));
+        assertEquals("DEPARTED", tripStatus("TI1_RUNNING"));
+        assertEquals("COMPLETED", tripStatus("TI1_ARRIVED"));
+        assertEquals("COMPLETED", tripStatus("TI1_OLD_DEPARTED"));
+        assertEquals("CANCELLED", tripStatus("TI1_CANCELLED"));
+        assertTrue(tripService.getTodayTrips().stream()
+                .anyMatch(trip -> "TI1_RUNNING".equals(trip.tripCode())));
+        assertFalse(tripService.getTodayTrips().stream()
+                .anyMatch(trip -> "TI1_ARRIVED".equals(trip.tripCode())));
+    }
+
+    @Test
+    void sellsFutureIntermediateStopOnDepartedTrip() {
+        int routeId = id("route", "code", "TEST_SEARCH_R1");
+        int busId = id("waterbus", "code", "TEST_SEARCH_W1");
+        jdbc.update("UPDATE route_station SET minutes_from_start = 30 WHERE route_id = ? AND station_id = ?",
+                routeId, middleStationId);
+        jdbc.update("UPDATE route_station SET minutes_from_start = 60 WHERE route_id = ? AND station_id = ?",
+                routeId, lastStationId);
+        trip("TI1_BOARDING", routeId, busId, LocalDateTime.now().minusMinutes(5), "DEPARTED");
+        int tripId = id("trip", "trip_code", "TI1_BOARDING");
+        jdbc.update("UPDATE trip SET arrival_time = ? WHERE id = ?", LocalDateTime.now().plusMinutes(55), tripId);
+
+        assertTrue(tripService.searchTrips(middleStationId, lastStationId, LocalDate.now()).stream()
+                .anyMatch(trip -> tripId == trip.getId()));
+        assertFalse(tripService.searchTrips(firstStationId, lastStationId, LocalDate.now()).stream()
+                .anyMatch(trip -> tripId == trip.getId()));
+        assertTrue(tripService.getBookableTrip(tripId, middleStationId, lastStationId) != null);
+        assertNull(tripService.getBookableTrip(tripId));
     }
 
     @Test
@@ -258,5 +304,9 @@ class TripSearchTest {
     private int id(String table, String codeColumn, String code) {
         return jdbc.queryForObject("SELECT id FROM " + table + " WHERE " + codeColumn + " = ?",
                 Integer.class, code);
+    }
+
+    private String tripStatus(String code) {
+        return jdbc.queryForObject("SELECT status FROM trip WHERE trip_code = ?", String.class, code);
     }
 }

@@ -1,5 +1,7 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.controller.BookingAccessHelper;
+import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Payment;
 import jakarta.persistence.EntityManager;
@@ -30,6 +32,7 @@ class PaymentServiceTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private BookingService bookingService;
     @Autowired private PaymentService paymentService;
+    @Autowired private TripService tripService;
     @Autowired private EntityManager entityManager;
     @Autowired private WebApplicationContext context;
 
@@ -88,6 +91,24 @@ class PaymentServiceTest {
     }
 
     @Test
+    void canStillPayAfterTripDepartedAndPaidTicketShowsPassedAfterTripCompleted() {
+        // Trong lúc khách đang thanh toán, tàu rời bến đầu -> job TI1 đổi chuyến sang DEPARTED
+        tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("DEPARTED");
+        assertThat(paymentService.getCannotPayReason(booking.getId())).isNull(); // vẫn thanh toán được
+        paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
+        assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
+                .containsExactly("VALID", "VALID");
+
+        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PASSED ("Đã qua chuyến"), DB vẫn là VALID
+        tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("COMPLETED");
+        assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
+                .containsExactly("PASSED", "PASSED");
+        entityManager.flush();
+        assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
+                .containsExactly("VALID", "VALID");
+    }
+
+    @Test
     void confirmPaidRejectsPaidOrExpiredBookingWithoutChangingIt() {
         paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
         assertThatThrownBy(() -> paymentService.confirmPaid(booking.getId(), "VNPAY", "14123457")) // trả tiền lần 2
@@ -105,7 +126,7 @@ class PaymentServiceTest {
     @Test
     void paymentPageShowsBookingTripAndTickets() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        String html = mvc.perform(get("/payment/" + booking.getBookingCode()))
+        String html = mvc.perform(get("/payment/" + booking.getBookingCode()).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andExpect(view().name("payment/index"))
                 .andExpect(model().attributeExists("booking", "trip", "tickets"))
@@ -137,7 +158,7 @@ class PaymentServiceTest {
         // Test này không khai báo vnpay.tmn-code / vnpay.hash-secret -> giống máy chưa điền khoá VNPay.
         // Phải về trang thanh toán kèm lời báo, không được ra trang lỗi 500
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay"))
+        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage",
                         "Hiện chưa thanh toán được qua VNPay. Vui lòng thử lại sau hoặc liên hệ nhân viên."));

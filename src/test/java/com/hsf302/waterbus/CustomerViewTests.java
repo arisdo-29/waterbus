@@ -20,6 +20,8 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -184,6 +186,51 @@ class CustomerViewTests {
                 .doesNotContain("is-pending", "Đưa nhân viên quét", "Mang giấy tờ gốc");
         refunded.remove("refund");
         assertThat(render("detail", refunded)).contains("wb-refund-banner is-done", "Đã hoàn <strong>42.000 đ</strong>.");
+    }
+
+    @Test
+    void cashButtonIsOnlyRenderedForStaffAndPendingBookings() throws Exception {
+        for (String role : List.of("CUSTOMER", "STAFF", "ADMIN", "UNKNOWN")) {
+            MockHttpSession session = new MockHttpSession();
+            session.setAttribute("loginAccount", account(role));
+            String html = render("payment", fixture("PENDING"), get("/__test/views/payment").session(session));
+            if (role.equals("STAFF")) {
+                assertThat(html).contains("action=\"/payment/REAL-42/cash\"", "Xác nhận đã thu tiền mặt", "Đã nhận 42.000 đ");
+            } else {
+                assertThat(html).doesNotContain("/cash", "Xác nhận đã thu tiền mặt");
+            }
+        }
+        MockHttpSession staff = new MockHttpSession();
+        staff.setAttribute("loginAccount", account("STAFF"));
+        for (String status : List.of("PAID", "CANCELLED", "EXPIRED", "REFUNDED")) {
+            assertThat(render("payment", fixture(status), get("/__test/views/payment").session(staff))).doesNotContain("/cash");
+        }
+        assertThat(render("payment", fixture("PENDING"))).doesNotContain("/cash");
+    }
+
+    @Test
+    void verificationViewOnlyShowsCodeAndKeepsEscapedErrorsAndSubmittedPhone() throws Exception {
+        Map<String, Object> model = fixture("PAID");
+        model.put("bookingCode", "REAL-42");
+        model.put("verificationError", "Không xác minh được <script>");
+        String html = render("verify", model, get("/__test/views/verify").param("contactPhone", "0900000000"));
+        assertThat(html).contains("action=\"/booking/REAL-42/verify\"", "name=\"contactPhone\"", "value=\"0900000000\"",
+                "Không xác minh được &lt;script&gt;");
+        assertThat(html).doesNotContain("guest@example.test", "0912345678", "TICKET-91", "data-qr-value", "Người đặt");
+        Files.createDirectories(Path.of("target/be1-preview"));
+        Files.writeString(Path.of("target/be1-preview/verify.html"), html);
+    }
+
+    @Test
+    void ticketViewShowsCashAndPastTripWithoutChangingTripCompletedLabel() throws Exception {
+        Map<String, Object> model = fixture("PAID");
+        Map<String, Object> payment = new HashMap<>();
+        payment.put("method", "CASH");
+        payment.put("transactionRef", null);
+        model.put("payment", payment);
+        model.put("tickets", List.of(Map.of("ticketCode", "TICKET-91", "seatCode", "C7", "fromStation", "Bến đi",
+                "toStation", "Bến đến", "price", java.math.BigDecimal.ZERO, "status", "PAST_TRIP")));
+        assertThat(render("detail", model)).contains("Tiền mặt", "Đã qua chuyến").doesNotContain(">Hợp lệ<");
     }
 
     @Test
@@ -360,6 +407,7 @@ class CustomerViewTests {
                 case "payment" -> "payment/index";
                 case "detail" -> "booking/detail";
                 case "history" -> "booking/history";
+                case "verify" -> "booking/verify";
                 case "sidebar" -> "fragments/layout :: adminSidebar";
                 case "navbar" -> "fragments/layout :: navbar";
                 default -> throw new IllegalArgumentException("Unknown fixture view");

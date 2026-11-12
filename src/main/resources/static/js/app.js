@@ -145,20 +145,30 @@
             return;
         }
         const output = countdown.querySelector('[data-countdown-time]');
-        const paymentForm = document.querySelector('[data-payment-form]');
-        const submit = document.querySelector('[data-payment-submit]');
-        const expiredMessage = document.querySelector('[data-payment-expired]');
+        const paymentForms = document.querySelectorAll('[data-payment-form]');
+        const submits = document.querySelectorAll('[data-payment-submit]');
+        const expiredMessages = document.querySelectorAll('[data-payment-expired]');
         const expiresAt = new Date(countdown.dataset.expiresAt).getTime();
 
+        function lockPayments() {
+            submits.forEach(function (submit) { submit.disabled = true; });
+            paymentForms.forEach(function (form) { form.classList.add('is-expired'); });
+            expiredMessages.forEach(function (message) { message.classList.add('is-visible'); });
+        }
+        // Cả VNPay và tiền mặt đều phải bị chặn khi thời gian giữ chỗ không còn hợp lệ.
+        paymentForms.forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+                    event.preventDefault();
+                    lockPayments();
+                }
+            });
+        });
         if (!Number.isFinite(expiresAt)) {
             if (output) {
                 output.textContent = 'Chưa có thời hạn giữ chỗ';
             }
-            if (submit) {
-                submit.disabled = true;
-            }
-            if (paymentForm) {
-            }
+            lockPayments();
             return;
         }
 
@@ -172,15 +182,7 @@
             }
             if (remaining === 0) {
                 countdown.classList.add('is-expired');
-                if (submit) {
-                    submit.disabled = true;
-                }
-                if (expiredMessage) {
-                    expiredMessage.classList.add('is-visible');
-                }
-                if (paymentForm) {
-                    paymentForm.classList.add('is-expired');
-                }
+                lockPayments();
                 return false;
             }
             return true;
@@ -299,7 +301,7 @@
      * [data-passenger-section][data-ticket-code][data-travel-year] > input[data-birth-year] + [data-birth-year-error]
      */
     function initPassengerForm() {
-        const minAgeByCode = { SENIOR_70: 70, PRIORITY: 13 };
+        const minAgeByCode = { SENIOR_70: 70 };
         document.querySelectorAll('[data-passenger-section]').forEach(function (section) {
             const code = (section.dataset.ticketCode || '').toUpperCase();
             const minAge = minAgeByCode[code] || 0;

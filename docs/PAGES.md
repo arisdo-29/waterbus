@@ -77,6 +77,22 @@ lịch sử đặt vé) đã được triển khai và nối với service/datab
 
 ## Trang quản trị (M3)
 
+### Hợp đồng KH5 đề xuất, chờ Trâm tích hợp TR2/TR4/TR5/TR6
+
+- TR2 trả view `booking/verify` khi trình duyệt chưa được phép truy cập đơn vãng lai. Model chỉ có `bookingCode`
+  và `verificationError` (null hoặc thông báo chung), không truyền liên hệ/hành khách/vé/QR. Form gửi
+  `POST /booking/{bookingCode}/verify`, field `contactPhone`; sai thì render lại view và giữ request parameter.
+  Đúng thì backend ghi nhận quyền theo từng mã đơn trong session và redirect tới trang đơn/thanh toán phù hợp.
+  Backend kiểm tra lại quyền trên GET chi tiết/thanh toán và các POST huỷ, VNPay, tiền mặt; template không thay thế kiểm tra quyền.
+- TR4 bỏ mốc 13 tuổi của `PRIORITY`. FE chỉ giữ giới hạn năm sinh 1900..năm hiện tại và tuổi `SENIOR_70` >= 70
+  theo năm chuyến. TR3 vẫn phải bắt đăng nhập/giới hạn 2 vé ưu đãi ở server.
+- TR6: `POST /payment/{bookingCode}/cash`, chỉ STAFF; backend gọi luồng xác nhận thanh toán chung với method `CASH`,
+  kiểm tra quyền và hiệu lực đơn, redirect sang trang vé khi thành công. Trang vé hiển thị `CASH` là “Tiền mặt”.
+  Chờ constraint KH3 trước khi ghi CASH trên SQL Server. Countdown khoá tất cả nút/form khi hết hạn hoặc sai thời hạn.
+- TR5 đề xuất trả `tickets[].status = 'PAST_TRIP'` cho vé VALID của chuyến COMPLETED để dùng nhãn “Đã qua chuyến”.
+  Đây chỉ là trạng thái DTO hiển thị, không ghi vào `ticket.status` và không thay nhãn COMPLETED của chuyến.
+- KH5 giữ Draft đến khi Trâm xác nhận hợp đồng và tích hợp các TR tương ứng; chưa có endpoint xác minh/tiền mặt trên develop.
+
 Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm) và `form.html` (thêm/sửa)
 đầu tiên trong M3; mỗi chủ trang copy mẫu sang thư mục của mình rồi sửa.
 

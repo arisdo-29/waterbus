@@ -38,10 +38,10 @@ public class WaterbusController {
 
     @GetMapping
     public String list(Model model) {
-        var waterbuses = waterbusService.getWaterbuses();
+        var waterbuses = waterbusService.getWaterbusViews();
         model.addAttribute("waterbuses", waterbuses);
         Map<Integer, Long> scheduledTripCounts = waterbuses.stream().collect(Collectors.toMap(
-                waterbus -> waterbus.getId(), waterbus -> waterbusService.countUpcomingScheduledTrips(waterbus.getId())));
+                waterbus -> waterbus.id(), waterbus -> waterbusService.countUpcomingScheduledTrips(waterbus.id())));
         model.addAttribute("scheduledTripCounts", scheduledTripCounts);
         return "admin/waterbus/list";
     }

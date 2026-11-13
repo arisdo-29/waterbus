@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.Nationalized;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "waterbus")
@@ -32,6 +33,16 @@ public class Waterbus {
     @NotNull
     @Column(name = "status", nullable = false, length = 20)
     private String status = "ACTIVE";
+
+    @Size(max = 20)
+    @Column(name = "pending_status", length = 20)
+    private String pendingStatus;
+
+    @Column(name = "status_starts_at")
+    private LocalDateTime statusStartsAt;
+
+    @Column(name = "status_ends_at")
+    private LocalDateTime statusEndsAt;
 
     public Integer getId() {
         return id;
@@ -71,5 +82,29 @@ public class Waterbus {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPendingStatus() {
+        return pendingStatus;
+    }
+
+    public void setPendingStatus(String pendingStatus) {
+        this.pendingStatus = pendingStatus;
+    }
+
+    public LocalDateTime getStatusStartsAt() {
+        return statusStartsAt;
+    }
+
+    public void setStatusStartsAt(LocalDateTime statusStartsAt) {
+        this.statusStartsAt = statusStartsAt;
+    }
+
+    public LocalDateTime getStatusEndsAt() {
+        return statusEndsAt;
+    }
+
+    public void setStatusEndsAt(LocalDateTime statusEndsAt) {
+        this.statusEndsAt = statusEndsAt;
     }
 }

@@ -35,6 +35,7 @@ class TripCancellationRefundTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EntityManager entityManager;
     @Autowired private TripService tripService;
+    @Autowired private WaterbusService waterbusService;
     @Autowired private RefundService refundService;
     @Autowired private RevenueService revenueService;
     @Autowired private WebApplicationContext context;
@@ -111,6 +112,34 @@ class TripCancellationRefundTest {
         assertEquals(BigDecimal.ZERO, report.summary().totalRevenue());
         assertEquals(report.summary().totalRevenue(), report.dailyRevenue().stream()
                 .map(day -> day.revenue()).reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    @Test
+    void maintenanceCancelsAffectedTripAndQueuesPaidBookingForRefund() {
+        int busId = id("waterbus", "code", "CANCEL_W");
+        LocalDateTime departure = jdbc.queryForObject("SELECT departure_time FROM trip WHERE id = ?",
+                LocalDateTime.class, tripId);
+        LocalDateTime startsAt = departure.minusMinutes(5);
+        LocalDateTime endsAt = departure.plusMinutes(5);
+
+        var previews = waterbusService.previewStatusChange(busId, "MAINTENANCE", startsAt, endsAt);
+        assertEquals(1, previews.size());
+        assertEquals(2, previews.get(0).confirmedTicketCount());
+        assertEquals(1, previews.get(0).heldTicketCount());
+        assertThrows(IllegalArgumentException.class, () -> waterbusService.scheduleStatusChange(
+                busId, "MAINTENANCE", startsAt, endsAt, List.of()));
+        assertEquals(1, waterbusService.scheduleStatusChange(
+                busId, "MAINTENANCE", startsAt, endsAt, List.of(tripId)));
+        entityManager.flush();
+
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", tripId));
+        assertEquals("CANCELLED", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_PENDING'"));
+        assertEquals("PAID", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_PAID'"));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?",
+                id("booking", "booking_code", "CANCEL_PAID")));
+        assertEquals(1, refundService.getRefunds("PENDING").size());
+        assertEquals("ACTIVE", value("SELECT status FROM waterbus WHERE id = ?", busId));
+        assertEquals("MAINTENANCE", value("SELECT pending_status FROM waterbus WHERE id = ?", busId));
     }
 
     @Test

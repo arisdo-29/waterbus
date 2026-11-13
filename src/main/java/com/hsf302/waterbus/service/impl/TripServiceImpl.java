@@ -13,11 +13,11 @@ import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
 import com.hsf302.waterbus.repository.SeatRepository;
 import com.hsf302.waterbus.repository.TripRepository;
+import com.hsf302.waterbus.repository.WaterbusRepository;
 import com.hsf302.waterbus.service.RouteService;
 import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.TripService;
 import com.hsf302.waterbus.service.TicketService;
-import com.hsf302.waterbus.service.WaterbusService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,20 +34,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TripServiceImpl implements TripService {
+    private static final LocalDateTime OPEN_END = LocalDateTime.of(9999, 12, 31, 23, 59);
     private final TripRepository tripRepository;
     private final SeatRepository seatRepository;
     private final RouteService routeService;
-    private final WaterbusService waterbusService;
+    private final WaterbusRepository waterbusRepository;
     private final TicketService ticketService;
     private final RefundService refundService;
 
     public TripServiceImpl(TripRepository tripRepository, SeatRepository seatRepository,
-                           RouteService routeService, WaterbusService waterbusService,
+                           RouteService routeService, WaterbusRepository waterbusRepository,
                            TicketService ticketService, RefundService refundService) {
         this.tripRepository = tripRepository;
         this.seatRepository = seatRepository;
         this.routeService = routeService;
-        this.waterbusService = waterbusService;
+        this.waterbusRepository = waterbusRepository;
         this.ticketService = ticketService;
         this.refundService = refundService;
     }
@@ -73,22 +74,35 @@ public class TripServiceImpl implements TripService {
 
         LocalDateTime now = LocalDateTime.now();
         return tripRepository.findCancellableForPreview(waterbusId, departureFrom, departureTo, now).stream()
-                .map(trip -> {
-                    List<TicketCheckinDTO> tickets = ticketService.getPassengerManifest(trip.getId()).stream()
-                            .filter(ticket -> Set.of("HOLD", "VALID", "USED").contains(ticket.getStatus()))
-                            .sorted(Comparator.comparing(TicketCheckinDTO::getSeatCode,
-                                            Comparator.nullsFirst(Comparator.naturalOrder()))
-                                    .thenComparing(TicketCheckinDTO::getTicketCode))
-                            .toList();
-                            long confirmedTicketCount = tickets.stream()
-                            .filter(ticket -> "VALID".equals(ticket.getStatus()) || "USED".equals(ticket.getStatus()))
-                            .count();
-                    long heldTicketCount = tickets.stream().filter(ticket -> "HOLD".equals(ticket.getStatus())).count();
-                    return new TripCancellationPreviewDTO(
-                                    AdminTripDTO.fromEntity(trip, confirmedTicketCount), tickets,
-                                    confirmedTicketCount, heldTicketCount);
-                })
+                .map(this::toCancellationPreview).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripCancellationPreviewDTO> getTripsAffectedByOutage(int waterbusId,
+                                                                       LocalDateTime startsAt,
+                                                                       LocalDateTime endsAt) {
+        if (waterbusId <= 0 || startsAt == null || (endsAt != null && !endsAt.isAfter(startsAt))) {
+            throw new IllegalArgumentException("Khoảng thời gian ngưng tàu không hợp lệ.");
+        }
+        return tripRepository.findScheduledOverlappingOutage(waterbusId, startsAt,
+                        endsAt == null ? OPEN_END : endsAt, LocalDateTime.now()).stream()
+                .map(this::toCancellationPreview).toList();
+    }
+
+    private TripCancellationPreviewDTO toCancellationPreview(Trip trip) {
+        List<TicketCheckinDTO> tickets = ticketService.getPassengerManifest(trip.getId()).stream()
+                .filter(ticket -> Set.of("HOLD", "VALID", "USED").contains(ticket.getStatus()))
+                .sorted(Comparator.comparing(TicketCheckinDTO::getSeatCode,
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(TicketCheckinDTO::getTicketCode))
                 .toList();
+        long confirmedTicketCount = tickets.stream()
+                .filter(ticket -> "VALID".equals(ticket.getStatus()) || "USED".equals(ticket.getStatus()))
+                .count();
+        long heldTicketCount = tickets.stream().filter(ticket -> "HOLD".equals(ticket.getStatus())).count();
+        return new TripCancellationPreviewDTO(AdminTripDTO.fromEntity(trip, confirmedTicketCount), tickets,
+                confirmedTicketCount, heldTicketCount);
     }
 
     @Override
@@ -140,8 +154,7 @@ public class TripServiceImpl implements TripService {
         var route = routeService.getActiveRoutes().stream()
                 .filter(candidate -> candidate.getId().equals(form.getRouteId())).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Tuyến không tồn tại hoặc đã ngừng hoạt động."));
-        var waterbus = waterbusService.getWaterbuses().stream()
-                .filter(candidate -> candidate.getId().equals(form.getWaterbusId())).findFirst()
+        var waterbus = waterbusRepository.findByIdForUpdate(form.getWaterbusId())
                 .orElseThrow(() -> new IllegalArgumentException("Tàu không tồn tại."));
         if (!"ACTIVE".equals(waterbus.getStatus())) {
             throw new IllegalArgumentException("Chỉ có thể xếp chuyến cho tàu đang hoạt động.");
@@ -154,6 +167,13 @@ public class TripServiceImpl implements TripService {
         if (duration <= 0) duration = 50;
 
         LocalDateTime arrivalTime = departureTime.plusMinutes(duration);
+        if ((waterbus.getPendingStatus() != null || "MAINTENANCE".equals(waterbus.getStatus())
+                || "INACTIVE".equals(waterbus.getStatus()))
+                && waterbus.getStatusStartsAt() != null
+                && arrivalTime.isAfter(waterbus.getStatusStartsAt())
+                && (waterbus.getStatusEndsAt() == null || departureTime.isBefore(waterbus.getStatusEndsAt()))) {
+            throw new IllegalArgumentException("Tàu đã có lịch bảo trì hoặc ngưng hoạt động trong giờ chuyến này.");
+        }
         if (tripRepository.countScheduledOverlaps(waterbus.getId(), departureTime, arrivalTime) > 0) {
             throw new IllegalArgumentException("Tàu đã có chuyến khác trùng giờ. Vui lòng chọn tàu hoặc giờ khác.");
         }

@@ -116,6 +116,11 @@ public class TicketCheckinDTO implements Serializable {
             passengerAge = LocalDate.now().getYear() - birthYear;
         }
 
+        String status = ticket.getStatus();
+        if ("VALID".equalsIgnoreCase(status) && isTripPastOrCompleted(trip)) {
+            status = "PAST_TRIP";
+        }
+
         return new TicketCheckinDTO(
                 ticket.getTicketCode(),
                 bookingCode,
@@ -132,13 +137,30 @@ public class TicketCheckinDTO implements Serializable {
                 ticketTypeName,
                 ticketTypeCode,
                 ticket.getPrice(),
-                ticket.getStatus(),
+                status,
                 ticket.getCheckedInAt(),
                 birthYear,
                 passengerAge,
                 requiresVerification,
                 outsideWindow
         );
+    }
+
+    public static boolean isTripPastOrCompleted(Trip trip) {
+        if (trip == null) {
+            return false;
+        }
+        if ("COMPLETED".equalsIgnoreCase(trip.getStatus())) {
+            return true;
+        }
+        LocalDate today = LocalDate.now();
+        if (trip.getDepartureTime() != null && today.isAfter(trip.getDepartureTime().toLocalDate())) {
+            return true;
+        }
+        if (trip.getArrivalTime() != null && LocalDateTime.now().isAfter(trip.getArrivalTime())) {
+            return true;
+        }
+        return false;
     }
 
     public static TicketCheckinDTO fromEntity(Ticket ticket) {
@@ -239,5 +261,9 @@ public class TicketCheckinDTO implements Serializable {
 
     public boolean isCancelled() {
         return "CANCELLED".equalsIgnoreCase(status);
+    }
+
+    public boolean isPastTrip() {
+        return "PAST_TRIP".equalsIgnoreCase(status);
     }
 }

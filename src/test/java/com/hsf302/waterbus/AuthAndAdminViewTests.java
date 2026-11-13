@@ -11,6 +11,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -88,6 +91,38 @@ class AuthAndAdminViewTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/promotion/form"))
                 .andExpect(model().attributeExists("promotion"));
+    }
+
+    @Test
+    void testAdminPromotionCreate_pastStartDate_rejects() throws Exception {
+        mvc.perform(post("/admin/promotions/save")
+                .session(adminSession)
+                .param("code", "PROMO_PAST")
+                .param("name", "Khuyến mãi quá khứ")
+                .param("discountType", "PERCENT")
+                .param("discountValue", "10")
+                .param("startAt", LocalDateTime.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")))
+                .param("endAt", LocalDateTime.now().plusDays(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")))
+                .param("isActive", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/promotion/form"))
+                .andExpect(model().hasErrors())
+                .andExpect(model().attributeHasFieldErrors("promotion", "startAt"));
+    }
+
+    @Test
+    void testAdminPromotionCreate_futureStartDate_success() throws Exception {
+        mvc.perform(post("/admin/promotions/save")
+                .session(adminSession)
+                .param("code", "PROMO_FUTURE")
+                .param("name", "Khuyến mãi tương lai")
+                .param("discountType", "PERCENT")
+                .param("discountValue", "10")
+                .param("startAt", LocalDateTime.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")))
+                .param("endAt", LocalDateTime.now().plusDays(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")))
+                .param("isActive", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/promotions"));
     }
 
     @Test

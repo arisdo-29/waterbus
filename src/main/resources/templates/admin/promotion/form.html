@@ -83,8 +83,11 @@
                         <div class="row">
                             <div class="col-md-6 wb-admin-form-row">
                                 <label for="startAt">Thời gian bắt đầu <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                                <input class="form-control" id="startAt" type="datetime-local" th:field="*{startAt}" required th:classappend="${#fields.hasErrors('startAt')} ? 'is-invalid' : ''">
+                                <input class="form-control" id="startAt" type="datetime-local" th:field="*{startAt}" required
+                                       th:attr="min=${promotion.id == null ? #temporals.format(#temporals.createNow(), 'yyyy-MM-dd''T''HH:mm') : null}"
+                                       th:classappend="${#fields.hasErrors('startAt')} ? 'is-invalid' : ''">
                                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('startAt')}" th:errors="*{startAt}">Thời gian bắt đầu không hợp lệ</div>
+                                <small class="form-text text-muted" th:if="${promotion.id == null}">Khuyến mãi mới phải bắt đầu từ hiện tại trở đi.</small>
                             </div>
                             <div class="col-md-6 wb-admin-form-row">
                                 <label for="endAt">Thời gian kết thúc <span class="wb-admin-required" aria-hidden="true">*</span></label>

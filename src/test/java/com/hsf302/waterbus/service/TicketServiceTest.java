@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -390,6 +391,51 @@ class TicketServiceTest {
             ticketService.checkIn("TK_VALID_01");
         });
         assertTrue(ex.getMessage().contains("không phải hôm nay"));
+    }
+
+    @Test
+    @DisplayName("Soát vé chuyến đã hoàn thành (COMPLETED) -> ném ngoại lệ IllegalStateException")
+    void checkIn_completedTrip_throwsException() {
+        Trip trip = validTicket.getTrip();
+        trip.setStatus("COMPLETED");
+        tripRepository.save(trip);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn(validTicket.getTicketCode());
+        });
+        assertTrue(ex.getMessage().contains("đã kết thúc hành trình, vé đã hết hạn"));
+    }
+
+    @Test
+    @DisplayName("Soát vé chuyến có ngày khởi hành trong quá khứ -> ném ngoại lệ IllegalStateException")
+    void checkIn_pastTripDate_throwsException() {
+        Trip trip = validTicket.getTrip();
+        trip.setDepartureTime(LocalDateTime.now().minusDays(1));
+        trip.setArrivalTime(LocalDateTime.now().minusDays(1).plusMinutes(45));
+        tripRepository.save(trip);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn(validTicket.getTicketCode());
+        });
+        assertTrue(ex.getMessage().contains("đã kết thúc hành trình, vé đã hết hạn"));
+    }
+
+    @Test
+    @DisplayName("Danh sách hành khách chuyến đã hoàn thành -> vé VALID chuyển thành PAST_TRIP và isValid=false")
+    void getPassengerManifest_pastTrip_marksStatusPastTrip() {
+        Trip trip = validTicket.getTrip();
+        trip.setStatus("COMPLETED");
+        tripRepository.save(trip);
+
+        List<TicketCheckinDTO> manifest = ticketService.getPassengerManifest(trip.getId());
+        assertFalse(manifest.isEmpty());
+        TicketCheckinDTO dto = manifest.stream()
+                .filter(t -> t.getTicketCode().equals(validTicket.getTicketCode()))
+                .findFirst().orElse(null);
+        assertNotNull(dto);
+        assertEquals("PAST_TRIP", dto.getStatus());
+        assertFalse(dto.isValid());
+        assertTrue(dto.isPastTrip());
     }
 
     @Test

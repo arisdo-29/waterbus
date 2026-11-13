@@ -124,8 +124,9 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
   Lỗi trả lại model đã nhập, `BindingResult` và `errorMessage` tiếng Việt. Template hiện chỉ hiển thị alerts chung.
 - Tuyến cần ít nhất hai ID bến tồn tại, không trùng. Tuyến active không được lưu với bến inactive;
   tuyến inactive được giữ bến inactive. Form lấy cả bến inactive để không mất lựa chọn/dữ liệu cũ khi sửa.
-  Ẩn bến không tự sửa tuyến/chuyến/vé: tuyến active cũ có bến vừa ẩn được giữ nguyên; khi lưu lại phải
-  chọn bến active hoặc ngừng hoạt động tuyến. `/routes` vẫn liệt kê các tuyến active và đầy đủ bến theo thứ tự.
+  Không được ẩn bến còn thuộc tuyến active, kể cả bỏ chọn `isActive` trên form sửa; phải ngừng tuyến trước.
+  Bến chỉ thuộc tuyến inactive được phép ẩn; không tự xoá tuyến/chuyến/vé. `/routes` vẫn liệt kê tuyến active theo thứ tự.
+  KH2 phần tuyến còn chờ TI3: kiểm tra số chuyến trước khi ngừng tuyến/đổi hành trình; chưa coi D5 hoàn tất.
 - Lưu tuyến/thứ tự bến trong một transaction; `stopOrder` bắt đầu 1, liên tục theo request.
   Sửa giữ ID của membership còn lại; `minutesFromStart` lấy từ form, cùng thứ tự `stationIds`.
   Mỗi bến có một số phút nguyên không âm; bến đầu = 0, các bến sau tăng nghiêm ngặt. Không tự điền 0 khi thiếu dữ liệu.

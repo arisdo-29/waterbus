@@ -31,7 +31,10 @@
             <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
             <header class="wb-admin-head">
                 <div><span class="wb-eyebrow">Quản trị</span><h1>Chuyến tàu</h1><p>Quản lý thông tin chuyến tàu của Saigon Waterbus.</p></div>
-                <a th:if="${session.loginAccount?.role == 'ADMIN'}" class="btn btn-wb-accent" href="/templates/admin/trip/form.html" th:href="@{/admin/trips/new}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm mới</a>
+                <div th:if="${session.loginAccount?.role == 'ADMIN'}" class="wb-admin-head-actions">
+                    <a class="btn btn-wb-outline" th:href="@{/admin/trips/cancel}"><i class="bi bi-x-octagon me-2" aria-hidden="true"></i>Hủy hàng loạt</a>
+                    <a class="btn btn-wb-accent" href="/templates/admin/trip/form.html" th:href="@{/admin/trips/new}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm mới</a>
+                </div>
             </header>
             <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(trips)}">
                 <table class="table wb-admin-table">
@@ -47,7 +50,7 @@
                             <td data-label="Đến nơi"><span th:text="${#temporals.format(trip?.arrivalTime, 'HH:mm dd/MM/yyyy')}">07:50 22/10/2026</span></td>
                             <td data-label="Trạng thái"><span th:replace="~{fragments/layout :: statusBadge(${trip?.status})}" class="badge rounded-pill wb-badge-success">Đang hoạt động</span></td>
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
-                                <form th:if="${session.loginAccount?.role == 'ADMIN'}" action="/templates/admin/trip/list.html" th:action="@{/admin/trips/{id}/cancel(id=${trip?.id})}" method="post" data-confirm="Huỷ chuyến này?" th:attr="data-confirm=|Huỷ chuyến ${trip.tripCode}? ${trip.soldTickets} vé đã xác nhận sẽ bị huỷ; đơn có tiền chuyển sang chờ hoàn.|" data-confirm-variant="danger" data-confirm-ok="Huỷ chuyến">
+                                <form class="wb-admin-trip-cancel-form" th:if="${session.loginAccount?.role == 'ADMIN'}" action="/templates/admin/trip/list.html" th:action="@{/admin/trips/{id}/cancel(id=${trip?.id})}" method="post" data-confirm="Huỷ chuyến này?" th:attr="data-confirm=|Huỷ chuyến ${trip.tripCode}? ${trip.soldTickets} vé đã xác nhận sẽ bị huỷ. Đơn có tiền chuyển sang chờ hoàn.|" data-confirm-variant="danger" data-confirm-ok="Huỷ chuyến">
                                     <label class="visually-hidden" th:for="|cancelReason-${trip.id}|">Lý do huỷ chuyến</label>
                                     <input class="form-control" type="text" name="reason" th:id="|cancelReason-${trip.id}|" placeholder="Lý do huỷ chuyến" maxlength="255" required th:disabled="${!trip.cancelable}">
                                     <button class="btn btn-wb-outline" type="submit" th:disabled="${!trip.cancelable}">Huỷ chuyến</button>

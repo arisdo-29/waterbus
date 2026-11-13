@@ -2,6 +2,10 @@ package com.hsf302.waterbus.controller;
 
 import com.hsf302.waterbus.service.WaterbusService;
 import com.hsf302.waterbus.dto.AdminWaterbusForm;
+import com.hsf302.waterbus.dto.WaterbusDTO;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,10 +25,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @Controller
 @RequestMapping("/admin/waterbuses")
 public class WaterbusController {
+    private static final DateTimeFormatter DATE_TIME_LOCAL = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
     private final WaterbusService waterbusService;
 
@@ -73,15 +79,63 @@ public class WaterbusController {
         return "admin/waterbus/form";
     }
 
+    @GetMapping("/{id}/status")
+    public String statusPlan(@PathVariable int id, @RequestParam String status,
+                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                             LocalDateTime startsAt,
+                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                             LocalDateTime endsAt,
+                             @RequestParam(defaultValue = "false") boolean preview,
+                             Model model, RedirectAttributes flash) {
+        WaterbusDTO waterbus = waterbusService.getWaterbusViews().stream()
+                .filter(candidate -> candidate.id() == id).findFirst().orElse(null);
+        if (waterbus == null || !List.of("ACTIVE", "MAINTENANCE", "INACTIVE").contains(status)) {
+            flash.addFlashAttribute("errorMessage", "Mã tàu hoặc trạng thái không hợp lệ.");
+            return "redirect:/admin/waterbuses";
+        }
+        model.addAttribute("waterbus", waterbus);
+        model.addAttribute("targetStatus", status);
+        model.addAttribute("startsAt", startsAt == null ? "" : startsAt.format(DATE_TIME_LOCAL));
+        model.addAttribute("endsAt", endsAt == null ? "" : endsAt.format(DATE_TIME_LOCAL));
+        model.addAttribute("minStartsAt", LocalDateTime.now().plusMinutes(1).format(DATE_TIME_LOCAL));
+        model.addAttribute("previewReady", false);
+        model.addAttribute("affectedTrips", List.of());
+        if (preview || "ACTIVE".equals(status)) {
+            try {
+                var affectedTrips = waterbusService.previewStatusChange(id, status, startsAt, endsAt);
+                model.addAttribute("affectedTrips", affectedTrips);
+                model.addAttribute("previewReady", true);
+            } catch (IllegalArgumentException ex) {
+                model.addAttribute("errorMessage", ex.getMessage());
+            }
+        }
+        return "admin/waterbus/status";
+    }
+
     @PostMapping("/{id}/status")
-    public String changeStatus(@PathVariable int id, @RequestParam String status, RedirectAttributes flash) {
+    public String changeStatus(@PathVariable int id, @RequestParam String status,
+                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                               LocalDateTime startsAt,
+                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                               LocalDateTime endsAt,
+                               @RequestParam(required = false) List<Integer> tripIds,
+                               RedirectAttributes flash) {
         try {
-            waterbusService.changeStatus(id, status);
-            flash.addFlashAttribute("successMessage", "Đã cập nhật trạng thái tàu.");
+            int cancelled = waterbusService.scheduleStatusChange(id, status, startsAt, endsAt, tripIds);
+            String message = "ACTIVE".equals(status) ? "Tàu đã hoạt động trở lại."
+                    : "Đã lên lịch ngưng tàu và tự động huỷ " + cancelled + " chuyến."
+                    + (cancelled > 0 ? " Các đơn đã thanh toán được chuyển sang danh sách chờ hoàn tiền." : "");
+            flash.addFlashAttribute("successMessage", message);
+            return "redirect:/admin/waterbuses";
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
+            flash.addAttribute("id", id);
+            flash.addAttribute("status", status);
+            if (startsAt != null) flash.addAttribute("startsAt", startsAt.format(DATE_TIME_LOCAL));
+            if (endsAt != null) flash.addAttribute("endsAt", endsAt.format(DATE_TIME_LOCAL));
+            flash.addAttribute("preview", true);
+            return "redirect:/admin/waterbuses/{id}/status";
         }
-        return "redirect:/admin/waterbuses";
     }
 
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})

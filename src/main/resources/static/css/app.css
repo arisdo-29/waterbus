@@ -194,7 +194,7 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 .wb-station-card { display: flex; height: 100%; flex-wrap: wrap; align-items: flex-start; gap: 16px; padding: 24px; text-decoration: none; transition: border-color .2s ease, box-shadow .2s ease; }
 .wb-station-card:hover, .wb-station-card:focus-visible { border-color: var(--wb-sky-500); box-shadow: 0 16px 30px rgba(11, 53, 80, .12); }
 .wb-station-card-icon { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 12px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-size: 24px; }
-.wb-station-card-body { display: grid; flex: 1; min-width: 0; gap: 6px; overflow-wrap: anywhere; }
+.wb-station-card-body { display: grid; flex: 1; min-width: 0; gap: 6px; overflow-wrap: break-word; }
 .wb-station-card-body strong { color: var(--wb-navy); font-size: 1.1rem; }
 .wb-station-card-body small { color: var(--wb-muted); font-size: 14px; }
 .wb-station-card-status { flex-basis: 100%; }

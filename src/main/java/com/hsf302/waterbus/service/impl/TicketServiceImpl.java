@@ -169,9 +169,6 @@ public class TicketServiceImpl implements TicketService {
     @Transactional(noRollbackFor = {IllegalStateException.class, IllegalArgumentException.class})
     public TicketCheckinDTO checkIn(String ticketCode, Integer staffAccountId, String source, boolean overrideTripTime) {
         String safeSource = (source == null || source.isBlank()) ? "MANUAL" : source;
-        if (overrideTripTime) {
-            safeSource = "OVERRIDE";
-        }
 
         Ticket ticket;
         try {
@@ -238,13 +235,13 @@ public class TicketServiceImpl implements TicketService {
         }
 
         LocalDateTime boardingTime = calculateBoardingTime(ticket);
-        if (boardingTime != null && !overrideTripTime) {
+        if (boardingTime != null) {
             LocalDateTime now = LocalDateTime.now();
 
             if (!now.toLocalDate().isEqual(boardingTime.toLocalDate())) {
                 String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " khởi hành ngày "
                         + boardingTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                        + ", không phải hôm nay. Cần xác nhận Override để soát vé!";
+                        + ", không phải hôm nay. Không thể soát vé!";
                 logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
                 throw new IllegalStateException(msg);
             }
@@ -252,13 +249,13 @@ public class TicketServiceImpl implements TicketService {
             if (now.isBefore(boardingTime.minusMinutes(60))) {
                 String msg = "Chưa đến giờ soát vé cho chuyến " + ticket.getTrip().getTripCode()
                         + " (giờ lên tàu dự kiến lúc " + boardingTime.format(TIME_FORMAT)
-                        + "). Chỉ được soát vé trước giờ lên tàu tối đa 60 phút. Cần xác nhận Override để soát vé sớm!";
+                        + "). Chỉ được soát vé trước giờ lên tàu tối đa 60 phút.";
                 logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
                 throw new IllegalStateException(msg);
             }
 
             if (now.isAfter(boardingTime.plusMinutes(15))) {
-                String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã qua bến lúc " + boardingTime.format(TIME_FORMAT) + ". Cần xác nhận Override để soát vé muộn!";
+                String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã qua bến lúc " + boardingTime.format(TIME_FORMAT) + ". Không thể soát vé!";
                 logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
                 throw new IllegalStateException(msg);
             }

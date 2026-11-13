@@ -34,5 +34,4 @@ public interface AccountService {
 
     AccountDTO toggleStatus(int targetAccountId, int currentAdminId);
 
-    void resetPassword(int targetAccountId, String newPassword);
 }

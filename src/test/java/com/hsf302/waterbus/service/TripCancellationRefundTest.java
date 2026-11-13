@@ -5,6 +5,8 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +35,7 @@ class TripCancellationRefundTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EntityManager entityManager;
     @Autowired private TripService tripService;
+    @Autowired private WaterbusService waterbusService;
     @Autowired private RefundService refundService;
     @Autowired private RevenueService revenueService;
     @Autowired private WebApplicationContext context;
@@ -112,6 +115,34 @@ class TripCancellationRefundTest {
     }
 
     @Test
+    void maintenanceCancelsAffectedTripAndQueuesPaidBookingForRefund() {
+        int busId = id("waterbus", "code", "CANCEL_W");
+        LocalDateTime departure = jdbc.queryForObject("SELECT departure_time FROM trip WHERE id = ?",
+                LocalDateTime.class, tripId);
+        LocalDateTime startsAt = departure.minusMinutes(5);
+        LocalDateTime endsAt = departure.plusMinutes(5);
+
+        var previews = waterbusService.previewStatusChange(busId, "MAINTENANCE", startsAt, endsAt);
+        assertEquals(1, previews.size());
+        assertEquals(2, previews.get(0).confirmedTicketCount());
+        assertEquals(1, previews.get(0).heldTicketCount());
+        assertThrows(IllegalArgumentException.class, () -> waterbusService.scheduleStatusChange(
+                busId, "MAINTENANCE", startsAt, endsAt, List.of()));
+        assertEquals(1, waterbusService.scheduleStatusChange(
+                busId, "MAINTENANCE", startsAt, endsAt, List.of(tripId)));
+        entityManager.flush();
+
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", tripId));
+        assertEquals("CANCELLED", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_PENDING'"));
+        assertEquals("PAID", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_PAID'"));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?",
+                id("booking", "booking_code", "CANCEL_PAID")));
+        assertEquals(1, refundService.getRefunds("PENDING").size());
+        assertEquals("ACTIVE", value("SELECT status FROM waterbus WHERE id = ?", busId));
+        assertEquals("MAINTENANCE", value("SELECT pending_status FROM waterbus WHERE id = ?", busId));
+    }
+
+    @Test
     void cancellationReturnsPromotionUseOnceForPaidBookings() {
         LocalDateTime now = LocalDateTime.now();
         jdbc.update("INSERT INTO promotion (code, name, discount_type, discount_value, min_order_amount, "
@@ -135,6 +166,100 @@ class TripCancellationRefundTest {
         assertEquals(1, jdbc.queryForObject("SELECT used_count FROM promotion WHERE id = ?", Integer.class,
                 promotionId));
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund", Integer.class));
+    }
+
+    @Test
+    void cancellationPreviewShowsConfirmedAndHeldTickets() {
+        LocalDateTime departure = jdbc.queryForObject(
+                "SELECT departure_time FROM trip WHERE id = ?", LocalDateTime.class, tripId);
+
+        var previews = tripService.getCancellableTrips(id("waterbus", "code", "CANCEL_W"),
+                departure.minusMinutes(1), departure.plusMinutes(1));
+
+        assertEquals(1, previews.size());
+        var preview = previews.get(0);
+        assertEquals("CANCEL_T", preview.trip().tripCode());
+        assertEquals(2, preview.confirmedTicketCount());
+        assertEquals(1, preview.heldTicketCount());
+        assertEquals(3, preview.tickets().size());
+        assertTrue(preview.tickets().stream().anyMatch(ticket ->
+                "CANCEL_T2".equals(ticket.getTicketCode()) && "Khách".equals(ticket.getPassengerName())
+                        && "0900000000".equals(ticket.getPassengerPhone())));
+    }
+
+    @Test
+    void batchCancellationCancelsAllSelectedTripsAndDoesNotPartiallyCancelInvalidBatch() {
+        int routeId = id("route", "code", "CANCEL_R");
+        int waterbusId = id("waterbus", "code", "CANCEL_W");
+        LocalDateTime secondDeparture = LocalDateTime.now().plusDays(2);
+        jdbc.update("INSERT INTO trip (trip_code, route_id, waterbus_id, departure_time, arrival_time, status) "
+                        + "VALUES ('CANCEL_T2', ?, ?, ?, ?, 'SCHEDULED')",
+                routeId, waterbusId, secondDeparture, secondDeparture.plusMinutes(30));
+        int secondTripId = id("trip", "trip_code", "CANCEL_T2");
+
+        tripService.cancelTrips(List.of(tripId, secondTripId), "Thời tiết xấu");
+        entityManager.flush();
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", tripId));
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", secondTripId));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund", Integer.class));
+
+        jdbc.update("UPDATE trip SET status = 'SCHEDULED' WHERE id = ?", tripId);
+        jdbc.update("UPDATE trip SET status = 'DEPARTED' WHERE id = ?", secondTripId);
+        entityManager.clear();
+        assertThrows(IllegalArgumentException.class,
+                () -> tripService.cancelTrips(List.of(tripId, secondTripId), "Lý do khác"));
+        assertEquals("SCHEDULED", value("SELECT status FROM trip WHERE id = ?", tripId));
+        assertEquals("DEPARTED", value("SELECT status FROM trip WHERE id = ?", secondTripId));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund", Integer.class));
+    }
+
+    @Test
+    void adminCanReviewAndSubmitBatchCancellation() throws Exception {
+        LocalDateTime departure = jdbc.queryForObject(
+                "SELECT departure_time FROM trip WHERE id = ?", LocalDateTime.class, tripId);
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+        int waterbusId = id("waterbus", "code", "CANCEL_W");
+        var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String page = mvc.perform(get("/admin/trips/cancel")
+                        .param("waterbusId", String.valueOf(waterbusId))
+                        .param("departureFrom", departure.minusMinutes(1).format(format))
+                        .param("departureTo", departure.plusMinutes(1).format(format))
+                        .sessionAttr("loginAccount", admin()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(page.contains("CANCEL_T"));
+        assertTrue(page.contains("CANCEL_PAID"));
+        assertTrue(page.contains("0900000000"));
+
+        mvc.perform(post("/admin/trips/cancel-selected")
+                        .param("tripIds", String.valueOf(tripId))
+                        .param("waterbusId", String.valueOf(waterbusId))
+                        .param("departureFrom", departure.minusMinutes(1).format(format))
+                        .param("departureTo", departure.plusMinutes(1).format(format))
+                        .param("reason", "Tàu cần bảo trì")
+                        .sessionAttr("loginAccount", admin()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/refunds?status=PENDING"));
+        entityManager.flush();
+        assertEquals("CANCELLED", value("SELECT status FROM trip WHERE id = ?", tripId));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?",
+                id("booking", "booking_code", "CANCEL_PAID")));
+    }
+
+    @Test
+    void staffCannotViewOrSubmitBulkCancellation() throws Exception {
+        jdbc.update("INSERT INTO account (email, password_hash, full_name, role, status, created_at) "
+                        + "VALUES ('refund-staff@test.vn', 'unused', 'Nhân viên', 'STAFF', 'ACTIVE', ?)",
+                LocalDateTime.now());
+        AccountDTO staff = new AccountDTO(id("account", "email", "refund-staff@test.vn"),
+                "refund-staff@test.vn", "Nhân viên", null, "STAFF", "ACTIVE");
+        var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+
+        mvc.perform(get("/admin/trips/cancel").sessionAttr("loginAccount", staff))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/checkin?error=forbidden"));
+        mvc.perform(post("/admin/trips/cancel-selected").sessionAttr("loginAccount", staff))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/checkin?error=forbidden"));
     }
 
     @Test

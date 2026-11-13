@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Lịch trạng thái tàu')}">
+    <meta charset="UTF-8">
+    <title>Lịch trạng thái tàu | Saigon Waterbus</title>
+</head>
+<body class="wb-admin">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+<div class="wb-admin-layout">
+    <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
+    <main class="wb-main wb-admin-content">
+        <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle
+                aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+        <header class="wb-admin-head">
+            <div><span class="wb-eyebrow">Quản trị tàu</span><h1 th:text="|${waterbus.code} · ${waterbus.name}|">Tàu</h1>
+                <p th:text="${targetStatus == 'MAINTENANCE' ? 'Chọn giờ bảo trì và giờ hoạt động lại.' : (targetStatus == 'INACTIVE' ? 'Chọn giờ bắt đầu ngưng hoạt động.' : 'Xác nhận cho tàu hoạt động trở lại.')}">Chọn thời gian.</p></div>
+            <a class="btn btn-wb-outline" th:href="@{/admin/waterbuses}" href="/admin/waterbuses">Danh sách tàu</a>
+        </header>
+
+        <div class="alert alert-danger" role="alert" th:if="${errorMessage != null}" th:text="${errorMessage}"></div>
+        <form class="wb-admin-form-card wb-admin-filter" method="get"
+              th:action="@{/admin/waterbuses/{id}/status(id=${waterbus.id})}"
+              th:if="${targetStatus != 'ACTIVE'}">
+            <input type="hidden" name="status" th:value="${targetStatus}">
+            <input type="hidden" name="preview" value="true">
+            <div class="col-12 col-md-5">
+                <label class="form-label" for="startsAt" th:text="${targetStatus == 'MAINTENANCE' ? 'Bắt đầu bảo trì' : 'Bắt đầu ngưng hoạt động'}">Bắt đầu</label>
+                <input class="form-control" type="datetime-local" id="startsAt" name="startsAt"
+                       th:value="${startsAt}" th:min="${minStartsAt}" required>
+            </div>
+            <div class="col-12 col-md-5" th:if="${targetStatus == 'MAINTENANCE'}">
+                <label class="form-label" for="endsAt">Hoạt động lại lúc</label>
+                <input class="form-control" type="datetime-local" id="endsAt" name="endsAt"
+                       th:value="${endsAt}" required>
+            </div>
+            <div class="wb-admin-filter-actions">
+                <button class="btn btn-wb-accent w-100" type="submit">Xem chuyến</button>
+            </div>
+        </form>
+
+        <section th:if="${previewReady}">
+            <div class="alert alert-warning" role="alert" th:if="${targetStatus != 'ACTIVE'}">
+                Các chuyến giao với thời gian ngưng tàu sẽ bị hủy ngay sau khi xác nhận.
+                Đơn đã thanh toán được đưa vào mục <a th:href="@{/admin/refunds(status='PENDING')}">Chờ hoàn tiền</a>.
+                Việc chuyển tiền thực tế vẫn cần được xử lý tại đó.
+            </div>
+            <div class="alert alert-info" role="alert" th:if="${targetStatus == 'ACTIVE'}">
+                Tàu sẽ hoạt động lại. Các chuyến đã hủy trước đó không tự khôi phục.
+            </div>
+            <div class="wb-admin-form-card mb-4">
+                <h2 class="wb-admin-form-title" th:text="${targetStatus == 'ACTIVE' ? 'Cho tàu hoạt động lại' : #lists.size(affectedTrips) + ' chuyến sẽ bị hủy'}">Các chuyến bị ảnh hưởng</h2>
+                <p class="text-muted" th:if="${targetStatus != 'ACTIVE' and #lists.isEmpty(affectedTrips)}">Không có chuyến sắp chạy nào trong khoảng thời gian này.</p>
+                <div class="table-responsive" th:unless="${#lists.isEmpty(affectedTrips)}">
+                    <table class="table wb-admin-table">
+                        <thead><tr><th>Chuyến</th><th>Tuyến</th><th>Giờ chạy</th><th>Vé đã xác nhận</th><th>Giữ chỗ</th></tr></thead>
+                        <tbody><tr th:each="item : ${affectedTrips}">
+                            <td th:text="${item.trip.tripCode}">Mã chuyến</td>
+                            <td th:text="${item.trip.routeName}">Tuyến</td>
+                            <td th:text="|${#temporals.format(item.trip.departureTime, 'HH:mm dd/MM')} – ${#temporals.format(item.trip.arrivalTime, 'HH:mm dd/MM')}|">Thời gian</td>
+                            <td th:text="${item.confirmedTicketCount}">0</td>
+                            <td th:text="${item.heldTicketCount}">0</td>
+                        </tr></tbody>
+                    </table>
+                </div>
+                <button class="btn" th:classappend="${targetStatus == 'ACTIVE' ? 'btn-wb-accent' : 'btn-wb-danger'}" type="button" data-bs-toggle="modal" data-bs-target="#waterbusStatusConfirm"
+                        th:text="${targetStatus == 'ACTIVE' ? 'Xác nhận hoạt động lại' : 'Xem xác nhận và hủy chuyến'}">Xem xác nhận</button>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="modal fade" id="waterbusStatusConfirm" tabindex="-1" aria-labelledby="waterbusStatusTitle"
+     aria-hidden="true" th:if="${previewReady}">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title fs-5" id="waterbusStatusTitle">Xác nhận đổi trạng thái tàu</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <p th:text="|Tàu ${waterbus.code}: ${targetStatus == 'MAINTENANCE' ? 'bảo trì' : (targetStatus == 'INACTIVE' ? 'ngưng hoạt động' : 'hoạt động lại')} ${startsAt == '' ? '' : 'từ ' + startsAt}${endsAt == '' ? '' : ' đến ' + endsAt}.|">Xác nhận?</p>
+                <p th:if="${targetStatus != 'ACTIVE'}" th:text="|${#lists.size(affectedTrips)} chuyến sau sẽ bị hủy và vé đã thanh toán chuyển sang chờ hoàn tiền:|">Các chuyến bị hủy:</p>
+                <ul class="list-group" th:if="${targetStatus != 'ACTIVE' and !#lists.isEmpty(affectedTrips)}">
+                    <li class="list-group-item" th:each="item : ${affectedTrips}"
+                        th:text="|${item.trip.tripCode} · ${item.trip.routeName} · ${#temporals.format(item.trip.departureTime, 'HH:mm dd/MM/yyyy')} · ${item.confirmedTicketCount} vé đã xác nhận|">Chuyến</li>
+                </ul>
+                <p th:if="${targetStatus != 'ACTIVE' and #lists.isEmpty(affectedTrips)}">Không có chuyến cần hủy.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-wb-outline" type="button" data-bs-dismiss="modal">Quay lại</button>
+                <form method="post" th:action="@{/admin/waterbuses/{id}/status(id=${waterbus.id})}">
+                    <input type="hidden" name="status" th:value="${targetStatus}">
+                    <input type="hidden" name="startsAt" th:value="${startsAt}" th:if="${startsAt != ''}">
+                    <input type="hidden" name="endsAt" th:value="${endsAt}" th:if="${endsAt != ''}">
+                    <input type="hidden" name="tripIds" th:each="item : ${affectedTrips}" th:value="${item.trip.id}">
+                    <button class="btn" th:classappend="${targetStatus == 'ACTIVE' ? 'btn-wb-accent' : 'btn-wb-danger'}" type="submit">Xác nhận</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<button class="wb-admin-backdrop" type="button" data-admin-sidebar-close aria-label="Đóng menu quản trị" hidden></button>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -381,7 +381,7 @@ class TicketServiceTest {
     }
 
     @Test
-    @DisplayName("Soát vé chuyến ngày khác -> ném ngoại lệ IllegalStateException yêu cầu Override")
+    @DisplayName("Soát vé chuyến ngày khác -> từ chối lên tàu")
     void checkIn_differentDate_throwsException() {
         Trip trip = validTicket.getTrip();
         trip.setDepartureTime(LocalDateTime.now().plusDays(1));
@@ -452,15 +452,19 @@ class TicketServiceTest {
     }
 
     @Test
-    @DisplayName("Soát vé quá sớm nhưng có xác nhận Override -> soát vé thành công")
-    void checkIn_overrideTime_success() {
+    @DisplayName("Override không được bỏ qua kiểm tra vé quá sớm, quá muộn hoặc khác ngày")
+    void checkIn_overrideTime_stillRejectsOutsideWindow() {
         Trip trip = validTicket.getTrip();
-        trip.setDepartureTime(LocalDateTime.now().plusHours(3));
-        tripRepository.save(trip);
+        for (int minutes : new int[]{180, -30, 1440}) {
+            trip.setDepartureTime(LocalDateTime.now().plusMinutes(minutes));
+            tripRepository.save(trip);
 
-        TicketCheckinDTO result = ticketService.checkIn("TK_VALID_01", staff.getId(), "MANUAL", true);
-        assertNotNull(result);
-        assertEquals("USED", result.getStatus());
+            IllegalStateException ex = assertThrows(IllegalStateException.class,
+                    () -> ticketService.checkIn("TK_VALID_01", staff.getId(), "MANUAL", true));
+            assertFalse(ex.getMessage().contains("Override"));
+            assertEquals("VALID", validTicket.getStatus());
+            assertNull(validTicket.getCheckedInAt());
+        }
     }
 
     @Test

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -42,15 +43,17 @@ class WaterbusStatusTest {
     }
 
     @Test
-    void statusWarnsAboutScheduledTripAndTripCanBeCancelled() throws Exception {
+    void statusChangeRequiresCancellingUpcomingTrip() throws Exception {
         int busId = id("waterbus", "code", "WSTATUS_W");
         int tripId = id("trip", "trip_code", "WSTATUS_T");
+        int routeId = id("route", "code", "WSTATUS_R");
         assertEquals(1, waterbusService.countUpcomingScheduledTrips(busId));
+        assertEquals(1, tripService.countUpcomingTripsOfRoute(routeId));
         var mvc = MockMvcBuilders.webAppContextSetup(context).build();
         AccountDTO admin = new AccountDTO(1, "admin@test.vn", "Admin", null, "ADMIN", "ACTIVE");
         String html = mvc.perform(get("/admin/waterbuses").sessionAttr("loginAccount", admin))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertTrue(html.contains("1 chuyến sắp tới"));
+        assertTrue(html.contains("chuyến sắp chạy"));
         assertTrue(html.contains("/admin/trips"));
         assertFalse(html.contains("/admin/waterbuses/" + busId + "/edit"));
         mvc.perform(get("/admin/waterbuses/" + busId + "/edit")
@@ -59,12 +62,41 @@ class WaterbusStatusTest {
 
         mvc.perform(post("/admin/waterbuses/" + busId + "/status")
                         .param("status", "MAINTENANCE").sessionAttr("loginAccount", admin))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage",
+                        "Còn 1 chuyến sắp chạy, hãy huỷ chuyến trước khi đổi trạng thái tàu."));
         entityManager.flush();
-        assertEquals("MAINTENANCE", jdbc.queryForObject("SELECT status FROM waterbus WHERE id = ?", String.class, busId));
+        assertEquals("ACTIVE", jdbc.queryForObject("SELECT status FROM waterbus WHERE id = ?", String.class, busId));
         tripService.cancelTrip(tripId, "Tàu bảo trì");
         entityManager.flush();
         assertEquals("CANCELLED", jdbc.queryForObject("SELECT status FROM trip WHERE id = ?", String.class, tripId));
+        assertEquals(0, tripService.countUpcomingTripsOfRoute(routeId));
+        mvc.perform(post("/admin/waterbuses/" + busId + "/status")
+                        .param("status", "MAINTENANCE").sessionAttr("loginAccount", admin))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("successMessage", "Đã cập nhật trạng thái tàu."));
+        entityManager.flush();
+        assertEquals("MAINTENANCE", jdbc.queryForObject("SELECT status FROM waterbus WHERE id = ?", String.class, busId));
+    }
+
+    @Test
+    void routeCountExcludesPastCancelledAndOtherRoutes() {
+        int routeId = id("route", "code", "WSTATUS_R");
+        int busId = id("waterbus", "code", "WSTATUS_W");
+        LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
+        LocalDateTime tomorrow = LocalDateTime.now().plusDays(1);
+        jdbc.update("INSERT INTO trip (trip_code, route_id, waterbus_id, departure_time, arrival_time, status) "
+                        + "VALUES ('WSTATUS_PAST', ?, ?, ?, ?, 'SCHEDULED')",
+                routeId, busId, yesterday, yesterday.plusMinutes(30));
+        jdbc.update("INSERT INTO trip (trip_code, route_id, waterbus_id, departure_time, arrival_time, status) "
+                        + "VALUES ('WSTATUS_CANCEL', ?, ?, ?, ?, 'CANCELLED')",
+                routeId, busId, tomorrow, tomorrow.plusMinutes(30));
+        jdbc.update("INSERT INTO route (code, name, is_active) VALUES ('WSTATUS_OTHER', 'Tuyến khác', 1)");
+        jdbc.update("INSERT INTO trip (trip_code, route_id, waterbus_id, departure_time, arrival_time, status) "
+                        + "VALUES ('WSTATUS_OTHER_T', ?, ?, ?, ?, 'SCHEDULED')",
+                id("route", "code", "WSTATUS_OTHER"), busId, tomorrow, tomorrow.plusMinutes(30));
+
+        assertEquals(1, tripService.countUpcomingTripsOfRoute(routeId));
     }
 
     @Test

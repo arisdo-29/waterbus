@@ -49,8 +49,14 @@ public class PaymentServiceImpl implements PaymentService {
         }
         // Chuyến phải còn SCHEDULED (admin có thể đã huỷ chuyến trong lúc khách chưa trả tiền).
         // Mọi vé của 1 đơn đều cùng 1 chuyến, nên chỉ cần xem chuyến của vé đầu tiên.
+        // TR5: DEPARTED (tàu đã rời bến đầu) vẫn thanh toán được: đơn chỉ được tạo khi tàu tới bến đi của khách
+        // còn hơn 10 phút, và giữ chỗ cũng chỉ 10 phút -> hết hạn trả tiền trước khi tàu tới bến của khách.
         List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(bookingId);
-        if (tickets.isEmpty() || !"SCHEDULED".equals(tickets.get(0).getTrip().getStatus())) {
+        String tripStatus = null;
+        if (!tickets.isEmpty()) {
+            tripStatus = tickets.get(0).getTrip().getStatus();
+        }
+        if (!"SCHEDULED".equals(tripStatus) && !"DEPARTED".equals(tripStatus)) {
             return "Chuyến tàu đã bị huỷ hoặc không còn nhận thanh toán.";
         }
         // Mã KM chỉ được tính lượt lúc trả tiền, nên trong lúc đơn này chờ, khách khác có thể đã dùng lượt cuối.

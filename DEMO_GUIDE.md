@@ -29,8 +29,8 @@ Mã khuyến mãi mẫu: `WELCOME10` (giảm 10%, tối đa 10.000 đ), `GIAM5K`
 | 2 | Chọn nơi đi, nơi đến, ngày → "Tìm chuyến" | `/trips?...` | `TripController.index` | chỉ đọc `trip`, `route`, `seat`, `ticket` |
 | 3 | Bấm vào một chuyến | `/trips/{id}/seats` | `TripController.seats` | chỉ đọc |
 | 4 | Chọn ghế + loại vé → "Tiếp tục" | `/booking/checkout` (POST) | `BookingController.checkout` | chưa ghi gì |
-| 5 | Nhập họ tên, SĐT, email, mã KM → "Đặt vé" | `/booking` (POST) rồi chuyển `/payment/{mã}` | `BookingController.create` | `booking` (PENDING), `ticket` (HOLD) |
-| 6 | Bấm "Thanh toán" (mô phỏng) | `/payment/{mã}/mock` (POST) rồi `/booking/{mã}` | `PaymentController.payMock` | `payment` (SUCCESS), `booking` (PAID), `ticket` (VALID), `promotion.used_count` |
+| 5 | Nhập liên hệ, thông tin hành khách nếu là vé ưu đãi, mã KM và đồng ý chính sách → "Đặt vé" | `/booking` (POST); tổng > 0 → `/payment/{mã}`, tổng = 0 → `/booking/{mã}` | `BookingController.create` | Tổng > 0: `booking` PENDING, `ticket` HOLD; tổng = 0: PAID, VALID |
+| 6 | Bấm thanh toán VNPay, trả bằng thẻ test trên Sandbox rồi quay về | POST `/payment/{mã}/vnpay` → VNPay → GET `/payment/vnpay-return` → `/booking/{mã}` khi thành công | `PaymentController.payVnPay`, `vnPayReturn` | `payment` SUCCESS, `booking` PAID, `ticket` VALID, tăng `promotion.used_count` |
 | 7 | Xem vé + mã QR | `/booking/{mã}` | `BookingController.detail` | chỉ đọc |
 | 8 | Menu tên người dùng → "Vé của tôi" | `/my-bookings` | `MyBookingController.history` | chỉ đọc |
 
@@ -68,8 +68,12 @@ trong một `@Transactional`. Lỗi thì hiện lại trang checkout, thành cô
 **Khuyến mãi.** `PromotionService.calculateDiscount` kiểm tra mã còn hạn, còn lượt, đủ điều kiện tối thiểu rồi tính giảm
 (PERCENT có trần `max_discount`, FIXED giảm số tiền cố định). Lượt dùng chỉ tăng khi thanh toán thành công.
 
-**Thanh toán mô phỏng.** `PaymentService.payMock` (một transaction) chỉ nhận đơn PENDING còn hạn, rồi tạo `payment`
-SUCCESS, đổi `booking` sang PAID và `ticket` từ HOLD sang VALID. Không có cổng thanh toán thật.
+**Thanh toán VNPay.** `VnPayService` tạo URL sang Sandbox; khi cổng trả khách về, backend kiểm tra chữ ký,
+số tiền và hiệu lực đơn trước khi gọi `PaymentService.confirmPaid`. Thanh toán thành công tạo `payment`
+SUCCESS, đổi `booking` sang PAID và `ticket` từ HOLD sang VALID. Sandbox dùng tiền thử nghiệm.
+
+**Đơn tổng 0 đ.** `BookingService.createBooking` xác nhận PAID và vé VALID ngay, không tạo giao dịch thanh toán.
+Có thể dùng mã `FREE100` để demo luồng này; mã có giới hạn lượt nên phải kiểm tra dữ liệu trước buổi demo.
 
 **Giữ chỗ và hết hạn.** `BookingExpiryJob` chạy mỗi 60 giây, đổi đơn PENDING quá hạn sang EXPIRED và vé HOLD sang CANCELLED
 để ghế được bán lại. Database có unique index `ux_ticket_trip_seat_active` để hai người không thể giữ cùng một ghế.
@@ -96,8 +100,9 @@ Không dùng: Thymeleaf Layout Dialect (fragment đã đủ), SweetAlert2 (alert
 
 ## 6. Thanh toán VNPay Sandbox
 
-Trang `/payment/{mã đơn}` có 2 lựa chọn: **Thanh toán mô phỏng** (demo, không cần cấu hình) và **VNPay**
-(form gửi `POST /payment/{mã đơn}/vnpay`, BE4 chuyển hướng sang cổng VNPay, cổng trả về `GET /payment/vnpay-return`).
+Trang `/payment/{mã đơn}` hiện thanh toán qua **VNPay**: form gửi `POST /payment/{mã đơn}/vnpay`,
+BE4 chuyển hướng sang cổng VNPay, cổng trả về `GET /payment/vnpay-return`.
+Endpoint thanh toán mô phỏng `/payment/{mã đơn}/mock` đã bỏ. Nhãn MOCK trên đơn mẫu cũ chỉ dùng để đọc lịch sử.
 
 1. Đăng ký tài khoản test tại https://sandbox.vnpayment.vn/devreg/ để nhận `TmnCode` và `HashSecret` qua email.
 2. Ghi vào `src/main/resources/application-local.properties` (file bị gitignore, **không commit**).
@@ -128,4 +133,11 @@ Trang `/payment/{mã đơn}` có 2 lựa chọn: **Thanh toán mô phỏng** (de
    Khi demo: chọn QR để mở màn hình mã QR cho giảng viên xem → bấm **Huỷ** trên VNPay (về trang thanh toán, báo đỏ)
    → chọn lại **thẻ ATM** và trả bằng thẻ NCB ở bảng trên.
 
-Buổi demo không có mạng hoặc chưa cấu hình VNPay: dùng **Thanh toán mô phỏng**.
+Buổi demo không có mạng hoặc chưa cấu hình VNPay: có thể trình bày luồng đơn 0 đ bằng `FREE100` nếu còn lượt;
+không coi đây là kiểm chứng thanh toán qua cổng. Muốn demo đơn có tiền phải chuẩn bị VNPay và mạng trước.
+
+## 7. Thay đổi đang chờ tích hợp sau rà soát 12/11/2026
+
+Theo [phân công KH1–KH5 và TR/TI](https://app.notion.com/p/416be562b59581cc8f83c7b2051e048b):
+form SĐT xác minh đơn chờ TR2; đăng nhập/giới hạn vé ưu đãi chờ TR3; bỏ mốc 13 tuổi chờ TR4;
+nhãn vé đã qua chuyến chờ TI1/TR5; thu tiền mặt chờ KH3/TR6. Chỉ đưa các bước này vào kịch bản chính sau khi tích hợp.

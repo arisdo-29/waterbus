@@ -1,5 +1,6 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.controller.BookingAccessHelper;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.service.impl.VnPayServiceImpl;
 import jakarta.persistence.EntityManager;
@@ -124,12 +125,12 @@ class VnPayPaymentTest {
     @Test
     void vnPayButtonPassesBankCodeToPaymentUrl() throws Exception {
         // Giống form trang thanh toán: bankCode nằm trên URL action, kèm field method
-        String qrUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay?bankCode=VNPAYQR").param("method", "VNPAY"))
+        String qrUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay?bankCode=VNPAYQR").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(qrUrl).startsWith("https://sandbox.vnpayment.vn/").contains("&vnp_BankCode=VNPAYQR&");
 
-        String plainUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+        String plainUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(plainUrl).startsWith("https://sandbox.vnpayment.vn/").doesNotContain("vnp_BankCode");
@@ -159,13 +160,13 @@ class VnPayPaymentTest {
         FlashMap paidFlash = mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/booking/" + booking.getBookingCode()))
                 .andReturn().getFlashMap();
-        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()).flashAttrs(paidFlash))
+        String detail = mvc.perform(get("/booking/" + booking.getBookingCode()).flashAttrs(paidFlash).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(detail).contains("Đặt vé thành công!");
 
         // Tải lại / vào xem vé lần sau (hết flash) -> không hiện banner nữa
-        String reload = mvc.perform(get("/booking/" + booking.getBookingCode()))
+        String reload = mvc.perform(get("/booking/" + booking.getBookingCode()).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(reload).doesNotContain("Đặt vé thành công!");
@@ -240,11 +241,34 @@ class VnPayPaymentTest {
     }
 
     @Test
+    void paidButInvalidBookingGetsOnePendingRefund() throws Exception {
+        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1)); // khách trả tiền khi đơn đã hết hạn giữ chỗ
+
+        // VNPay báo trả tiền thành công -> lưu payment SUCCESS + tạo khoản chờ hoàn tiền cho khách
+        mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()));
+        // Khách bấm F5 trang kết quả -> VNPay gửi lại y hệt -> KHÔNG tạo khoản hoàn thứ 2
+        mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
+                .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()));
+        entityManager.flush();
+
+        // Đúng 1 khoản hoàn: PENDING, đủ số tiền khách đã trả (27.000 đ), ghi rõ lý do
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM refund WHERE booking_id = ?", Integer.class, booking.getId()))
+                .isEqualTo(1);
+        assertThat(jdbc.queryForMap("SELECT status, amount, reason FROM refund WHERE booking_id = ?", booking.getId()))
+                .containsEntry("status", "PENDING")
+                .containsEntry("reason", "Thanh toán sau khi đơn hết hạn");
+        assertThat(jdbc.queryForObject("SELECT amount FROM refund WHERE booking_id = ?", java.math.BigDecimal.class,
+                booking.getId())).isEqualByComparingTo("27000");
+        assertThat(count("payment")).isEqualTo(1); // vẫn chỉ 1 payment
+    }
+
+    @Test
     void usedUpPromotionShowsMessageInsteadOfErrorPage() throws Exception {
         useUpPromotion();
 
         // Bấm nút VNPay -> không sang VNPay, quay lại trang thanh toán kèm lời báo
-        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY"))
+        mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage",
                         "Mã khuyến mãi TEST10 đã hết lượt sử dụng. Vui lòng đặt vé lại không dùng mã này."));

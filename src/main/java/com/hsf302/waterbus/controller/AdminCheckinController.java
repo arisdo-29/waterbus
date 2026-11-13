@@ -80,16 +80,7 @@ public class AdminCheckinController {
                     model.addAttribute("previewBooking", bookingCheckin);
                     boolean isDifferentTrip = selectedTrip != null && bookingCheckin.getTripId() != null
                             && !bookingCheckin.getTripId().equals(selectedTrip.id());
-                    boolean isOutsideWindow = false;
-                    if (bookingCheckin.getDepartureTime() != null) {
-                        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-                        java.time.LocalDateTime dep = bookingCheckin.getDepartureTime();
-                        if (!now.toLocalDate().isEqual(dep.toLocalDate())
-                                || now.isBefore(dep.minusMinutes(60))
-                                || now.isAfter(dep.plusMinutes(15))) {
-                            isOutsideWindow = true;
-                        }
-                    }
+                    boolean isOutsideWindow = bookingCheckin.isOutsideWindow();
                     if (isDifferentTrip || isOutsideWindow) {
                         model.addAttribute("isTripMismatch", true);
                         model.addAttribute("mismatchTripCode", bookingCheckin.getTripCode());
@@ -100,16 +91,7 @@ public class AdminCheckinController {
                     model.addAttribute("previewTicket", ticket);
                     boolean isDifferentTrip = selectedTrip != null && ticket.getTripId() != null
                             && !ticket.getTripId().equals(selectedTrip.id());
-                    boolean isOutsideWindow = false;
-                    if (ticket.getDepartureTime() != null) {
-                        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-                        java.time.LocalDateTime dep = ticket.getDepartureTime();
-                        if (!now.toLocalDate().isEqual(dep.toLocalDate())
-                                || now.isBefore(dep.minusMinutes(60))
-                                || now.isAfter(dep.plusMinutes(15))) {
-                            isOutsideWindow = true;
-                        }
-                    }
+                    boolean isOutsideWindow = ticket.isOutsideWindow();
                     if (isDifferentTrip || isOutsideWindow) {
                         model.addAttribute("isTripMismatch", true);
                         model.addAttribute("mismatchTripCode", ticket.getTripCode());

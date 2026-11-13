@@ -71,8 +71,7 @@ public class RouteServiceImpl implements RouteService {
     public RouteForm getRouteForEdit(int routeId) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tuyến cần sửa."));
-        return RouteForm.fromEntity(route,
-                getStopsOfRoute(routeId).stream().map(s -> s.getStation().getId()).toList());
+        return RouteForm.fromEntity(route, getStopsOfRoute(routeId));
     }
 
     @Override
@@ -91,6 +90,8 @@ public class RouteServiceImpl implements RouteService {
         if (new HashSet<>(ids).size() != ids.size()) {
             throw new IllegalArgumentException("Mỗi bến chỉ được xuất hiện một lần trong tuyến.");
         }
+        List<Integer> minutes = form.getMinutesFromStart();
+        validateMinutes(ids, minutes);
         Map<Integer, Station> stations = stationRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(Station::getId, Function.identity()));
         if (stations.size() != ids.size()) {
@@ -105,7 +106,7 @@ public class RouteServiceImpl implements RouteService {
         List<RouteStation> existing = getStopsOfRoute(route.getId());
         Map<Integer, RouteStation> byStation = existing.stream()
                 .collect(Collectors.toMap(s -> s.getStation().getId(), Function.identity()));
-        // Park existing rows above the current range before swapping order, preserving SQL unique/check constraints.
+        // Dời thứ tự tạm để tránh trùng khi đảo bến trong cùng tuyến.
         int temporaryOrder = existing.stream().mapToInt(RouteStation::getStopOrder).max().orElse(0);
         for (RouteStation stop : existing) {
             temporaryOrder = Math.incrementExact(temporaryOrder);
@@ -119,15 +120,34 @@ public class RouteServiceImpl implements RouteService {
             Integer stationId = ids.get(index);
             RouteStation stop = byStation.get(stationId);
             if (stop == null) {
-                stop = new RouteStation(); // minutesFromStart keeps entity/schema default 0; no timetable calculation.
+                stop = new RouteStation();
                 stop.setRoute(route);
                 stop.setStation(stations.get(stationId));
             }
             stop.setStopOrder(index + 1);
+            stop.setMinutesFromStart(minutes.get(index));
             stopRepository.save(stop);
         }
         stopRepository.flush();
         return route.getId();
+    }
+
+    private void validateMinutes(List<Integer> stationIds, List<Integer> minutes) {
+        if (minutes == null || minutes.size() != stationIds.size()) {
+            throw new IllegalArgumentException("Mỗi bến phải có một số phút tương ứng.");
+        }
+        for (int index = 0; index < minutes.size(); index++) {
+            Integer value = minutes.get(index);
+            if (value == null || value < 0) {
+                throw new IllegalArgumentException("Số phút của bến thứ " + (index + 1) + " phải là số không âm.");
+            }
+            if (index == 0 && value != 0) {
+                throw new IllegalArgumentException("Số phút của bến đầu phải bằng 0.");
+            }
+            if (index > 0 && value <= minutes.get(index - 1)) {
+                throw new IllegalArgumentException("Số phút của bến thứ " + (index + 1) + " phải lớn hơn bến trước.");
+            }
+        }
     }
 
     @Override

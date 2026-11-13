@@ -1,3 +1,5 @@
+> Bản rà soát 26/10/2026, không còn cập nhật; nội dung bên dưới được giữ làm lịch sử.
+
 # AUDIT.md - Rà soát source code Saigon Waterbus
 
 Ngày rà soát: 26/10/2026 · Nhánh `develop` · Giai đoạn 1 (chỉ đọc, chưa sửa code).

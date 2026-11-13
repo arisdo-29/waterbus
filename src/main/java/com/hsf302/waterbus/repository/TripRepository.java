@@ -4,6 +4,7 @@ import com.hsf302.waterbus.entity.Trip;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 public interface TripRepository extends JpaRepository<Trip, Integer> {
     long countByWaterbusIdAndStatusAndDepartureTimeAfter(Integer waterbusId, String status,
                                                           LocalDateTime departureTime);
+    long countByRouteIdAndStatusAndDepartureTimeAfter(Integer routeId, String status,
+                                                      LocalDateTime departureTime);
     @Query("SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus ORDER BY t.departureTime DESC, t.id DESC")
     List<Trip> findAllForAdmin();
 
@@ -18,7 +21,7 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
 
     @Query("""
             SELECT COUNT(t) FROM Trip t
-            WHERE t.waterbus.id = :waterbusId AND t.status = 'SCHEDULED'
+            WHERE t.waterbus.id = :waterbusId AND t.status IN ('SCHEDULED', 'DEPARTED')
               AND t.departureTime < :arrivalTime AND t.arrivalTime > :departureTime
             """)
     long countScheduledOverlaps(@Param("waterbusId") int waterbusId,
@@ -32,7 +35,7 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
 
     @Query("""
             SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus
-            WHERE t.status = 'SCHEDULED' AND t.route.isActive = true
+            WHERE t.status IN ('SCHEDULED', 'DEPARTED') AND t.route.isActive = true
               AND t.waterbus.status = 'ACTIVE' AND t.route.id = :routeId
               AND t.departureTime >= :start AND t.departureTime < :end
             ORDER BY t.departureTime, t.id
@@ -40,4 +43,14 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
     List<Trip> searchTripsForRoute(@Param("routeId") int routeId,
                                    @Param("start") LocalDateTime start,
                                    @Param("end") LocalDateTime end);
+
+    @Modifying
+    @Query("UPDATE Trip t SET t.status = 'COMPLETED' "
+            + "WHERE t.status IN ('SCHEDULED', 'DEPARTED') AND t.arrivalTime <= :now")
+    int completeArrivedTrips(@Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query("UPDATE Trip t SET t.status = 'DEPARTED' "
+            + "WHERE t.status = 'SCHEDULED' AND t.departureTime <= :now AND t.arrivalTime > :now")
+    int departStartedTrips(@Param("now") LocalDateTime now);
 }

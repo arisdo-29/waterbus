@@ -31,6 +31,8 @@ Ví dụ hoàn chỉnh để copy cách làm: **Station** (`StationController` �
 
 ## Milestone
 
+M1–M4 bên dưới là lịch sử triển khai; các sửa lỗi mới theo [phân công 12/11/2026](https://app.notion.com/p/416be562b59581cc8f83c7b2051e048b).
+
 Mỗi dòng checkbox = 1 Issue trên GitHub, gắn đúng Milestone và người làm.
 Làm xong milestone trước rồi mới sang milestone sau. Chỉ **M1** có hạn.
 
@@ -184,19 +186,17 @@ bảng `ticket_scan_log`, bảng `refund`, trip.cancel_reason). Hợp đồng ch
 - [x] Checkout vé ưu đãi: họ tên + năm sinh từng ghế, kiểm tra tuổi bằng JS, ô `acceptPolicy` + modal chính sách, đơn 0 đ
 - [x] Trang vé: tên hành khách, nhãn giấy tờ gốc, QR mã đơn, banner chờ hoàn / đã hoàn tiền, phương thức thanh toán
 - [x] Lịch sử: nhãn "Chờ hoàn tiền" / "Đã hoàn tiền"
-- [x] Trang thanh toán chọn Mô phỏng / VNPay; DEMO_GUIDE mục VNPay Sandbox
+- [x] Trang thanh toán VNPay; đã bỏ nút/endpoint mô phỏng, giữ nhãn MOCK để đọc đơn cũ; DEMO_GUIDE mục VNPay Sandbox
 - [x] JS + CSS + thư viện html5-qrcode cho màn soát vé (`initCheckin`, fragment `scriptsCheckin`)
 
-**Trâm (BE4) - còn chờ để khớp giao diện**
-- [ ] `BookingForm` thêm `passengerNames`, `birthYears` (List, cùng thứ tự `seatIds`), `acceptPolicy` (bắt buộc true);
+**Trâm (BE4) - phần M5 đã triển khai trong code**
+- [x] `BookingForm` thêm `passengerNames`, `birthYears` (List, cùng thứ tự `seatIds`), `acceptPolicy` (bắt buộc true);
       kiểm tra năm sinh 1900..năm nay, `SENIOR_70` ≥ 70 tuổi, `PRIORITY` ≥ 13 tuổi (tính theo năm của chuyến);
       lỗi gắn field `passengerNames[i]` / `birthYears[i]` / `acceptPolicy`; lưu vào `ticket.passenger_name`, `birth_year`
-- [ ] Đơn tổng 0 đ: xác nhận ngay (`PAID`, vé `VALID`) và redirect `/booking/{bookingCode}`, không qua `/payment`
-- [ ] `TicketDTO` thêm `passengerName`, `birthYear`, `requiresVerification`; `BookingDTO` thêm `refundStatus`
-- [ ] `GET /booking/{bookingCode}` thêm model `refund`, `tripCancelReason`, `payment` (`method`, `transactionRef`)
-- [ ] `POST /payment/{bookingCode}/vnpay`, `GET /payment/vnpay-return`; chốt tên khoá `vnpay.*` trong DEMO_GUIDE
-- [ ] Huỷ chuyến → đơn đã trả tiền tạo `refund` PENDING; backend `/admin/revenue`, `/admin/refunds` (hoàn thủ công → `REFUNDED`)
-- [ ] Repository/Service cho entity `Refund`
+- [x] Đơn tổng 0 đ: xác nhận ngay (`PAID`, vé `VALID`) và redirect `/booking/{bookingCode}`, không qua `/payment`
+- [x] `TicketDTO` thêm `passengerName`, `birthYear`, `requiresVerification`; `BookingDTO` thêm `refundStatus`
+- [x] `GET /booking/{bookingCode}` thêm model `refund`, `tripCancelReason`, `payment` (`method`, `transactionRef`)
+- [x] `POST /payment/{bookingCode}/vnpay`, `GET /payment/vnpay-return`; tên khoá `vnpay.*` trong DEMO_GUIDE
 
 **Tân (BE3) - còn chờ để khớp giao diện**
 - [x] `admin/checkin/index.html` gắn data-attribute theo PAGES.md "Soát vé – hợp đồng JS" và dùng fragment `scriptsCheckin`
@@ -205,10 +205,15 @@ bảng `ticket_scan_log`, bảng `refund`, trip.cancel_reason). Hợp đồng ch
 - [x] Trang `/admin/accounts` (BE + FE) và chặn chỉ ADMIN cho `/admin/revenue`, `/admin/refunds`, `/admin/accounts`
 - [x] Thêm `data-confirm` cho form soát vé, lưu khuyến mãi/loại vé (`danger` cho nút ẩn/xoá)
 
-**Trí (BE2) - còn chờ để khớp giao diện**
-- [ ] Huỷ chuyến nhập và lưu `Trip.cancelReason`
-- [ ] Giao diện `admin/revenue`, `admin/refund` (FE theo hợp đồng Trâm chốt trong PAGES.md)
-- [ ] Thêm `data-confirm` cho form lưu chuyến/tàu/bến/tuyến, đổi trạng thái tàu; `danger` cho nút huỷ/ngừng hoạt động
+**Trí (BE2) - phần M5 đã triển khai trong code**
+- [x] Huỷ chuyến nhập và lưu `Trip.cancelReason`
+- [x] Huỷ chuyến → đơn đã trả tiền tạo `refund` PENDING; backend `/admin/revenue`, `/admin/refunds` (hoàn thủ công → `REFUNDED`)
+- [x] Repository/Service cho entity `Refund`
+- [x] Giao diện `admin/revenue`, `admin/refund` (hợp đồng BE/FE trong PAGES.md)
+- [x] Thêm `data-confirm` cho form lưu chuyến/tàu/bến/tuyến, đổi trạng thái tàu; `danger` cho nút huỷ/ngừng hoạt động
+
+Các dấu tích M5 xác nhận đã có triển khai, không khẳng định mọi lỗi nghiệp vụ đã được xử lý.
+Lỗi soát vé, hoàn tiền khi thanh toán muộn và bảo vệ đơn tiếp tục theo TA/TR/TI trong phân công 12/11.
 
 ---
 

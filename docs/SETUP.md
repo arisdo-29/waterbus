@@ -44,8 +44,13 @@ Mã khuyến mãi mẫu: `WELCOME10` (giảm 10%, tối đa 10.000đ), `GIAM5K` 
 thẳng sang **PAID** (vé VALID), **không** chuyển sang trang VNPay. Mỗi lần demo tốn 1 lượt; hết 5 lượt thì
 reset `used_count` (`UPDATE promotion SET used_count = 0 WHERE code = 'FREE100'`) hoặc chạy lại script.
 
-> Khi `database/changes/` có file mới (bạn khác đổi bảng), chạy thêm file đó, hoặc chạy lại script chính
-> nếu Leader đã gộp vào.
+Sau script chính, hiện cần chạy theo thứ tự:
+1. `database/changes/2026-10-22_db_cap-nhat-ben-tuyen-lich-chay-thuc-te.sql` (8 bến, 6 tuyến, lịch chạy mới).
+2. `database/changes/2026-11-08_db_hanh-khach-soat-ve-hoan-tien.sql` (hành khách, soát vé, hoàn tiền).
+3. `database/changes/2026-11-12_leader_super-admin.sql` (chạy lại được; bổ sung DB cũ).
+
+DB đã có bảng `refund`, `ticket_scan_log` thì xem hướng dẫn xoá hai bảng phụ trước khi dựng lại trong DEMO_GUIDE.
+KH3 sẽ gộp script khởi tạo; trước khi KH3 được tích hợp vẫn phải chạy các bước trên.
 
 ## 4. Mở project bằng IntelliJ
 
@@ -73,8 +78,8 @@ Dùng instance tên (SQLEXPRESS) hoặc port khác → xem các dòng mẫu tron
 
 - Mở `src/main/java/com/hsf302/waterbus/WaterbusApplication.java` → bấm ▶ cạnh `main`.
 - Vào http://localhost:8080 → thấy trang chủ.
-- Vào http://localhost:8080/stations → thấy **5 bến** từ database = kết nối DB thành công.
-- Các trang khác (Tìm chuyến, Đặt vé...) đang là trang mẫu, chờ từng module làm.
+- Vào http://localhost:8080/stations → thấy **8 bến** sau khi chạy đủ script = kết nối DB thành công.
+- Các trang tìm chuyến, đặt vé, thanh toán, xem vé đã nối backend; VNPay cần cấu hình riêng theo DEMO_GUIDE.
 
 Chạy test (không cần SQL Server, dùng H2 trong RAM):
 ```bash

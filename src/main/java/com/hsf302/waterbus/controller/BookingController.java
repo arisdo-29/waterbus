@@ -40,15 +40,18 @@ public class BookingController {
     private final RefundService refundService;
     // Cùng module BE4: lấy thông tin thanh toán cho trang xem vé
     private final PaymentService paymentService;
+    // Cùng module BE4: kiểm tra ai được xem/huỷ đơn (TR2), dùng chung với PaymentController
+    private final BookingAccessHelper bookingAccess;
 
     public BookingController(BookingService bookingService, StationService stationService,
                              TicketTypeService ticketTypeService, PaymentService paymentService,
-                             RefundService refundService) {
+                             RefundService refundService, BookingAccessHelper bookingAccess) {
         this.bookingService = bookingService;
         this.stationService = stationService;
         this.ticketTypeService = ticketTypeService;
         this.paymentService = paymentService;
         this.refundService = refundService;
+        this.bookingAccess = bookingAccess;
     }
 
     // GET /booking: không có trang riêng, chuyển sang lịch sử đặt vé của tài khoản
@@ -125,6 +128,10 @@ public class BookingController {
             try {
                 // Đưa nguyên form cho service (không tách 12 tham số rời), nhận lại DTO của đơn vừa tạo
                 BookingDTO booking = bookingService.createBooking(form, accountId);
+                // Khách vãng lai: cho chính trình duyệt vừa đặt xem đơn ngay, không phải nhập SĐT (TR2)
+                if (accountId == null) {
+                    bookingAccess.allowInThisBrowser(session, booking.getBookingCode());
+                }
                 // Đơn 0 đ đã PAID ngay (không cần trả tiền) -> sang thẳng trang xem vé
                 if ("PAID".equals(booking.getStatus())) {
                     flash.addFlashAttribute("successMessage", "Đặt vé thành công! Vé của bạn đã sẵn sàng.");
@@ -146,12 +153,18 @@ public class BookingController {
 
     // GET /booking/BK0000001 -> trang xem vé của đơn BK0000001
     @GetMapping("/{bookingCode}")
-    public String detail(@PathVariable String bookingCode, Model model, RedirectAttributes flash) {
+    public String detail(@PathVariable String bookingCode, HttpSession session, Model model,
+                         RedirectAttributes flash) {
         BookingDTO booking = bookingService.getBookingDetail(bookingCode);
         if (booking == null) {
             // Sai mã đơn -> về trang chủ và báo lỗi (fragment alerts hiển thị errorMessage)
             flash.addFlashAttribute("errorMessage", "Không tìm thấy đơn đặt vé có mã " + bookingCode + ".");
             return "redirect:/";
+        }
+        // TR2: chỉ chủ đơn / nhân viên / trình duyệt đã được phép mới xem được (biết mã đơn là chưa đủ)
+        String blocked = bookingAccess.redirectIfCannotView(bookingCode, "/booking/" + bookingCode, session, flash);
+        if (blocked != null) {
+            return blocked;
         }
         // Tên attribute đúng theo docs/PAGES.md: booking, trip, tickets
         model.addAttribute("booking", booking);
@@ -169,6 +182,11 @@ public class BookingController {
     // POST /booking/BK12345678/cancel -> nút "Huỷ đơn" (chỉ hiện khi đơn đang PENDING, xem docs/PAGES.md)
     @PostMapping("/{bookingCode}/cancel")
     public String cancel(@PathVariable String bookingCode, HttpSession session, RedirectAttributes flash) {
+        // TR2: phải xem được đơn thì mới được huỷ (khách vãng lai không còn "ai có mã cũng huỷ được")
+        String blocked = bookingAccess.redirectIfCannotView(bookingCode, "/booking/" + bookingCode, session, flash);
+        if (blocked != null) {
+            return blocked;
+        }
         // Lấy tài khoản đang đăng nhập giống create(): chưa đăng nhập -> null
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         Integer accountId = (loginAccount == null) ? null : loginAccount.getId();
@@ -181,6 +199,30 @@ public class BookingController {
         }
         // Quay về trang xem đơn. Spring tự điền {bookingCode} bằng giá trị trên URL hiện tại
         return "redirect:/booking/{bookingCode}";
+    }
+
+    // GET /booking/BK12345678/verify -> trang nhập SĐT để xem đơn KHÁCH VÃNG LAI trên trình duyệt khác (TR2)
+    // TODO chờ KH5 (Khuyên): view templates/booking/verify.html chưa có -> trong lúc chờ, vào trang này sẽ lỗi 500.
+    // Hợp đồng cho view: model "bookingCode"; form POST /booking/{bookingCode}/verify, field "contactPhone";
+    // lỗi (nhập sai SĐT) hiện qua flash "errorMessage" của fragment alerts.
+    @GetMapping("/{bookingCode}/verify")
+    public String verifyForm(@PathVariable String bookingCode, Model model) {
+        model.addAttribute("bookingCode", bookingCode);
+        return "booking/verify";
+    }
+
+    // POST /booking/BK12345678/verify -> khách nhập SĐT; đúng SĐT liên hệ của đơn thì cho trình duyệt này xem đơn
+    @PostMapping("/{bookingCode}/verify")
+    public String verify(@PathVariable String bookingCode, @RequestParam(required = false) String contactPhone,
+                         HttpSession session, RedirectAttributes flash) {
+        // So SĐT là nghiệp vụ -> service lo; controller chỉ chọn trang chuyển tới
+        if (!bookingService.verifyContactPhone(bookingCode, contactPhone)) {
+            // Báo chung 1 câu, không nói đơn có tồn tại hay không (tránh dò mã đơn)
+            flash.addFlashAttribute("errorMessage", "Số điện thoại không khớp với đơn đặt vé này.");
+            return "redirect:/booking/" + bookingCode + "/verify";
+        }
+        bookingAccess.allowInThisBrowser(session, bookingCode);
+        return "redirect:/booking/" + bookingCode;
     }
 
     // Chuyến còn mở bán và loại vé có tồn tại thì mới vẽ được trang checkout

@@ -1,7 +1,10 @@
 package com.hsf302.waterbus.service;
 
+import com.hsf302.waterbus.dto.BookingForm;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Errors;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BookingFormValidationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private WebApplicationContext context;
+    @Autowired private BookingService bookingService;
 
     private MockMvc mvc;
     private int tripId;
@@ -166,6 +172,39 @@ class BookingFormValidationTest {
                 .param("fromStationId", String.valueOf(s1)).param("toStationId", String.valueOf(s2))
                 .param("contactName", name).param("contactPhone", phone)
                 .param("contactEmail", email).param("promoCode", promo);
+    }
+
+    @Test
+    void priorityTicketHasNoMinimumAgeButSeniorTicketStillNeeds70() {
+        jdbc.update("INSERT INTO ticket_type (code, name, price, requires_verification, is_active) "
+                + "VALUES ('PRIORITY', 'Nguoi khuyet tat', 0, 1, 1)");
+        jdbc.update("INSERT INTO ticket_type (code, name, price, requires_verification, is_active) "
+                + "VALUES ('SENIOR_70', 'Nguoi cao tuoi', 0, 1, 1)");
+        // Chuyến trong setUp chạy ngày mai -> tuổi tính theo năm của ngày mai
+        int childBirthYear = LocalDate.now().plusDays(1).getYear() - 8; // trẻ 8 tuổi
+
+        // Vé ưu tiên (khuyết tật, thương binh) cho trẻ 8 tuổi -> hợp lệ (trước đây bị chặn vì dưới 13 tuổi)
+        Errors priority = passengerErrors(id("ticket_type", "code", "PRIORITY"), childBirthYear);
+        assertThat(priority.hasFieldErrors("birthYears[0]")).isFalse();
+
+        // Vé người cao tuổi vẫn giữ luật từ 70 tuổi trở lên
+        Errors senior = passengerErrors(id("ticket_type", "code", "SENIOR_70"), childBirthYear);
+        assertThat(senior.getFieldError("birthYears[0]").getDefaultMessage()).contains("từ 70 tuổi");
+    }
+
+    // Gọi validatePassengers với 1 ghế, 1 hành khách có năm sinh cho trước; trả về các lỗi tìm được
+    private Errors passengerErrors(int ticketTypeId, int birthYear) {
+        BookingForm form = new BookingForm();
+        form.setTripId(tripId);
+        form.setTicketTypeId(ticketTypeId);
+        form.setFromStationId(s1);
+        form.setToStationId(s2);
+        form.setSeatIds(List.of(seatId));
+        form.setPassengerNames(List.of("Be An"));
+        form.setBirthYears(List.of(birthYear));
+        Errors errors = new BeanPropertyBindingResult(form, "bookingForm");
+        bookingService.validatePassengers(form, errors);
+        return errors;
     }
 
     private int id(String table, String codeColumn, String code) {

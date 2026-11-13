@@ -46,10 +46,23 @@ class TicketServiceTest {
     @Autowired
     private TicketTypeRepository ticketTypeRepository;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private TicketScanLogRepository ticketScanLogRepository;
+
+    @Autowired
+    private RouteStationRepository routeStationRepository;
+
     private Ticket validTicket;
     private Ticket usedTicket;
     private Ticket holdTicket;
     private Ticket cancelledTicket;
+    private Account staff;
+    private Route route;
+    private Station st1;
+    private Station st2;
 
     @BeforeEach
     void setUp() {
@@ -71,6 +84,33 @@ class TicketServiceTest {
         route.setName("Tuyến Test 1");
         route.setIsActive(true);
         route = routeRepository.save(route);
+
+        this.st1 = st1;
+        this.st2 = st2;
+        this.route = route;
+
+        RouteStation rs1 = new RouteStation();
+        rs1.setRoute(route);
+        rs1.setStation(st1);
+        rs1.setStopOrder(1);
+        rs1.setMinutesFromStart(0);
+        routeStationRepository.save(rs1);
+
+        RouteStation rs2 = new RouteStation();
+        rs2.setRoute(route);
+        rs2.setStation(st2);
+        rs2.setStopOrder(2);
+        rs2.setMinutesFromStart(45);
+        routeStationRepository.save(rs2);
+
+        staff = new Account();
+        staff.setFullName("Nhân Viên Soát Vé");
+        staff.setEmail("staff" + System.currentTimeMillis() + "@test.com");
+        staff.setPhone("0987654321");
+        staff.setPasswordHash("hashed_pwd");
+        staff.setRole("STAFF");
+        staff.setStatus("ACTIVE");
+        staff = accountRepository.save(staff);
 
         Waterbus waterbus = new Waterbus();
         waterbus.setCode("WB_TEST_1");
@@ -312,11 +352,32 @@ class TicketServiceTest {
     @Test
     @DisplayName("Từ chối vé ưu đãi (rejectPriorityTicket) -> chuyển sang CANCELLED và nhả ghế")
     void rejectPriorityTicket_success() {
-        TicketCheckinDTO rejected = ticketService.rejectPriorityTicket("TK_VALID_01", "Không mang CCCD", 1);
+        // Cập nhật vé thành loại ưu đãi cần xác minh
+        TicketType priorityType = new TicketType();
+        priorityType.setCode("TT_PRIORITY_TEST");
+        priorityType.setName("Vé Ưu Đãi Test");
+        priorityType.setPrice(BigDecimal.valueOf(10000));
+        priorityType.setRequiresVerification(true);
+        priorityType.setIsActive(true);
+        priorityType = ticketTypeRepository.save(priorityType);
+
+        validTicket.setTicketType(priorityType);
+        ticketRepository.save(validTicket);
+
+        TicketCheckinDTO rejected = ticketService.rejectPriorityTicket("TK_VALID_01", "Không mang CCCD", staff.getId());
 
         assertEquals("CANCELLED", rejected.getStatus());
         Ticket inDb = ticketRepository.findByTicketCode("TK_VALID_01").orElseThrow();
         assertEquals("CANCELLED", inDb.getStatus());
+    }
+
+    @Test
+    @DisplayName("Từ chối vé không phải loại ưu đãi -> ném IllegalArgumentException")
+    void rejectPriorityTicket_nonPriority_throwsException() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            ticketService.rejectPriorityTicket("TK_VALID_01", "Không hợp lệ", staff.getId());
+        });
+        assertTrue(ex.getMessage().contains("Chỉ có thể từ chối vé ưu đãi cần xác minh giấy tờ"));
     }
 
     @Test
@@ -343,7 +404,7 @@ class TicketServiceTest {
     }
 
     @Test
-    @DisplayName("Soát vé quá sớm (> 60 phút trước khởi hành) -> ném ngoại lệ IllegalStateException")
+    @DisplayName("Soát vé quá sớm (> 60 phút trước giờ lên tàu) -> ném ngoại lệ IllegalStateException")
     void checkIn_tooEarly_throwsException() {
         Trip trip = validTicket.getTrip();
         trip.setDepartureTime(LocalDateTime.now().plusHours(3));
@@ -352,7 +413,7 @@ class TicketServiceTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
             ticketService.checkIn("TK_VALID_01");
         });
-        assertTrue(ex.getMessage().contains("Chỉ được soát vé trước giờ khởi hành tối đa 60 phút"));
+        assertTrue(ex.getMessage().contains("Chỉ được soát vé trước giờ lên tàu tối đa 60 phút"));
     }
 
     @Test
@@ -362,8 +423,53 @@ class TicketServiceTest {
         trip.setDepartureTime(LocalDateTime.now().plusHours(3));
         tripRepository.save(trip);
 
-        TicketCheckinDTO result = ticketService.checkIn("TK_VALID_01", 1, "MANUAL", true);
+        TicketCheckinDTO result = ticketService.checkIn("TK_VALID_01", staff.getId(), "MANUAL", true);
         assertNotNull(result);
         assertEquals("USED", result.getStatus());
+    }
+
+    @Test
+    @DisplayName("TA1: Khách lên bến dọc đường (st2, minutesFromStart=45) soát vé thành công theo giờ lên tàu thực tế")
+    void checkIn_midStation_withinStationWindow_success() {
+        // Tàu đã rời bến đầu 20 phút trước (quá +15 phút so với departureTime ở bến đầu)
+        Trip trip = validTicket.getTrip();
+        trip.setDepartureTime(LocalDateTime.now().minusMinutes(20));
+        tripRepository.save(trip);
+
+        // Khách lên ở st2 (minutesFromStart = 45 -> giờ lên tàu thực tế là now + 25 phút)
+        validTicket.setFromStation(st2);
+        ticketRepository.save(validTicket);
+
+        // Tính toán giờ lên tàu và kiểm tra khung giờ
+        java.time.LocalDateTime boardingTime = ticketService.calculateBoardingTime(validTicket.getTicketCode());
+        assertNotNull(boardingTime);
+        assertFalse(ticketService.isOutsideCheckinWindow(validTicket.getTicketCode()));
+
+        // Soát vé không cần override thành công
+        TicketCheckinDTO result = ticketService.checkIn(validTicket.getTicketCode(), staff.getId(), "MANUAL", false);
+        assertNotNull(result);
+        assertEquals("USED", result.getStatus());
+    }
+
+    @Test
+    @DisplayName("TA3: Khi soát vé thất bại (vé HOLD), nhật ký FAILED vẫn được lưu vào ticket_scan_log")
+    void checkIn_failedScan_persistsLogEntry() {
+        long initialCount = ticketScanLogRepository.count();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            ticketService.checkIn("TK_HOLD_01", staff.getId(), "MANUAL", false);
+        });
+        assertTrue(ex.getMessage().contains("chưa được thanh toán"));
+
+        // Kiểm tra log FAILED vẫn được lưu
+        var logs = ticketScanLogRepository.findAll();
+        assertTrue(logs.size() > initialCount);
+        boolean foundFailedLog = logs.stream().anyMatch(l ->
+                "TK_HOLD_01".equals(l.getTicketCode())
+                        && "CHECKIN".equals(l.getAction())
+                        && "FAILED".equals(l.getResult())
+                        && l.getStaff() != null && staff.getId().equals(l.getStaff().getId())
+        );
+        assertTrue(foundFailedLog, "Dòng log FAILED phải được lưu trong ticket_scan_log");
     }
 }

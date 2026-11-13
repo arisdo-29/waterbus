@@ -9,7 +9,7 @@ import com.hsf302.waterbus.entity.Payment;
 public interface PaymentService {
     /**
      * Đơn có thanh toán được không? Được -> null. Không được -> câu lỗi để hiện cho khách
-     * (không tìm thấy đơn / đơn không còn PENDING / hết hạn giữ chỗ / chuyến không còn SCHEDULED / mã KM hết lượt).
+     * (không tìm thấy đơn / đơn không còn PENDING / hết hạn giữ chỗ / chuyến không còn SCHEDULED hoặc DEPARTED / mã KM hết lượt).
      */
     String getCannotPayReason(int bookingId);
 

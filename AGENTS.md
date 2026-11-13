@@ -38,7 +38,7 @@ Cơ chế kiểm tra: hook `.githooks/commit-msg` (local) và job `no-agent-name
 ## 1. Dự án
 
 - **Saigon Waterbus** - web đặt vé buýt đường sông, môn HSF302. Phạm vi: luồng chính đặt vé,
-  thanh toán (MOCK), khuyến mãi. Không làm AI, GPS.
+  thanh toán VNPay Sandbox, khuyến mãi. Không làm AI, GPS.
 - Stack: **Java 21, Spring Boot 4.1.1, Spring MVC + Thymeleaf, Spring Data JPA, SQL Server**, Maven Wrapper.
 - IDE chính: IntelliJ IDEA. Không dùng Lombok (giữ giống project mẫu của giảng viên).
 

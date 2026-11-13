@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Xác minh đơn đặt vé')}"></head>
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <main class="wb-main wb-page-main">
+        <section class="container wb-page-heading">
+            <span class="wb-eyebrow">Đơn đặt vé</span>
+            <h1>Xác minh số điện thoại</h1>
+            <p>Nhập số điện thoại đã dùng khi đặt vé để tiếp tục.</p>
+        </section>
+        <section class="container wb-section-top">
+            <div class="wb-card p-4">
+                <!--/* TR2 chỉ truyền mã đơn và lỗi; không đưa liên hệ, vé hoặc QR vào trang chưa xác minh. */-->
+                <form method="post" th:action="@{/booking/{code}/verify(code=${bookingCode})}">
+                    <p>Mã đơn: <strong th:text="${bookingCode}"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label" for="contactPhone">Số điện thoại đặt vé</label>
+                        <input class="form-control" id="contactPhone" name="contactPhone" type="tel"
+                               inputmode="numeric" autocomplete="tel" pattern="\s*0[0-9]{9}\s*" required
+                               th:value="${param.contactPhone}" th:classappend="${verificationError != null} ? 'is-invalid'"
+                               aria-describedby="verificationError">
+                        <div id="verificationError" class="invalid-feedback" th:text="${verificationError}"></div>
+                    </div>
+                    <button class="btn btn-wb-accent" type="submit">Xác minh</button>
+                    <a class="btn btn-wb-outline" th:href="@{/}">Về trang chủ</a>
+                </form>
+            </div>
+        </section>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

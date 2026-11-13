@@ -88,6 +88,28 @@ lịch sử đặt vé) đã được triển khai và nối với service/datab
 
 ## Trang quản trị (M3)
 
+### Hợp đồng KH5 đã xác nhận với Trâm ngày 13/11/2026, chờ tích hợp backend
+
+- TR2 trả view `booking/verify` khi trình duyệt chưa được phép truy cập đơn vãng lai. Model chỉ có `bookingCode`
+  và `verificationError` (null hoặc thông báo chung), không truyền liên hệ/hành khách/vé/QR. Form gửi
+  `POST /booking/{bookingCode}/verify`, field `contactPhone`; sai thì render lại view và giữ request parameter.
+  Backend bỏ khoảng trắng đầu/cuối của cả SĐT nhập và SĐT lưu trước khi so sánh; input cho phép khoảng trắng đầu/cuối.
+  Đúng thì backend ghi nhận quyền theo từng mã đơn trong session và redirect về `GET /booking/{bookingCode}`;
+  không trả view trực tiếp sau POST để F5 không gửi lại form.
+  Đơn gắn tài khoản chưa đăng nhập chuyển sang **`/auth/login`** rồi quay lại trang cũ, không hiện trang verify.
+  Đây là URL thực tế của `AuthController` (`@RequestMapping("/auth")` + `/login`), không phải `/login`.
+  Dùng cơ chế `redirectAfterLogin`/tham số `redirect` đã có; không thêm endpoint đăng nhập khác.
+  Backend kiểm tra lại quyền trên GET chi tiết/thanh toán và các POST huỷ, VNPay, tiền mặt; template không thay thế kiểm tra quyền.
+- TR4 bỏ mốc 13 tuổi của `PRIORITY`. FE chỉ giữ giới hạn năm sinh 1900..năm hiện tại và tuổi `SENIOR_70` >= 70
+  theo năm chuyến. TR3 vẫn phải bắt đăng nhập/giới hạn 2 vé ưu đãi ở server.
+- TR6: `POST /payment/{bookingCode}/cash`, chỉ STAFF; backend gọi luồng xác nhận thanh toán chung với method `CASH`,
+  kiểm tra quyền và hiệu lực đơn, redirect sang trang vé khi thành công. Trang vé hiển thị `CASH` là “Tiền mặt”.
+  Chờ constraint KH3 trước khi ghi CASH trên SQL Server. Countdown khoá tất cả nút/form khi hết hạn hoặc sai thời hạn.
+- TR5 đã thống nhất trả `tickets[].status = 'PAST_TRIP'` cho vé VALID của chuyến COMPLETED để dùng nhãn “Đã qua chuyến”.
+  Đây chỉ là trạng thái DTO hiển thị, không ghi vào `ticket.status` và không thay nhãn COMPLETED của chuyến.
+- KH5 giữ Draft đến khi có PR backend TR2/TR4/TR6 và kiểm tra tích hợp. TR5 chờ Trí merge TI1.
+  Trâm sẽ cung cấp số PR khi tạo xong; xác nhận hợp đồng không đồng nghĩa backend đã triển khai.
+
 Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm) và `form.html` (thêm/sửa)
 đầu tiên trong M3; mỗi chủ trang copy mẫu sang thư mục của mình rồi sửa.
 

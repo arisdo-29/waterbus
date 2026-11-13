@@ -19,6 +19,12 @@ public interface PaymentService {
      */
     Payment confirmPaid(int bookingId, String method, String transactionRef);
 
+    /**
+     * TR6: nhân viên tại bến xác nhận đã thu tiền mặt của đơn. loginRole lấy từ tài khoản đang đăng nhập
+     * (controller tự đọc session rồi truyền vào). Không phải STAFF / đơn không thanh toán được -> IllegalArgumentException.
+     */
+    void confirmCashPayment(int bookingId, String loginRole);
+
     /** Thông tin thanh toán của 1 đơn cho trang xem vé (phương thức, mã giao dịch). Đơn chưa có payment -> null. */
     PaymentInfoDTO getPaymentOfBooking(int bookingId);
 }

@@ -127,6 +127,19 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
+    public void confirmCashPayment(int bookingId, String loginRole) {
+        // Kiểm tra quyền ở service: chỉ nhân viên tại bến mới thu tiền mặt
+        // (khách không được tự bấm "đã trả tiền mặt" để lấy vé)
+        if (!"STAFF".equalsIgnoreCase(loginRole)) {
+            throw new IllegalArgumentException("Chỉ nhân viên tại bến mới được xác nhận thu tiền mặt.");
+        }
+        // Dùng chung luồng xác nhận với VNPay: đơn phải PENDING, còn hạn, chuyến còn bán, mã KM còn lượt.
+        // Tiền mặt không có mã giao dịch của cổng thanh toán -> transactionRef = null
+        confirmPaid(bookingId, "CASH", null);
+    }
+
+    @Override
     public PaymentInfoDTO getPaymentOfBooking(int bookingId) {
         // Có payment -> đổi sang DTO nhỏ (chỉ method + transactionRef). Không có -> null (đơn chưa trả / đơn 0 đ)
         return paymentRepository.findByBookingId(bookingId)

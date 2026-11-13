@@ -1,8 +1,10 @@
 package com.hsf302.waterbus.controller;
 
+import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.BookingDTO;
 import com.hsf302.waterbus.dto.VnPayResult;
 import com.hsf302.waterbus.service.BookingService;
+import com.hsf302.waterbus.service.PaymentService;
 import com.hsf302.waterbus.service.VnPayService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -25,12 +27,14 @@ public class PaymentController {
     private final BookingService bookingService; // cùng module BE4: đọc thông tin đơn
     private final VnPayService vnPayService;     // cổng VNPay Sandbox (cách thanh toán duy nhất)
     private final BookingAccessHelper bookingAccess; // TR2: ai được xem/thanh toán đơn (dùng chung với BookingController)
+    private final PaymentService paymentService;     // TR6: nhân viên xác nhận thu tiền mặt
 
     public PaymentController(BookingService bookingService, VnPayService vnPayService,
-                             BookingAccessHelper bookingAccess) {
+                             BookingAccessHelper bookingAccess, PaymentService paymentService) {
         this.bookingService = bookingService;
         this.vnPayService = vnPayService;
         this.bookingAccess = bookingAccess;
+        this.paymentService = paymentService;
     }
 
     // GET /payment/BK12345678 -> trang thanh toán của đơn (làm giống detail() trong BookingController)
@@ -84,6 +88,32 @@ public class PaymentController {
             // Đơn đã trả tiền / hết hạn / chuyến bị huỷ / mã KM hết lượt -> quay lại trang thanh toán, báo đỏ
             flash.addFlashAttribute("errorMessage", ex.getMessage());
             return "redirect:/payment/" + booking.getBookingCode();
+        }
+    }
+
+    // POST /payment/BK12345678/cash -> nút "Xác nhận đã thu tiền mặt" trên trang thanh toán (TR6, chỉ STAFF)
+    @PostMapping("/{bookingCode}/cash")
+    public String payCash(@PathVariable String bookingCode, HttpSession session, RedirectAttributes flash) {
+        BookingDTO booking = bookingService.getBookingDetail(bookingCode);
+        if (booking == null) {
+            flash.addFlashAttribute("errorMessage", "Không tìm thấy đơn đặt vé có mã " + bookingCode + ".");
+            return "redirect:/";
+        }
+        // Controller chỉ lấy vai trò từ session rồi truyền giá trị thường xuống service;
+        // luật "chỉ STAFF" và kiểm tra đơn còn thanh toán được nằm trong PaymentService
+        AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
+        String role = null;
+        if (loginAccount != null) {
+            role = loginAccount.getRole();
+        }
+        try {
+            paymentService.confirmCashPayment(booking.getId(), role);
+            flash.addFlashAttribute("successMessage", "Đã xác nhận thu tiền mặt. Vé đã sẵn sàng.");
+            return "redirect:/booking/" + bookingCode;
+        } catch (IllegalArgumentException ex) {
+            // Không phải nhân viên / đơn đã trả / hết hạn / chuyến không còn bán -> quay lại trang thanh toán, báo đỏ
+            flash.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/payment/" + bookingCode;
         }
     }
 

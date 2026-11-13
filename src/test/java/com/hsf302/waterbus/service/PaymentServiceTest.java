@@ -1,6 +1,7 @@
 package com.hsf302.waterbus.service;
 
 import com.hsf302.waterbus.controller.BookingAccessHelper;
+import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.TicketDTO;
 import com.hsf302.waterbus.entity.Booking;
 import com.hsf302.waterbus.entity.Payment;
@@ -99,10 +100,10 @@ class PaymentServiceTest {
         assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
                 .containsExactly("VALID", "VALID");
 
-        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PASSED ("Đã qua chuyến"), DB vẫn là VALID
+        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PAST_TRIP ("Đã qua chuyến"), DB vẫn là VALID
         tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("COMPLETED");
         assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
-                .containsExactly("PASSED", "PASSED");
+                .containsExactly("PAST_TRIP", "PAST_TRIP");
         entityManager.flush();
         assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
                 .containsExactly("VALID", "VALID");
@@ -139,6 +140,39 @@ class PaymentServiceTest {
         mvc.perform(get("/payment/SAIMA123"))
                 .andExpect(redirectedUrl("/"))
                 .andExpect(flash().attribute("errorMessage", "Không tìm thấy đơn đặt vé có mã SAIMA123."));
+    }
+
+    @Test
+    void staffConfirmsCashPaymentButCustomerCannot() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String code = booking.getBookingCode();
+        AccountDTO customer = new AccountDTO(100, "khach@example.com", "Khach", "0900000001", "CUSTOMER", "ACTIVE");
+        AccountDTO staff = new AccountDTO(101, "staff@example.com", "Nhan vien", "0900000002", "STAFF", "ACTIVE");
+
+        // Khách (hoặc chưa đăng nhập) gửi thẳng request -> bị chặn, đơn vẫn chờ, không có payment
+        mvc.perform(post("/payment/" + code + "/cash").sessionAttr("loginAccount", customer))
+                .andExpect(redirectedUrl("/payment/" + code))
+                .andExpect(flash().attribute("errorMessage", "Chỉ nhân viên tại bến mới được xác nhận thu tiền mặt."));
+        mvc.perform(post("/payment/" + code + "/cash")).andExpect(redirectedUrl("/payment/" + code));
+        assertThat(count("payment")).isZero();
+
+        // Nhân viên xác nhận đã thu tiền -> đơn PAID, vé VALID, payment CASH không có mã giao dịch
+        mvc.perform(post("/payment/" + code + "/cash").sessionAttr("loginAccount", staff))
+                .andExpect(redirectedUrl("/booking/" + code))
+                .andExpect(flash().attribute("successMessage", "Đã xác nhận thu tiền mặt. Vé đã sẵn sàng."));
+        entityManager.flush();
+        assertThat(jdbc.queryForObject("SELECT status FROM booking WHERE id = ?", String.class, booking.getId()))
+                .isEqualTo("PAID");
+        assertThat(jdbc.queryForMap("SELECT method, status, transaction_ref FROM payment WHERE booking_id = ?", booking.getId()))
+                .containsEntry("method", "CASH").containsEntry("status", "SUCCESS").containsEntry("transaction_ref", null);
+        assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
+                .containsExactly("VALID", "VALID");
+
+        // Bấm lần 2 -> đơn không còn chờ thanh toán -> báo lỗi, không tạo payment thứ 2
+        mvc.perform(post("/payment/" + code + "/cash").sessionAttr("loginAccount", staff))
+                .andExpect(redirectedUrl("/payment/" + code))
+                .andExpect(flash().attribute("errorMessage", "Đơn này không còn chờ thanh toán."));
+        assertThat(count("payment")).isEqualTo(1);
     }
 
     @Test

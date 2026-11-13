@@ -37,8 +37,16 @@
 .wb-admin .wb-admin-table tbody tr:nth-child(even) td { background: #FBFDFE; }
 .wb-admin .wb-admin-table tbody tr:hover td { background: var(--wb-sky-50); }
 .wb-admin .wb-admin-table .wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .03em; }
-.wb-admin .wb-admin-table-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.wb-admin .wb-admin-table-actions .btn { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.wb-admin .wb-admin-table-actions { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.wb-admin .wb-admin-table-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 6px 12px; font-size: 14px; text-align: center; white-space: nowrap; }
+.wb-admin .wb-admin-waterbus-status-form { display: grid; gap: 8px; width: min(100%, 220px); }
+.wb-admin .wb-admin-trip-cancel-form { display: grid; gap: 8px; width: min(100%, 200px); }
+.wb-admin .wb-admin-trip-cancel-form .form-control { border: 2px solid #C7D7E2; }
+.wb-admin .wb-admin-trip-cancel-form .btn { justify-self: start; }
+.wb-admin [data-trip-cancel-row] details summary { color: var(--wb-blue-700); cursor: pointer; font-weight: 600; }
+.wb-admin [data-trip-cancel-row] .table-responsive { max-width: min(70vw, 900px); }
+.wb-admin [data-trip-cancel-row] .table-responsive table { min-width: 720px; }
+.wb-admin .wb-confirm-modal [data-confirm-modal-message] { white-space: pre-line; }
 .wb-admin .wb-admin-empty { padding: 56px 24px; text-align: center; }
 .wb-admin .wb-admin-empty i { display: block; color: var(--wb-sky-500); font-size: 40px; margin-bottom: 16px; }
 .wb-admin .wb-admin-empty h2 { font-size: 1.25rem; margin-bottom: 8px; }
@@ -113,7 +121,7 @@
 .wb-admin .wb-admin-content { min-width: 0; }
 .wb-admin .wb-admin-side-nav { align-content: start; }
 .wb-admin .wb-admin-table { width: 100%; }
-.wb-admin .wb-admin-table td { overflow-wrap: anywhere; }
+.wb-admin .wb-admin-table td { overflow-wrap: break-word; }
 .wb-admin .wb-admin-table-wrap { overflow-x: auto; }
 .wb-admin .wb-admin-table-actions { flex-wrap: wrap; }
 .wb-admin .wb-admin-table-actions form { margin: 0; }

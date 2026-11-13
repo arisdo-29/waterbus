@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Hủy chuyến hàng loạt')}">
+    <meta charset="UTF-8">
+    <title>Hủy chuyến hàng loạt | Saigon Waterbus</title>
+</head>
+<body class="wb-admin">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+<div class="wb-admin-layout">
+    <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
+    <main class="wb-main wb-admin-content">
+        <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
+        <header class="wb-admin-head">
+            <div><span class="wb-eyebrow">Quản trị</span><h1>Hủy chuyến hàng loạt</h1><p>Lọc chuyến tương lai theo tàu và thời gian, kiểm tra vé trước khi hủy.</p></div>
+            <a class="btn btn-wb-outline" th:href="@{/admin/trips}">Quay lại danh sách</a>
+        </header>
+
+        <form th:action="@{/admin/trips/cancel}" action="/admin/trips/cancel" method="get" class="wb-admin-form-card row g-3 align-items-end mb-4">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="waterbusId">Tàu</label>
+                <select class="form-select" id="waterbusId" name="waterbusId" required>
+                    <option value="">Chọn tàu</option>
+                    <option th:each="waterbus : ${waterbuses}" th:value="${waterbus.id}" th:text="|${waterbus.name} (${waterbus.code})|"
+                            th:selected="${waterbusId != null and waterbus.id == waterbusId}">Waterbus 01</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="departureFrom">Khởi hành từ</label>
+                <input class="form-control" type="datetime-local" id="departureFrom" name="departureFrom"
+                       th:value="${departureFrom}" required>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="departureTo">Đến</label>
+                <input class="form-control" type="datetime-local" id="departureTo" name="departureTo"
+                       th:value="${departureTo}" required>
+            </div>
+            <div class="col-12 col-md-2">
+                <button class="btn btn-wb-accent w-100" type="submit">Lọc chuyến</button>
+            </div>
+        </form>
+
+        <div class="alert alert-warning" role="alert" th:if="${filterApplied}">
+            Chỉ hiển thị chuyến đang lên lịch và chưa khởi hành. Kiểm tra kỹ danh sách hành khách và số vé đã xác nhận; khi hủy, các vé sẽ bị hủy và khoản hoàn sẽ được tạo ở trạng thái chờ.
+        </div>
+
+        <section th:if="${filterApplied and #lists.isEmpty(cancellationPreviews)}" class="wb-admin-table-wrap wb-admin-empty">
+            <i class="bi bi-inbox" aria-hidden="true"></i><h2>Không tìm thấy chuyến phù hợp</h2>
+            <p>Không có chuyến chưa khởi hành của tàu này trong khoảng thời gian đã chọn.</p>
+        </section>
+
+        <form th:if="${filterApplied and !#lists.isEmpty(cancellationPreviews)}"
+              th:action="@{/admin/trips/cancel-selected}" action="/admin/trips/cancel-selected"
+              method="post" data-trip-cancel-form>
+            <input type="hidden" name="waterbusId" th:value="${waterbusId}">
+            <input type="hidden" name="departureFrom" th:value="${departureFrom}">
+            <input type="hidden" name="departureTo" th:value="${departureTo}">
+            <section class="wb-admin-table-wrap mb-4">
+                <table class="table wb-admin-table">
+                    <caption class="visually-hidden">Các chuyến có thể hủy và thông tin hành khách</caption>
+                    <thead>
+                    <tr><th scope="col">Chọn</th><th scope="col">Chuyến</th><th scope="col">Tuyến và giờ</th><th scope="col">Vé xác nhận/đã dùng</th><th scope="col">Giữ chỗ</th><th scope="col">Hành khách và vé</th></tr>
+                    </thead>
+                    <tbody>
+                    <th:block th:each="preview : ${cancellationPreviews}">
+                        <tr th:attr="data-trip-cancel-row=true,data-trip-code=${preview.trip.tripCode},data-confirmed-count=${preview.confirmedTicketCount},data-held-count=${preview.heldTicketCount}">
+                            <td data-label="Chọn">
+                                <input class="form-check-input" type="checkbox" name="tripIds" th:value="${preview.trip.id}"
+                                       th:id="|cancelTrip-${preview.trip.id}|" data-trip-cancel-select
+                                       th:checked="${selectedTripIds != null and selectedTripIds.contains(preview.trip.id)}">
+                                <label class="visually-hidden" th:for="|cancelTrip-${preview.trip.id}|" th:text="|Chọn chuyến ${preview.trip.tripCode}|">Chọn chuyến</label>
+                            </td>
+                            <td data-label="Chuyến"><strong th:text="${preview.trip.tripCode}">T2601010700001</strong><br><span class="text-muted" th:text="${preview.trip.waterbusName}">Waterbus 01</span></td>
+                            <td data-label="Tuyến và giờ"><span th:text="${preview.trip.routeName}">Bạch Đằng - Linh Đông</span><br><span th:text="${#temporals.format(preview.trip.departureTime, 'HH:mm dd/MM/yyyy')}">07:00 01/01/2026</span></td>
+                            <td data-label="Vé xác nhận/đã dùng" th:text="${preview.confirmedTicketCount}">0</td>
+                            <td data-label="Giữ chỗ" th:text="${preview.heldTicketCount}">0</td>
+                            <td data-label="Hành khách và vé">
+                                <details>
+                                    <summary th:text="|Xem ${#lists.size(preview.tickets)} vé và thông tin hành khách|">Xem vé và thông tin hành khách</summary>
+                                    <div class="table-responsive mt-2" th:unless="${#lists.isEmpty(preview.tickets)}">
+                                        <table class="table table-sm">
+                                            <thead><tr><th scope="col">Mã vé / đơn</th><th scope="col">Hành khách</th><th scope="col">Điện thoại</th><th scope="col">Ghế</th><th scope="col">Giá</th><th scope="col">Trạng thái</th></tr></thead>
+                                            <tbody><tr th:each="ticket : ${preview.tickets}">
+                                                <td><span th:text="${ticket.ticketCode}">TK0001</span><br><span class="text-muted" th:text="${ticket.bookingCode}">BK0001</span></td>
+                                                <td th:text="${ticket.passengerName}">Nguyễn Văn A</td>
+                                                <td th:text="${ticket.passengerPhone}">0901234567</td>
+                                                <td th:text="${ticket.seatCode}">A01</td>
+                                                <td th:text="|${#numbers.formatDecimal(ticket.price, 0, 'POINT', 0, 'COMMA')} đ|">0 đ</td>
+                                                <td th:text="${ticket.status == 'HOLD' ? 'Giữ chỗ' : (ticket.status == 'USED' ? 'Đã sử dụng' : 'Đã xác nhận')}">Đã xác nhận</td>
+                                            </tr></tbody>
+                                        </table>
+                                    </div>
+                                    <p class="small text-muted mt-2 mb-0" th:if="${#lists.isEmpty(preview.tickets)}">Chuyến này chưa có vé giữ chỗ hoặc đã thanh toán.</p>
+                                </details>
+                            </td>
+                        </tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="wb-admin-form-card">
+                <h2 class="wb-admin-form-title">Xác nhận hủy</h2>
+                <p data-trip-cancel-count class="text-muted" aria-live="polite">Chưa chọn chuyến.</p>
+                <div class="mb-3">
+                    <label class="form-label" for="cancelReason">Lý do chung <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="cancelReason" name="reason" rows="3" maxlength="255" required
+                              placeholder="Nhập lý do hủy áp dụng cho tất cả chuyến đã chọn"></textarea>
+                </div>
+                <div class="wb-admin-form-actions">
+                    <button class="btn btn-wb-danger" type="submit" data-trip-cancel-submit
+                            data-confirm="Bạn có chắc muốn hủy các chuyến đã chọn?" data-confirm-variant="danger"
+                            data-confirm-ok="Hủy các chuyến" disabled>Hủy chuyến đã chọn</button>
+                </div>
+            </section>
+        </form>
+    </main>
+</div>
+<button class="wb-admin-backdrop" type="button" data-admin-sidebar-close aria-label="Đóng menu quản trị" hidden></button>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

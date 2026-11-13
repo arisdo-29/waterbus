@@ -56,9 +56,9 @@
                         </div>
                         <fieldset class="wb-admin-form-row" data-route-editor>
                             <legend class="wb-admin-form-title">Thứ tự bến</legend>
-                            <p class="wb-admin-form-help">Chọn ít nhất hai bến khác nhau, theo thứ tự tàu đi qua.</p>
+                            <p class="wb-admin-form-help">Chọn ít nhất hai bến khác nhau theo thứ tự tàu đi qua. Bến đầu nhập 0 phút, các bến sau nhập số phút tăng dần.</p>
                             <div class="wb-route-stops-editor" data-route-rows>
-                                <div class="wb-route-stop-row" data-route-row th:each="sid : ${route?.stationIds}">
+                                <div class="wb-route-stop-row" data-route-row th:each="sid, stat : ${route?.stationIds}">
                                     <span class="wb-route-stop-order" data-route-order aria-hidden="true">1</span>
                                     <label class="wb-admin-stop-label"><span class="visually-hidden">Bến trong hành trình</span>
                                         <select class="form-select" name="stationIds" required>
@@ -67,6 +67,14 @@
                                             <option value="6" th:remove="all">Thanh Đa</option>
                                         </select>
                                     </label>
+                                    <div class="wb-route-stop-minutes">
+                                        <label><span>Phút từ bến đầu</span>
+                                            <input class="form-control" type="number" name="minutesFromStart" min="0" step="1" required
+                                                   th:value="${route.minutesFromStart != null and route.minutesFromStart.size() > stat.index ? route.minutesFromStart[stat.index] : ''}">
+                                        </label>
+                                        <small class="text-danger" th:if="${route.minutesFromStart != null and route.minutesFromStart.size() > stat.index}"
+                                               th:errors="*{minutesFromStart[__${stat.index}__]}"></small>
+                                    </div>
                                     <div class="wb-route-stop-tools">
                                         <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
                                         <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
@@ -83,6 +91,12 @@
                                                 <option value="6" th:remove="all">Thanh Đa</option>
                                             </select>
                                         </label>
+                                        <div class="wb-route-stop-minutes">
+                                            <label><span>Phút từ bến đầu</span>
+                                                <input class="form-control" type="number" name="minutesFromStart" min="0" step="1" required>
+                                            </label>
+                                            <small class="text-danger"></small>
+                                        </div>
                                         <div class="wb-route-stop-tools">
                                             <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
                                             <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
@@ -98,6 +112,12 @@
                                                 <option value="6" th:remove="all">Thanh Đa</option>
                                             </select>
                                         </label>
+                                        <div class="wb-route-stop-minutes">
+                                            <label><span>Phút từ bến đầu</span>
+                                                <input class="form-control" type="number" name="minutesFromStart" min="0" step="1" required>
+                                            </label>
+                                            <small class="text-danger"></small>
+                                        </div>
                                         <div class="wb-route-stop-tools">
                                             <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
                                             <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
@@ -116,6 +136,12 @@
                                             <option value="6" th:remove="all">Thanh Đa</option>
                                         </select>
                                     </label>
+                                    <div class="wb-route-stop-minutes">
+                                        <label><span>Phút từ bến đầu</span>
+                                            <input class="form-control" type="number" name="minutesFromStart" min="0" step="1" required>
+                                        </label>
+                                        <small class="text-danger"></small>
+                                    </div>
                                     <div class="wb-route-stop-tools">
                                         <button class="btn" type="button" data-route-up aria-label="Đưa bến lên"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
                                         <button class="btn" type="button" data-route-down aria-label="Đưa bến xuống"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
@@ -126,6 +152,7 @@
                             <button class="btn btn-wb-outline wb-route-add" type="button" data-route-add><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm bến</button>
                             <p class="wb-admin-form-help" data-route-message role="status" aria-live="polite"></p>
                             <small class="text-danger" th:errors="*{stationIds}"></small>
+                            <small class="text-danger" th:errors="*{minutesFromStart}"></small>
                         </fieldset>
                         <div class="wb-admin-form-actions">
                             <button class="btn btn-wb-accent" type="submit"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Lưu</button>

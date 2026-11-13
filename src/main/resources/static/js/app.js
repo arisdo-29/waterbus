@@ -585,6 +585,23 @@
                         return value === select.value;
                     }).length > 1;
                     select.setCustomValidity(duplicate ? 'Mỗi bến chỉ được chọn một lần trong tuyến.' : '');
+                    const minutes = row.querySelector('input[name="minutesFromStart"]');
+                    if (minutes) {
+                        minutes.setAttribute('aria-label', 'Phút từ bến đầu của bến thứ ' + (index + 1));
+                        const previous = index > 0 ? allRows[index - 1].querySelector('input[name="minutesFromStart"]') : null;
+                        let error = '';
+                        if (minutes.value !== '') {
+                            const value = Number(minutes.value);
+                            if (!Number.isInteger(value) || value < 0) {
+                                error = 'Số phút phải là số nguyên không âm.';
+                            } else if (index === 0 && value !== 0) {
+                                error = 'Số phút của bến đầu phải bằng 0.';
+                            } else if (previous && previous.value !== '' && value <= Number(previous.value)) {
+                                error = 'Số phút phải lớn hơn bến trước.';
+                            }
+                        }
+                        minutes.setCustomValidity(error);
+                    }
                     row.querySelector('[data-route-up]').disabled = index === 0;
                     row.querySelector('[data-route-down]').disabled = index === allRows.length - 1;
                     row.querySelector('[data-route-remove]').disabled = allRows.length <= 2;
@@ -594,6 +611,7 @@
                 appendRow();
             }
             editor.addEventListener('change', update);
+            editor.addEventListener('input', update);
             editor.addEventListener('click', function (event) {
                 const button = event.target.closest('button');
                 if (!button || button.disabled) {

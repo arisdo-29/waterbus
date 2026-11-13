@@ -28,7 +28,8 @@ public class AdminRouteController {
 
     @InitBinder("route")
     void bindRoute(WebDataBinder binder) {
-        binder.setAllowedFields("id", "code", "name", "description", "isActive", "stationIds", "stationIds[*]");
+        binder.setAllowedFields("id", "code", "name", "description", "isActive", "stationIds", "stationIds[*]",
+                "minutesFromStart", "minutesFromStart[*]");
     }
 
     @GetMapping

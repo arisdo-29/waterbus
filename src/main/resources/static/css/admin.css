@@ -70,15 +70,18 @@
 .wb-admin .wb-admin-side-card li + li { margin-top: 8px; }
 
 .wb-admin .wb-route-stops-editor { display: grid; gap: 10px; }
-.wb-admin .wb-route-stop-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 150px auto; gap: 10px; align-items: center; }
-.wb-admin .wb-route-stop-order { display: grid; place-items: center; width: 40px; height: 44px; border-radius: 10px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-weight: 700; }
-.wb-admin .wb-route-stop-row .form-select { min-height: 44px; }
-.wb-admin .wb-route-stop-minutes { min-width: 0; }
-.wb-admin .wb-route-stop-minutes label { display: grid; gap: 4px; margin: 0; color: var(--wb-muted); font-size: 12px; font-weight: 600; }
-.wb-admin .wb-route-stop-minutes .form-control { min-height: 44px; }
+.wb-admin .wb-route-stop-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr) auto; grid-template-areas: ". . minutes-label ." "order station minutes tools" ". . minutes-error ."; grid-template-rows: auto 48px auto; gap: 4px 10px; align-items: start; }
+.wb-admin .wb-route-stop-order { grid-area: order; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 10px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-weight: 700; }
+.wb-admin .wb-route-stop-row .wb-admin-stop-label { grid-area: station; }
+.wb-admin .wb-route-stop-row .form-select { height: 48px; min-height: 48px; }
+.wb-admin .wb-route-stop-minutes { display: contents; }
+.wb-admin .wb-route-stop-minutes label { display: contents; color: var(--wb-muted); font-size: 12px; font-weight: 600; }
+.wb-admin .wb-route-stop-minutes label > span { grid-area: minutes-label; }
+.wb-admin .wb-route-stop-minutes .form-control { grid-area: minutes; height: 48px; min-height: 48px; }
+.wb-admin .wb-route-stop-minutes > .text-danger { grid-area: minutes-error; }
 .wb-admin .wb-route-stop-minutes .text-danger { display: block; }
-.wb-admin .wb-route-stop-tools { display: flex; gap: 6px; }
-.wb-admin .wb-route-stop-tools .btn { min-width: 40px; min-height: 44px; padding: 8px; border: 1px solid var(--wb-line); border-radius: 10px; color: var(--wb-blue-700); background: #fff; }
+.wb-admin .wb-route-stop-tools { grid-area: tools; display: flex; gap: 6px; }
+.wb-admin .wb-route-stop-tools .btn { width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 8px; border: 1px solid var(--wb-line); border-radius: 10px; color: var(--wb-blue-700); background: #fff; }
 .wb-admin .wb-route-stop-tools .btn:hover { background: var(--wb-sky-50); }
 .wb-admin .wb-route-stop-tools .btn.is-danger { color: var(--wb-danger); }
 .wb-admin .wb-route-add { margin-top: 6px; }
@@ -115,9 +118,8 @@
     .wb-admin .wb-admin-table > tbody > tr > td { border: 0; padding: 6px 0; }
     .wb-admin .wb-admin-table > tbody > tr > td::before { content: attr(data-label); display: block; color: var(--wb-muted); font-size: 13px; font-weight: 600; }
     .wb-admin .wb-admin-table-actions { justify-content: flex-start; }
-    .wb-admin .wb-route-stop-row { grid-template-columns: 36px 1fr; }
-    .wb-admin .wb-route-stop-minutes { grid-column: 2; }
-    .wb-admin .wb-route-stop-tools { grid-column: 1 / -1; justify-content: flex-end; }
+    .wb-admin .wb-route-stop-row { grid-template-columns: 48px minmax(0, 1fr); grid-template-areas: "order station" ". minutes-label" ". minutes" ". minutes-error" ". tools"; grid-template-rows: 48px auto 48px auto 48px; }
+    .wb-admin .wb-route-stop-tools { justify-content: flex-end; }
 }
 
 .wb-admin .wb-admin-content { min-width: 0; }
@@ -167,7 +169,7 @@
 .wb-admin .wb-admin-filter { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 24px; }
 .wb-admin .wb-admin-filter > :not(input[type="hidden"]) { flex: 1 1 200px; width: auto; padding: 0; margin: 0; }
 .wb-admin .wb-admin-filter > .wb-admin-filter-actions { flex: 0 1 auto; display: flex; align-items: flex-end; gap: 8px; }
-.wb-admin .wb-admin-filter-actions .btn { white-space: nowrap; flex: 1 0 auto; }
+.wb-admin .wb-admin-filter-actions .btn { white-space: nowrap; flex: 1 0 auto; min-height: 48px; }
 .wb-admin .wb-admin-filter-actions .btn.w-100 { width: auto !important; }
 .wb-admin .wb-admin-filter :is(.form-control, .form-select) { min-width: 0; max-width: 100%; }
 .wb-admin .wb-admin-table-wrap > nav { flex-wrap: wrap; gap: 12px; padding-bottom: 12px; }

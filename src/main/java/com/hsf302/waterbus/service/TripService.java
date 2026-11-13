@@ -30,6 +30,10 @@ public interface TripService {
 
     long countUpcomingTripsOfRoute(int routeId);
 
+    long countActiveTripsOfRoute(int routeId);
+
+    long countActiveTripsOfStation(int stationId);
+
     void createAdminTrip(AdminTripForm form);
 
     void cancelTrip(int tripId, String reason);

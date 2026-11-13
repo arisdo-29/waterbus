@@ -57,7 +57,7 @@
                         </div>
                         <div class="wb-admin-form-row">
                             <label for="departureTime">Giờ khởi hành <span class="wb-admin-required" aria-hidden="true">*</span></label>
-                            <input class="form-control" id="departureTime" th:field="*{departureTime}" type="datetime-local" required>
+                            <input class="form-control" id="departureTime" th:field="*{departureTime}" type="datetime-local" th:attr="min=${minDepartureTime}" required>
                             <small class="text-danger" th:errors="*{departureTime}"></small>
                         </div>
                         <div class="wb-admin-form-row">

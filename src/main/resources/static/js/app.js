@@ -1062,12 +1062,65 @@
 
     function init() {
         initAdminNavigation();
+        initTripCancellationSelection();
         initConfirmations();
         initCheckin();
         initRouteEditors();
         initPromotions();
         initAdminSidebar();
         initAuthForms();
+    }
+
+    function initTripCancellationSelection() {
+        const form = document.querySelector('[data-trip-cancel-form]');
+        if (!form) {
+            return;
+        }
+
+        const countElement = form.querySelector('[data-trip-cancel-count]');
+        const submitButton = form.querySelector('[data-trip-cancel-submit]');
+        const checkboxes = Array.from(form.querySelectorAll('[data-trip-cancel-select]'));
+
+        function updateSelection() {
+            const selected = checkboxes.filter(function (checkbox) {
+                return checkbox.checked;
+            });
+            if (countElement) {
+                countElement.textContent = selected.length === 0
+                    ? 'Chưa chọn chuyến.'
+                    : 'Đã chọn ' + selected.length + ' chuyến.';
+            }
+            if (!submitButton) {
+                return;
+            }
+            submitButton.disabled = selected.length === 0;
+
+            const confirmedTickets = selected.reduce(function (total, checkbox) {
+                return total + Number(checkbox.closest('[data-trip-cancel-row]').dataset.confirmedCount || 0);
+            }, 0);
+            const heldTickets = selected.reduce(function (total, checkbox) {
+                return total + Number(checkbox.closest('[data-trip-cancel-row]').dataset.heldCount || 0);
+            }, 0);
+            const tripCodes = selected.map(function (checkbox) {
+                const row = checkbox.closest('[data-trip-cancel-row]');
+                return row.dataset.tripCode + ' (' + row.dataset.confirmedCount + ' vé xác nhận/đã dùng, '
+                    + row.dataset.heldCount + ' giữ chỗ)';
+            });
+            const tripSummary = tripCodes.slice(0, 5);
+            if (tripCodes.length > tripSummary.length) {
+                tripSummary.push('và ' + (tripCodes.length - tripSummary.length) + ' chuyến khác (xem bảng chi tiết)');
+            }
+            const message = 'Bạn sắp hủy ' + selected.length + ' chuyến, gồm ' + confirmedTickets
+                + ' vé xác nhận/đã dùng và ' + heldTickets + ' vé giữ chỗ.'
+                + (tripSummary.length ? '\n' + tripSummary.join('\n') : '')
+                + '\nCác vé sẽ bị hủy. Khoản tiền cần hoàn sẽ được tạo ở trạng thái chờ; bạn phải chuyển tiền ngoài hệ thống và xác nhận sau.';
+            submitButton.setAttribute('data-confirm', message);
+        }
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener('change', updateSelection);
+        });
+        updateSelection();
     }
 
     if (document.readyState === 'loading') {

@@ -4,6 +4,7 @@ import com.hsf302.waterbus.dto.AccountDTO;
 import com.hsf302.waterbus.dto.AdminTripForm;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,10 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -91,6 +95,24 @@ class TripScheduleConflictTest {
                 .andExpect(view().name("admin/trip/form"))
                 .andExpect(model().attributeExists("errorMessage"));
         assertEquals(3, jdbc.queryForObject("SELECT COUNT(*) FROM trip WHERE route_id = ?", Integer.class, routeId));
+    }
+
+    @Test
+    void adminFormLimitsDepartureToAtLeastTheNextMinute() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        AccountDTO admin = new AccountDTO(1, "admin@test.vn", "Admin", null, "ADMIN", "ACTIVE");
+        var result = mvc.perform(get("/admin/trips/new").sessionAttr("loginAccount", admin))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/trip/form"))
+                .andExpect(model().attributeExists("minDepartureTime"))
+                .andExpect(content().string(containsString("type=\"datetime-local\"")))
+                .andReturn();
+
+        String minDepartureTime = (String) result.getModelAndView().getModel().get("minDepartureTime");
+        LocalDateTime minimum = LocalDateTime.parse(minDepartureTime,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+        assertTrue(minimum.isAfter(LocalDateTime.now().withSecond(0).withNano(0)));
+        assertTrue(result.getResponse().getContentAsString().contains("min=\"" + minDepartureTime + "\""));
     }
 
     @Test

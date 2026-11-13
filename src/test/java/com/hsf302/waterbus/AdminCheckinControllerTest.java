@@ -16,6 +16,8 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -211,6 +213,28 @@ class AdminCheckinControllerTest {
                 .andExpect(view().name("admin/checkin/index"))
                 .andExpect(model().attributeExists("tripsToday"))
                 .andExpect(model().attributeExists("manifest"));
+    }
+
+    @Test
+    @DisplayName("Không hiển thị hoặc chọn lại chuyến đã hết thời gian soát vé")
+    void getCheckin_excludesTripsOutsideCheckinWindow() throws Exception {
+        LocalDateTime oldDeparture = LocalDateTime.now().minusHours(3);
+        Trip oldTrip = new Trip();
+        oldTrip.setTripCode("TRIP_CK_OLD");
+        oldTrip.setRoute(trip.getRoute());
+        oldTrip.setWaterbus(trip.getWaterbus());
+        oldTrip.setDepartureTime(oldDeparture);
+        oldTrip.setArrivalTime(oldDeparture.plusMinutes(50));
+        oldTrip.setStatus("COMPLETED");
+        oldTrip = tripRepository.save(oldTrip);
+
+        mvc.perform(get("/admin/checkin")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", oldTrip.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("tripsToday"))
+                .andExpect(content().string(not(containsString("TRIP_CK_OLD"))))
+                .andExpect(content().string(containsString("TRIP_CK_1")));
     }
 
     @Test

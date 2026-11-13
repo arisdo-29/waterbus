@@ -47,7 +47,7 @@
                                 <p class="small mb-0" th:if="${scheduledTripCounts[waterbus.id] > 0}"><span th:text="${scheduledTripCounts[waterbus.id]}">2</span> chuyến sắp chạy; <a th:href="@{/admin/trips}" href="/admin/trips">huỷ chuyến</a> trước khi ngừng hoạt động tàu.</p>
                             </td>
                             <td data-label="Thao tác"><div class="wb-admin-table-actions">
-                                <form action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/{id}/status(id=${waterbus?.id})}" method="post" data-confirm="Đổi trạng thái tàu?" th:attr="data-confirm=|Đổi trạng thái tàu ${waterbus.code}? Nếu còn chuyến sắp chạy, hãy huỷ chuyến trước khi chuyển tàu sang bảo trì hoặc ngừng hoạt động.|">
+                                <form class="wb-admin-waterbus-status-form" action="/templates/admin/waterbus/list.html" th:action="@{/admin/waterbuses/{id}/status(id=${waterbus?.id})}" method="post" data-confirm="Đổi trạng thái tàu?" th:attr="data-confirm=|Đổi trạng thái tàu ${waterbus.code}? Nếu còn chuyến sắp chạy, hãy huỷ chuyến trước khi chuyển tàu sang bảo trì hoặc ngừng hoạt động.|">
                                     <select class="form-select" name="status" aria-label="Trạng thái tàu">
                                         <option value="ACTIVE" th:selected="${waterbus?.status == 'ACTIVE'}">Đang hoạt động</option>
                                         <option value="MAINTENANCE" th:selected="${waterbus?.status == 'MAINTENANCE'}">Bảo trì</option>

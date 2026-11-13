@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -42,29 +41,23 @@ public class AdminCheckinController {
         Integer staffId = loginAccount != null ? loginAccount.getId() : null;
 
         List<AdminTripDTO> allTrips = tripService.getTripsForAdmin();
-        LocalDate today = LocalDate.now();
-        List<AdminTripDTO> tripsToday = allTrips.stream()
-                .filter(t -> t.departureTime() != null && t.departureTime().toLocalDate().isEqual(today))
+        LocalDateTime now = LocalDateTime.now();
+        List<AdminTripDTO> checkinTrips = allTrips.stream()
+                .filter(t -> t.departureTime() != null && t.arrivalTime() != null)
+                .filter(t -> !t.arrivalTime().plusMinutes(15).isBefore(now))
                 .sorted(Comparator.comparing(AdminTripDTO::departureTime))
                 .toList();
-
-        if (tripsToday.isEmpty()) {
-            tripsToday = allTrips.stream()
-                    .sorted(Comparator.comparing(AdminTripDTO::departureTime, Comparator.nullsLast(Comparator.naturalOrder())))
-                    .toList();
-        }
-        model.addAttribute("tripsToday", tripsToday);
+        model.addAttribute("tripsToday", checkinTrips);
 
         AdminTripDTO selectedTrip = null;
         if (tripId != null) {
-            selectedTrip = allTrips.stream().filter(t -> t.id().equals(tripId)).findFirst().orElse(null);
+            selectedTrip = checkinTrips.stream().filter(t -> t.id().equals(tripId)).findFirst().orElse(null);
         }
-        if (selectedTrip == null && !tripsToday.isEmpty()) {
-            LocalDateTime now = LocalDateTime.now();
-            selectedTrip = tripsToday.stream()
+        if (selectedTrip == null && !checkinTrips.isEmpty()) {
+            selectedTrip = checkinTrips.stream()
                     .filter(t -> t.departureTime() != null && t.departureTime().isAfter(now.minusMinutes(30)))
                     .findFirst()
-                    .orElse(tripsToday.get(0));
+                    .orElse(checkinTrips.get(0));
         }
         model.addAttribute("selectedTrip", selectedTrip);
         model.addAttribute("selectedTripId", selectedTrip != null ? selectedTrip.id() : null);

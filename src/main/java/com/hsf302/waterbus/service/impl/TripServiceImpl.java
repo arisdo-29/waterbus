@@ -7,6 +7,7 @@ import com.hsf302.waterbus.dto.SeatDTO;
 import com.hsf302.waterbus.dto.TripSearchDTO;
 import com.hsf302.waterbus.dto.TripManifestDTO;
 import com.hsf302.waterbus.dto.TicketCheckinDTO;
+import com.hsf302.waterbus.dto.TripCancellationPreviewDTO;
 import com.hsf302.waterbus.entity.RouteStation;
 import com.hsf302.waterbus.entity.Seat;
 import com.hsf302.waterbus.entity.Trip;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +59,35 @@ public class TripServiceImpl implements TripService {
                 .map(trip -> AdminTripDTO.fromEntity(trip,
                         ticketService.getPassengerManifest(trip.getId()).stream()
                                 .filter(ticket -> ticket.isValid() || ticket.isUsed()).count()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripCancellationPreviewDTO> getCancellableTrips(int waterbusId, LocalDateTime departureFrom,
+                                                                 LocalDateTime departureTo) {
+        if (waterbusId <= 0 || departureFrom == null || departureTo == null
+                || departureFrom.isAfter(departureTo)) {
+            throw new IllegalArgumentException("Vui lòng chọn tàu và khoảng thời gian hợp lệ.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        return tripRepository.findCancellableForPreview(waterbusId, departureFrom, departureTo, now).stream()
+                .map(trip -> {
+                    List<TicketCheckinDTO> tickets = ticketService.getPassengerManifest(trip.getId()).stream()
+                            .filter(ticket -> Set.of("HOLD", "VALID", "USED").contains(ticket.getStatus()))
+                            .sorted(Comparator.comparing(TicketCheckinDTO::getSeatCode,
+                                            Comparator.nullsFirst(Comparator.naturalOrder()))
+                                    .thenComparing(TicketCheckinDTO::getTicketCode))
+                            .toList();
+                            long confirmedTicketCount = tickets.stream()
+                            .filter(ticket -> "VALID".equals(ticket.getStatus()) || "USED".equals(ticket.getStatus()))
+                            .count();
+                    long heldTicketCount = tickets.stream().filter(ticket -> "HOLD".equals(ticket.getStatus())).count();
+                    return new TripCancellationPreviewDTO(
+                                    AdminTripDTO.fromEntity(trip, confirmedTicketCount), tickets,
+                                    confirmedTicketCount, heldTicketCount);
+                })
                 .toList();
     }
 
@@ -134,21 +165,68 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional
     public void cancelTrip(int tripId, String reason) {
+        cancelTrips(List.of(tripId), reason);
+    }
+
+    @Override
+    @Transactional
+    public void cancelTrips(List<Integer> tripIds, String reason) {
+        cancelTripsInternal(tripIds, reason, null, null, null, false);
+    }
+
+    @Override
+    @Transactional
+    public void cancelTrips(List<Integer> tripIds, String reason, int waterbusId,
+                            LocalDateTime departureFrom, LocalDateTime departureTo) {
+        if (waterbusId <= 0 || departureFrom == null || departureTo == null
+                || departureFrom.isAfter(departureTo)) {
+            throw new IllegalArgumentException("Vui lòng lọc lại chuyến trước khi xác nhận hủy.");
+        }
+        cancelTripsInternal(tripIds, reason, waterbusId, departureFrom, departureTo, true);
+    }
+
+    private void cancelTripsInternal(List<Integer> tripIds, String reason, Integer waterbusId,
+                                     LocalDateTime departureFrom, LocalDateTime departureTo, boolean checkFilter) {
         String trimmedReason = reason == null ? "" : reason.trim();
         if (trimmedReason.isEmpty() || trimmedReason.length() > 255) {
             throw new IllegalArgumentException("Lý do huỷ chuyến phải có từ 1 đến 255 ký tự.");
         }
-        var trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chuyến tàu."));
-        if (!"SCHEDULED".equals(trip.getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể huỷ chuyến đang ở trạng thái Đã lên lịch.");
+        if (tripIds == null || tripIds.isEmpty()
+                || tripIds.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất một chuyến cần huỷ.");
         }
-        if (!trip.getDepartureTime().isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Không thể huỷ chuyến đã khởi hành.");
+        Set<Integer> uniqueTripIds = new LinkedHashSet<>(tripIds);
+        if (uniqueTripIds.size() != tripIds.size()) {
+            throw new IllegalArgumentException("Danh sách chuyến bị trùng. Vui lòng tải lại và chọn lại.");
         }
-        trip.setCancelReason(trimmedReason);
-        trip.setStatus("CANCELLED");
-        refundService.createForCancelledTrip(tripId, trimmedReason);
+
+        LocalDateTime now = LocalDateTime.now();
+        List<Trip> trips = new ArrayList<>();
+        for (Integer tripId : uniqueTripIds.stream().sorted().toList()) {
+            Trip trip = tripRepository.findByIdForUpdate(tripId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chuyến ID " + tripId + "."));
+            if (!"SCHEDULED".equals(trip.getStatus())) {
+                throw new IllegalArgumentException("Chuyến " + trip.getTripCode()
+                        + " không còn ở trạng thái Đã lên lịch. Không có chuyến nào bị huỷ.");
+            }
+            if (trip.getDepartureTime() == null || !trip.getDepartureTime().isAfter(now)) {
+                throw new IllegalArgumentException("Chuyến " + trip.getTripCode()
+                        + " đã đến giờ khởi hành. Không có chuyến nào bị huỷ.");
+            }
+            if (checkFilter && (!trip.getWaterbus().getId().equals(waterbusId)
+                    || trip.getDepartureTime().isBefore(departureFrom)
+                    || trip.getDepartureTime().isAfter(departureTo))) {
+                throw new IllegalArgumentException("Chuyến " + trip.getTripCode()
+                        + " không còn khớp bộ lọc. Không có chuyến nào bị huỷ.");
+            }
+            trips.add(trip);
+        }
+
+        for (Trip trip : trips) {
+            trip.setCancelReason(trimmedReason);
+            trip.setStatus("CANCELLED");
+            refundService.createForCancelledTrip(trip.getId(), trimmedReason);
+        }
     }
 
     private String nextTripCode(AdminTripForm form) {

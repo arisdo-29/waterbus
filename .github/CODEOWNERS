@@ -1,38 +1,47 @@
 # CODEOWNERS: GitHub tự gắn người review theo file bị sửa.
 # Username đã điền theo từng thành viên. Đổi người phụ trách thì sửa username ở dòng tương ứng.
+# Luật: dòng SAU ghi đè dòng TRƯỚC, nên mẫu rộng đặt trên, mẫu hẹp / ngoại lệ đặt dưới.
+# Không dùng {a,b} trong mẫu (CODEOWNERS không hỗ trợ), mỗi file một dòng.
 #
-# --- File chung: Leader ---
+# --- File chung: Leader (mặc định cho file không khớp mẫu nào) ---
 *                                   @arisdo-29
 /pom.xml                            @arisdo-29
 /src/main/resources/application.properties  @arisdo-29
-/src/main/java/com/hsf302/waterbus/entity/  @arisdo-29
-/database/                          @arisdo-29
 #
 # --- BE1 Khuyên: Tuyến & Bến ---
 **/*Station*                        @arisdo-29
 **/*Route*                          @arisdo-29
 #
-# --- BE2 Trí: Tàu, Ghế & Chuyến ---
+# --- BE2 Trí: Tàu, Ghế & Chuyến + Hoàn tiền + Doanh thu ---
 **/*Trip*                           @Nguyentri2531
 **/*Refund*                         @Nguyentri2531
 **/*Seat*                           @Nguyentri2531
-**/Waterbus.java                    @Nguyentri2531
-**/WaterbusRepository.java          @Nguyentri2531
-**/WaterbusService*.java            @Nguyentri2531
-**/WaterbusController.java          @Nguyentri2531
+**/*Waterbus*                       @Nguyentri2531
+**/*Revenue*                        @Nguyentri2531
 #
-# --- BE3 Tân: Tài khoản, Loại vé & Khuyến mãi ---
+# --- BE3 Tân: Tài khoản, Loại vé, Khuyến mãi, Soát vé ---
 **/*Account*                        @dwargon73-sketch
 **/*Auth*                           @dwargon73-sketch
 **/*TicketType*                     @dwargon73-sketch
 **/*Promotion*                      @dwargon73-sketch
-**/TicketService*                  @dwargon73-sketch
-**/*Checkin*                       @dwargon73-sketch
+**/TicketService*                   @dwargon73-sketch
+**/*Request.java                    @dwargon73-sketch
+**/*ScanLog*                        @dwargon73-sketch
 #
-# --- BE4 Trâm: Đặt vé & Thanh toán ---
+# --- BE4 Trâm: Đặt vé, Thanh toán, VNPay, Vé ---
 **/*Booking*                        @kopslngbtram2110
 **/*Payment*                        @kopslngbtram2110
+**/*VnPay*                          @kopslngbtram2110
+**/TicketDTO.java                   @kopslngbtram2110
+**/TicketRepository.java            @kopslngbtram2110
+#
+# --- Ngoại lệ đặt SAU các mẫu module (mẫu *Booking*, *Waterbus* ... sẽ ghi đè nếu đặt trước) ---
+**/interceptor/                     @dwargon73-sketch
+**/*Checkin*                        @dwargon73-sketch
+/src/main/java/com/hsf302/waterbus/entity/  @arisdo-29
 /src/main/java/com/hsf302/waterbus/entity/Ticket.java  @kopslngbtram2110
+/database/                          @arisdo-29
+**/WaterbusApplication*.java        @arisdo-29
 #
 # --- Giao diện (đặt CUỐI file: trong CODEOWNERS dòng sau ghi đè dòng trước) ---
 /src/main/resources/templates/              @arisdo-29
@@ -41,6 +50,7 @@
 /src/main/resources/templates/admin/        @Nguyentri2531
 /src/main/resources/templates/account/      @Nguyentri2531
 /src/main/resources/static/css/admin.css    @Nguyentri2531
+/src/main/resources/static/js/revenue.js    @Nguyentri2531
 /src/main/resources/templates/auth/         @dwargon73-sketch
 /src/main/resources/templates/admin/promotion/   @dwargon73-sketch
 /src/main/resources/templates/admin/tickettype/  @dwargon73-sketch

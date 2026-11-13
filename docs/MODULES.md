@@ -5,9 +5,9 @@
 | Vai trò | Người | Backend | Giao diện (FE) |
 |---|---|---|---|
 | **BE1** | **Khuyên** | Tuyến & Bến: `Station*`, `Route*`, `RouteStation*` | **FE chính**: layout, trang chủ, checkout, thanh toán, xem vé |
-| **BE2** | **Trí** | Tàu, Ghế & Chuyến + Hoàn tiền: `Waterbus*`, `Seat*`, `Trip*`, `Refund*` | UI tìm chuyến, sơ đồ chọn ghế, mẫu trang admin, view hoàn tiền, view tài khoản cá nhân (`account/**`) |
-| **BE3** | **Tân** | Tài khoản, Loại vé & Khuyến mãi: `Account*`, `Auth*`, `TicketType*`, `Promotion*` | Trang đăng nhập/đăng ký, admin khuyến mãi và loại vé |
-| **BE4** | **Trâm** | Đặt vé & Thanh toán: `Booking*`, `Ticket*`, `Payment*` | Không (giao diện luồng đặt vé do Khuyên làm) |
+| **BE2** | **Trí** | Tàu, Ghế & Chuyến + Hoàn tiền: `Waterbus*`, `Seat*`, `Trip*`, `Refund*`, `Revenue*` (báo cáo doanh thu) | UI tìm chuyến, sơ đồ chọn ghế, mẫu trang admin, view hoàn tiền, view tài khoản cá nhân (`account/**`) |
+| **BE3** | **Tân** | Tài khoản, Loại vé & Khuyến mãi: `Account*`, `Auth*`, `TicketType*`, `Promotion*`, `TicketService*` (soát vé), `*Request`, `*ScanLog*`, `interceptor/` | Trang đăng nhập/đăng ký, admin khuyến mãi và loại vé |
+| **BE4** | **Trâm** | Đặt vé & Thanh toán: `Booking*`, `Payment*`, `VnPay*`, `Ticket` (entity), `TicketDTO`, `TicketRepository` | Không (giao diện luồng đặt vé do Khuyên làm) |
 
 ## Ai sở hữu file nào
 

@@ -228,14 +228,6 @@ label { display: block; color: var(--wb-navy); font-size: 14px; font-weight: 600
 .wb-auth-head p { color: var(--wb-muted); margin-bottom: 0; }
 .wb-auth-foot { color: var(--wb-muted); font-size: 14px; text-align: center; margin: 24px 0 0; }
 .wb-auth-foot a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
-.wb-demo-accounts { margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--wb-line); }
-.wb-demo-title { color: var(--wb-muted); font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 12px; }
-.wb-demo-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.wb-demo-account { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 10px 6px; border: 1px solid var(--wb-sky-300); border-radius: 12px; background: var(--wb-sky-50); color: var(--wb-blue-700); transition: background .2s ease, border-color .2s ease; }
-.wb-demo-account:hover, .wb-demo-account:focus-visible { background: var(--wb-sky-100); border-color: var(--wb-blue-700); }
-.wb-demo-account strong { color: var(--wb-navy); font-size: 14px; }
-.wb-demo-account span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wb-muted); font-size: 11px; }
-@media (max-width: 400px) { .wb-demo-list { grid-template-columns: 1fr; } }
 .wb-form-row { margin-bottom: 20px; }
 .wb-password-field { position: relative; }
 .wb-password-field .form-control { padding-right: 56px; }

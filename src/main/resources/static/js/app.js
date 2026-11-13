@@ -784,23 +784,6 @@
             confirm.addEventListener('input', update);
             update();
         });
-        document.querySelectorAll('[data-demo-login]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const form = button.closest('.wb-card').querySelector('form');
-                const email = form && form.querySelector('[name="email"]');
-                const password = form && form.querySelector('[name="password"]');
-                if (!email || !password) {
-                    return;
-                }
-                email.value = button.dataset.email;
-                password.value = button.dataset.password;
-                if (button.dataset.demoLogin === 'submit') {
-                    form.submit();
-                } else {
-                    password.focus();
-                }
-            });
-        });
     }
 
     function initCheckin() {

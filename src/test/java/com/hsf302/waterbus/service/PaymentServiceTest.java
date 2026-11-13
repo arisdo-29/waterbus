@@ -99,10 +99,10 @@ class PaymentServiceTest {
         assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
                 .containsExactly("VALID", "VALID");
 
-        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PASSED ("Đã qua chuyến"), DB vẫn là VALID
+        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PAST_TRIP ("Đã qua chuyến"), DB vẫn là VALID
         tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("COMPLETED");
         assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
-                .containsExactly("PASSED", "PASSED");
+                .containsExactly("PAST_TRIP", "PAST_TRIP");
         entityManager.flush();
         assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
                 .containsExactly("VALID", "VALID");

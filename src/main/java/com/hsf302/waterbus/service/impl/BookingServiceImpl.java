@@ -570,10 +570,10 @@ public class BookingServiceImpl implements BookingService {
         if ("HOLD".equals(status) && isHoldExpired(t.getBooking())) {
             status = "CANCELLED";
         }
-        // TR5: vé còn hợp lệ (VALID) của chuyến đã kết thúc (COMPLETED) -> hiển thị mã PASSED ("Đã qua chuyến"),
+        // TR5: vé còn hợp lệ (VALID) của chuyến đã kết thúc (COMPLETED) -> hiển thị mã PAST_TRIP ("Đã qua chuyến"),
         // để khách không tưởng vé vẫn dùng được. Chỉ đổi chữ hiển thị, DB vẫn là VALID (giống vé HOLD ở trên).
         if ("VALID".equals(status) && "COMPLETED".equals(t.getTrip().getStatus())) {
-            status = "PASSED";
+            status = "PAST_TRIP";
         }
         return status;
     }

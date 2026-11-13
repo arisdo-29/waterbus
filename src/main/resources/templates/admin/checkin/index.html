@@ -39,11 +39,13 @@
                             </label>
                         </div>
                         <div class="col-12 col-md-9">
-                            <select id="selectTrip" name="tripId" class="form-select form-select-lg fw-semibold" onchange="this.form.submit()">
+                            <select id="selectTrip" name="tripId" class="form-select form-select-lg fw-semibold" onchange="this.form.submit()"
+                                    th:with="nowStr=${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd HH:mm')}">
                                 <option th:each="t : ${tripsToday}"
                                         th:value="${t.id}"
                                         th:selected="${selectedTrip != null and selectedTrip.id == t.id}"
-                                        th:text="${(t.departureTime != null ? #temporals.format(t.departureTime, 'HH:mm') : '') + ' - ' + t.tripCode + ' (' + t.routeName + ' · ' + t.waterbusName + ')'}">
+                                        th:with="running=${t.departureTime != null and #temporals.format(t.departureTime, 'yyyy-MM-dd HH:mm').compareTo(nowStr) <= 0}"
+                                        th:text="${(t.departureTime != null ? #temporals.format(t.departureTime, 'HH:mm') : '') + ' - ' + t.tripCode + ' (' + t.routeName + ' · ' + t.waterbusName + ')' + (running ? ' - đang chạy' : '')}">
                                     08:00 - BD-0800 (Bạch Đằng - Linh Đông)
                                 </option>
                             </select>

@@ -2,6 +2,8 @@ package com.hsf302.waterbus.dto;
 
 import com.hsf302.waterbus.entity.Promotion;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -42,6 +44,9 @@ public class PromotionDTO implements Serializable {
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime endAt;
 
+    @NotNull(message = "Số lượt dùng không được để trống")
+    @Min(value = 1, message = "Số lượt dùng tối thiểu là 1")
+    @Max(value = 1000, message = "Số lượt dùng tối đa là 1000")
     private Integer usageLimit;
 
     private Integer usedCount = 0;

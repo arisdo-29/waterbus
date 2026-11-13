@@ -120,9 +120,30 @@ class AuthAndAdminViewTests {
                 .param("discountValue", "10")
                 .param("startAt", LocalDateTime.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")))
                 .param("endAt", LocalDateTime.now().plusDays(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")))
+                .param("usageLimit", "100")
                 .param("isActive", "true"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/promotions"));
+    }
+
+    @Test
+    void testAdminPromotionCreate_usageLimitRequiredAndMax1000() throws Exception {
+        String start = LocalDateTime.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+        String end = LocalDateTime.now().plusDays(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+        for (String limit : new String[]{"", "1001", "0"}) {
+            mvc.perform(post("/admin/promotions/save")
+                    .session(adminSession)
+                    .param("code", "PROMO_LIMIT")
+                    .param("name", "Khuyến mãi giới hạn")
+                    .param("discountType", "PERCENT")
+                    .param("discountValue", "10")
+                    .param("startAt", start)
+                    .param("endAt", end)
+                    .param("usageLimit", limit)
+                    .param("isActive", "true"))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attributeHasFieldErrors("promotion", "usageLimit"));
+        }
     }
 
     @Test

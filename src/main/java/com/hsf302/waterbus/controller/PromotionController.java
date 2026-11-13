@@ -12,6 +12,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Controller
 @RequestMapping("/admin/promotions")
@@ -71,11 +72,32 @@ public class PromotionController {
             bindingResult.rejectValue("endAt", "error.endAt", "Thời gian kết thúc phải sau thời gian bắt đầu");
         }
 
-        if (promotion.getId() == null && promotion.getStartAt() != null) {
-            LocalDateTime nowWithTolerance = LocalDateTime.now().minusMinutes(5);
-            if (promotion.getStartAt().isBefore(nowWithTolerance)) {
-                bindingResult.rejectValue("startAt", "error.startAt", "Thời gian bắt đầu khuyến mãi không được ở trong quá khứ");
+        LocalDateTime nowWithTolerance = LocalDateTime.now().minusMinutes(5);
+        PromotionDTO original = null;
+        if (promotion.getId() != null) {
+            original = promotionService.getPromotionById(promotion.getId());
+            if (original == null) {
+                bindingResult.reject("error.notFound", "Không tìm thấy khuyến mãi cần sửa.");
             }
+        }
+
+        // Tao moi: luon chan qua khu. Sua: giu nguyen ngay cu thi cho qua, doi sang ngay khac thi khong duoc o qua khu.
+        boolean startChanged = original == null || !sameMinute(original.getStartAt(), promotion.getStartAt());
+        if (startChanged && promotion.getStartAt() != null && promotion.getStartAt().isBefore(nowWithTolerance)) {
+            bindingResult.rejectValue("startAt", "error.startAt", "Thời gian bắt đầu khuyến mãi không được ở trong quá khứ");
+        }
+
+        int usedCount = original != null && original.getUsedCount() != null ? original.getUsedCount() : 0;
+        if (promotion.getUsageLimit() != null && promotion.getUsageLimit() < usedCount
+                && !bindingResult.hasFieldErrors("usageLimit")) {
+            bindingResult.rejectValue("usageLimit", "error.usageLimit",
+                    "Số lượt dùng không được thấp hơn số lượt đã dùng (" + usedCount + ")");
+        }
+
+        boolean endChanged =original == null || !sameMinute(original.getEndAt(), promotion.getEndAt());
+        if (endChanged && promotion.getEndAt() != null && promotion.getEndAt().isBefore(nowWithTolerance)
+                && !bindingResult.hasFieldErrors("endAt")) {
+            bindingResult.rejectValue("endAt", "error.endAtPast", "Thời gian kết thúc khuyến mãi không được ở trong quá khứ");
         }
 
         if (bindingResult.hasErrors()) {
@@ -97,6 +119,13 @@ public class PromotionController {
         promotionService.deletePromotion(id);
         redirectAttributes.addFlashAttribute("successMessage", "Đã xóa (ẩn) khuyến mãi thành công!");
         return "redirect:/admin/promotions";
+    }
+
+    private static boolean sameMinute(LocalDateTime a, LocalDateTime b) {
+        if (a == null || b == null) {
+            return a == b;
+        }
+        return a.truncatedTo(ChronoUnit.MINUTES).equals(b.truncatedTo(ChronoUnit.MINUTES));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

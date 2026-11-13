@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -64,7 +65,7 @@ class StationRouteAdminTests {
     }
 
     @Test
-    void stationCreateEditHideAndCheckboxMarkerWorkWithoutDeletingMemberships() throws Exception {
+    void stationCannotBeHiddenByButtonOrCheckboxUntilItsRoutesAreInactive() throws Exception {
         MvcResult createdResult = mvc.perform(post("/admin/stations/save").session(session).param("code", "NEW")
                         .param("name", "Bến mới tiếng Việt").param("address", "Địa chỉ mới")
                         .param("_isActive", "on").param("isActive", "true").param("unexpectedField", "ignored"))
@@ -77,6 +78,22 @@ class StationRouteAdminTests {
         int routeId = routeService.saveRoute(route("R", true, created.getId(), second));
         long memberships = stops.count();
         mvc.perform(post("/admin/stations/save").session(session).param("id", created.getId().toString())
+                        .param("code", "NEW").param("name", "Tên đang hoạt động").param("isActive", "true"))
+                .andExpect(redirectedUrl("/admin/stations"));
+        mvc.perform(post("/admin/stations/save").session(session).param("id", created.getId().toString())
+                        .param("code", "NEW").param("name", "Tên đã sửa").param("_isActive", "on"))
+                .andExpect(view().name("admin/station/form")).andExpect(model().hasErrors())
+                .andExpect(model().attributeExists("errorMessage"));
+        mvc.perform(post("/admin/stations/" + second + "/delete").session(session))
+                .andExpect(redirectedUrl("/admin/stations")).andExpect(flash().attributeExists("errorMessage"));
+        entityManager.clear();
+        assertThat(stations.findById(created.getId()).orElseThrow().getIsActive()).isTrue();
+        assertThat(stations.findById(created.getId()).orElseThrow().getName()).isEqualTo("Tên đang hoạt động");
+        assertThat(stations.findById(second).orElseThrow().getIsActive()).isTrue();
+        assertThat(stops.count()).isEqualTo(memberships);
+
+        routeService.hideRoute(routeId);
+        mvc.perform(post("/admin/stations/save").session(session).param("id", created.getId().toString())
                         .param("code", "NEW").param("name", "Tên đã sửa").param("_isActive", "on"))
                 .andExpect(redirectedUrl("/admin/stations"));
         entityManager.clear();
@@ -87,7 +104,7 @@ class StationRouteAdminTests {
                 .andExpect(redirectedUrl("/admin/stations")).andExpect(flash().attributeExists("successMessage"));
         assertThat(stations.count()).isEqualTo(2);
         assertThat(stops.count()).isEqualTo(memberships);
-        assertThat(routes.findById(routeId).orElseThrow().getIsActive()).isTrue();
+        assertThat(routes.findById(routeId).orElseThrow().getIsActive()).isFalse();
         mvc.perform(get("/stations")).andExpect(status().isOk()).andExpect(view().name("station/list"));
     }
 
@@ -126,38 +143,82 @@ class StationRouteAdminTests {
     }
 
     @Test
-    void routeCreateReorderRetainsIdsMinutesAndLoadsSameOrder() throws Exception {
+    void routeCreateReorderUpdatesMinutesRetainsIdsAndLoadsSameOrder() throws Exception {
         int first = station("A", true), second = station("B", true), third = station("C", true);
         mvc.perform(post("/admin/routes/save").session(session).param("code", "ORDER")
                         .param("name", "Tuyến mới tiếng Việt").param("description", "Theo thứ tự yêu cầu")
                         .param("_isActive", "on").param("isActive", "true")
-                        .param("stationIds", "" + second, "" + first))
+                        .param("stationIds", "" + second, "" + first).param("minutesFromStart", "0", "25"))
                 .andExpect(redirectedUrl("/admin/routes")).andExpect(flash().attributeExists("successMessage"));
         int id = routes.findFirstByCodeIgnoreCase("ORDER").orElseThrow().getId();
         List<RouteStation> original = stops.findByRouteIdOrderByStopOrderAsc(id);
-        original.get(0).setMinutesFromStart(17);
-        original.get(1).setMinutesFromStart(41);
-        stops.flush();
+        assertThat(original).extracting(RouteStation::getMinutesFromStart).containsExactly(0, 25);
         Integer retainedId = original.get(0).getId();
         RouteForm form = routeService.getRouteForEdit(id);
         form.setStationIds(List.of(first, third, second));
+        form.setMinutesFromStart(List.of(0, 15, 40));
         routeService.saveRoute(form);
         entityManager.clear();
         List<RouteStation> reloaded = stops.findByRouteIdOrderByStopOrderAsc(id);
         assertThat(reloaded).extracting(s -> s.getStation().getId()).containsExactly(first, third, second);
         assertThat(reloaded).extracting(RouteStation::getStopOrder).containsExactly(1, 2, 3);
-        assertThat(reloaded).extracting(RouteStation::getMinutesFromStart).containsExactly(41, 0, 17);
+        assertThat(reloaded).extracting(RouteStation::getMinutesFromStart).containsExactly(0, 15, 40);
         assertThat(reloaded.get(2).getId()).isEqualTo(retainedId);
         assertThat(routeService.getRouteForEdit(id).getStationIds()).containsExactly(first, third, second);
+        assertThat(routeService.getRouteForEdit(id).getMinutesFromStart()).containsExactly(0, 15, 40);
         String html = html(mvc.perform(get("/admin/routes/" + id + "/edit").session(session))
                 .andExpect(status().isOk()).andReturn());
         assertThat(html).contains("Tuyến mới tiếng Việt", "selected=\"selected\"");
         export("admin-route-edit", html);
-        // Remove one membership while retaining the other IDs and minute values.
+        // Bỏ bến đầu: số phút mới vẫn phải tính từ bến đầu mới.
         form.setStationIds(List.of(third, second));
+        form.setMinutesFromStart(List.of(0, 25));
         routeService.saveRoute(form);
         entityManager.clear();
-        assertThat(stops.findByRouteIdOrderByStopOrderAsc(id)).extracting(RouteStation::getMinutesFromStart).containsExactly(0, 17);
+        assertThat(stops.findByRouteIdOrderByStopOrderAsc(id)).extracting(RouteStation::getMinutesFromStart).containsExactly(0, 25);
+    }
+
+    @Test
+    void routeRejectsMissingOrInvalidMinutesWithoutChangingStoredItinerary() {
+        int first = station("A", true), second = station("B", true), third = station("C", true);
+        int id = routeService.saveRoute(route("MINUTES", true, first, second, third));
+        RouteForm form = routeService.getRouteForEdit(id);
+        form.setName("Không được lưu");
+        List<List<Integer>> invalidMinutes = Arrays.asList(null, List.of(), List.of(0, 10),
+                List.of(0, 10, 20, 30), Arrays.asList(0, null, 20), List.of(0, -1, 20),
+                List.of(5, 10, 20), List.of(0, 10, 10), List.of(0, 20, 10));
+        for (List<Integer> values : invalidMinutes) {
+            form.setMinutesFromStart(values);
+            assertThatThrownBy(() -> routeService.saveRoute(form)).isInstanceOf(IllegalArgumentException.class);
+            entityManager.clear();
+            RouteForm stored = routeService.getRouteForEdit(id);
+            assertThat(stored.getName()).isEqualTo("Tuyến MINUTES");
+            assertThat(stored.getStationIds()).containsExactly(first, second, third);
+            assertThat(stored.getMinutesFromStart()).containsExactly(0, 10, 20);
+        }
+    }
+
+    @Test
+    void routeMinutesBindRepeatedOrIndexedFieldsAndReturnErrorsForInvalidInput() throws Exception {
+        int first = station("A", true), second = station("B", true);
+        mvc.perform(post("/admin/routes/save").session(session).param("code", "INDEXED").param("name", "Tuyến")
+                        .param("stationIds[0]", "" + first).param("stationIds[1]", "" + second)
+                        .param("minutesFromStart[0]", "0").param("minutesFromStart[1]", "35"))
+                .andExpect(redirectedUrl("/admin/routes"));
+        int id = routes.findFirstByCodeIgnoreCase("INDEXED").orElseThrow().getId();
+        assertThat(routeService.getRouteForEdit(id).getMinutesFromStart()).containsExactly(0, 35);
+
+        for (String value : List.of("", "abc", "1.5", "2147483648", "-1")) {
+            mvc.perform(post("/admin/routes/save").session(session).param("code", "INVALID").param("name", "Tên giữ lại")
+                            .param("stationIds", "" + first, "" + second).param("minutesFromStart", "0", value))
+                    .andExpect(view().name("admin/route/form")).andExpect(model().hasErrors())
+                    .andExpect(model().attributeExists("stations", "errorMessage"));
+        }
+        mvc.perform(post("/admin/routes/save").session(session).param("code", "MISSING").param("name", "Thiếu phút")
+                        .param("stationIds", "" + first, "" + second))
+                .andExpect(view().name("admin/route/form"))
+                .andExpect(model().attributeHasFieldErrors("route", "minutesFromStart"));
+        assertThat(routes.count()).isEqualTo(1);
     }
 
     @Test
@@ -181,12 +242,14 @@ class StationRouteAdminTests {
         int first = station("A", true), second = station("B", true);
         MvcResult invalid = mvc.perform(post("/admin/routes/save").session(session).param("code", "")
                         .param("name", "Tên giữ lại").param("description", "Mô tả giữ lại")
-                        .param("_isActive", "on").param("stationIds", "" + second, "" + first))
+                        .param("_isActive", "on").param("stationIds", "" + second, "" + first)
+                        .param("minutesFromStart", "0", "27"))
                 .andExpect(view().name("admin/route/form"))
                 .andExpect(model().attributeHasFieldErrors("route", "code"))
                 .andExpect(model().attributeExists("stations", "errorMessage")).andReturn();
         RouteForm retained = (RouteForm) invalid.getModelAndView().getModel().get("route");
         assertThat(retained.getStationIds()).containsExactly(second, first);
+        assertThat(retained.getMinutesFromStart()).containsExactly(0, 27);
         assertThat(retained.getIsActive()).isFalse();
         assertThat(html(invalid)).contains("Tên giữ lại", "Mô tả giữ lại", "Vui lòng nhập mã tuyến.");
         for (String[] ids : List.of(new String[]{"" + first}, new String[]{"" + first, "" + first},
@@ -212,7 +275,7 @@ class StationRouteAdminTests {
         }
         mvc.perform(post("/admin/routes/save").session(session).param("code", "UNCHECKED")
                         .param("name", "Tuyến tạm ngừng").param("_isActive", "on")
-                        .param("stationIds", "" + first, "" + second))
+                        .param("stationIds", "" + first, "" + second).param("minutesFromStart", "0", "10"))
                 .andExpect(redirectedUrl("/admin/routes"));
         assertThat(routes.findFirstByCodeIgnoreCase("UNCHECKED").orElseThrow().getIsActive()).isFalse();
     }
@@ -282,6 +345,7 @@ class StationRouteAdminTests {
         form.setName("Tuyến " + code);
         form.setIsActive(active);
         form.setStationIds(List.of(ids));
+        form.setMinutesFromStart(java.util.stream.IntStream.range(0, ids.length).map(i -> i * 10).boxed().toList());
         return form;
     }
 

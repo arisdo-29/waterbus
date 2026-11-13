@@ -46,10 +46,12 @@ class RouteTransactionTests {
         form.setCode("ROLLBACK");
         form.setName("Tên gốc");
         form.setStationIds(List.of(ids[0], ids[1]));
+        form.setMinutesFromStart(List.of(0, 20));
         int routeId = service.saveRoute(form);
         form.setId(routeId);
         form.setName("Không được lưu dở");
         form.setStationIds(List.of(ids[2], ids[0]));
+        form.setMinutesFromStart(List.of(0, 40));
         AtomicInteger saves = new AtomicInteger();
         doAnswer(call -> {
             if (saves.incrementAndGet() == 2) {
@@ -66,6 +68,7 @@ class RouteTransactionTests {
             assertThatThrownBy(() -> service.saveRoute(form)).isInstanceOf(IllegalStateException.class);
             assertThat(service.getRouteForEdit(routeId).getName()).isEqualTo("Tên gốc");
             assertThat(service.getRouteForEdit(routeId).getStationIds()).containsExactly(ids[0], ids[1]);
+            assertThat(service.getRouteForEdit(routeId).getMinutesFromStart()).containsExactly(0, 20);
             assertThat(service.getStopsOfRoute(routeId)).extracting(RouteStation::getStopOrder).containsExactly(1, 2);
         } finally {
             reset(stops);

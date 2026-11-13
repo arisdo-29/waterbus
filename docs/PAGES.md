@@ -118,7 +118,7 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | M3 | `GET /admin/trips…` | `admin/trip/list`, `…/form` | Trí | Trí | `trips` / `trip`, `routes`, `waterbuses` | `routeId`, `waterbusId`, `departureTime`, `status` |
 | M3 | `GET /admin/waterbuses`, `/new` | `admin/waterbus/list`, `…/form` | Trí | Trí | `waterbuses`, `scheduledTripCounts` (theo ID tàu) / `waterbus` | POST `/admin/waterbuses/save`: `code`, `name`, `capacity`, `status` (chỉ thêm mới); POST `/{id}/status`: `status`; không có trang sửa tàu |
 | M3 | `GET /admin/stations`, `/new`, `/{id}/edit` | `admin/station/list`, `…/form` | Trí | Khuyên | `stations`: List StationDTO / `station`: StationForm | POST `/admin/stations/save`: `id` (rỗng = thêm mới), `code`, `name`, `address`, `isActive`; POST `/{id}/delete` chỉ ẩn bến |
-| M3 | `GET /admin/routes`, `/new`, `/{id}/edit` | `admin/route/list`, `…/form` | Trí | Khuyên | `routes`: List RouteDTO / `route`: RouteForm (`stationIds` theo thứ tự đã lưu), `stations`: List StationDTO gồm cả bến inactive | POST `/admin/routes/save`: `id`, `code`, `name`, `description`, `isActive`, `stationIds` (lặp theo thứ tự); POST `/{id}/delete` chỉ ngừng hoạt động tuyến |
+| M3 | `GET /admin/routes`, `/new`, `/{id}/edit` | `admin/route/list`, `…/form` | Trí | Khuyên | `routes`: List RouteDTO / `route`: RouteForm (`stationIds`, `minutesFromStart` cùng thứ tự đã lưu), `stations`: List StationDTO gồm cả bến inactive | POST `/admin/routes/save`: `id`, `code`, `name`, `description`, `isActive`, `stationIds`, `minutesFromStart` (hai danh sách lặp cùng thứ tự, xem hợp đồng KH1 bên dưới); POST `/{id}/delete` chỉ ngừng hoạt động tuyến |
 | M3 | `GET /admin/promotions…` | `admin/promotion/list`, `…/form` | Tân | Tân | `promotions` / `promotion` | `id`, `code`, `name`, `discountType`, `discountValue`, `maxDiscount`, `minOrderAmount`, `startAt`, `endAt`, `usageLimit`, `isActive` |
 | M3 | `GET /admin/ticket-types…` | `admin/tickettype/list`, `…/form` | Tân | Tân | `ticketTypes` / `ticketType` | `code`, `name`, `price`, `requiresVerification`, `description`, `isActive` |
 | M5 | `GET /admin/revenue?from=yyyy-MM-dd&to=yyyy-MM-dd` (chỉ ADMIN, `AdminInterceptor` đã chặn STAFF) | `admin/revenue/index` | Trí | Trí | `from`, `to`: LocalDate đã áp dụng mặc định (không truyền → 7 ngày gần nhất: `to` = hôm nay, `from` = hôm nay − 6 ngày; `from` > `to` → `errorMessage` và dùng lại mặc định); `errorMessage` (có thể null); `summary`: RevenueSummaryDTO (`totalRevenue`, `paidBookings`, `ticketsSold`, `freeTickets`, `totalDiscount`, `totalRefunded`, `cancelledOrExpiredBookings`); `dailyRevenue`: List DailyRevenueDTO (`date`, `revenue`, `bookings`; đủ mọi ngày trong khoảng, ngày không có đơn = 0 để vẽ biểu đồ); `byRoute`, `byTicketType`, `byMethod`, `byPromotion`: List RevenueGroupDTO (`name`, `bookings`, `tickets`, `revenue`; sắp xếp `revenue` giảm dần). Cách tính: cộng payment `SUCCESS` theo `Payment.paidAt`, trừ refund `DONE` theo `Refund.refundedAt`; `summary.totalRevenue` bằng tổng `dailyRevenue.revenue`. Vé miễn phí (đơn 0 đ, không có payment) đếm vào `freeTickets` theo `Booking.createdAt` | Form GET `/admin/revenue`: `from`, `to` (`input type="date"`) |
@@ -146,11 +146,13 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
   Lỗi trả lại model đã nhập, `BindingResult` và `errorMessage` tiếng Việt. Template hiện chỉ hiển thị alerts chung.
 - Tuyến cần ít nhất hai ID bến tồn tại, không trùng. Tuyến active không được lưu với bến inactive;
   tuyến inactive được giữ bến inactive. Form lấy cả bến inactive để không mất lựa chọn/dữ liệu cũ khi sửa.
-  Ẩn bến không tự sửa tuyến/chuyến/vé: tuyến active cũ có bến vừa ẩn được giữ nguyên; khi lưu lại phải
-  chọn bến active hoặc ngừng hoạt động tuyến. `/routes` vẫn liệt kê các tuyến active và đầy đủ bến theo thứ tự.
+  Không được ẩn bến còn thuộc tuyến active, kể cả bỏ chọn `isActive` trên form sửa; phải ngừng tuyến trước.
+  Bến chỉ thuộc tuyến inactive được phép ẩn; không tự xoá tuyến/chuyến/vé. `/routes` vẫn liệt kê tuyến active theo thứ tự.
+  KH2 phần tuyến còn chờ TI3: kiểm tra số chuyến trước khi ngừng tuyến/đổi hành trình; chưa coi D5 hoàn tất.
 - Lưu tuyến/thứ tự bến trong một transaction; `stopOrder` bắt đầu 1, liên tục theo request.
-  Sửa giữ ID và `minutesFromStart` của membership còn lại; bến mới dùng mặc định 0 đã có trong entity/schema.
-  Đây là giá trị chưa cấu hình giờ, không phải thời gian di chuyển được tính; không thay đổi TripService hoặc chuyến hiện có.
+  Sửa giữ ID của membership còn lại; `minutesFromStart` lấy từ form, cùng thứ tự `stationIds`.
+  Mỗi bến có một số phút nguyên không âm; bến đầu = 0, các bến sau tăng nghiêm ngặt. Không tự điền 0 khi thiếu dữ liệu.
+  KH1 không tự tính lại giờ của chuyến đã tạo; KH2 sẽ chặn thay hành trình khi còn chuyến sắp chạy (chờ TI3).
   Dịch thứ tự tạm lên vùng số dương chưa dùng trước khi lưu thứ tự cuối để giữ unique `(route_id, stop_order)`.
   Chỉ xóa membership bỏ khỏi tuyến vì schema không có FK tới route_station; không xóa route/station hoặc cascade.
 - Trí đã thêm `th:object`/`th:errors` cho `admin/station/form.html`, `admin/route/form.html` và đổi nút tuyến sang
@@ -159,6 +161,18 @@ FE hiển thị `successMessage` / `errorMessage` qua fragment `alerts` trong `l
   Không coi link ẩn trên navbar hay session trong test là phân quyền. Chưa sẵn sàng phát hành admin.
 - 404/500 dùng error dispatch của Spring Boot và template `error/404`, `error/500` hiện có;
   endpoint gây lỗi 500 chỉ nằm trong test. Không có catch-all controller hoặc global advice mới.
+
+## Hợp đồng phút qua bến (KH1, chờ Trí tích hợp TI4)
+
+- Form `route` có `stationIds` và `minutesFromStart`: hai danh sách cùng số phần tử, cùng thứ tự trên trang.
+  Ví dụ bến `[A, B, C]` đi cùng phút `[0, 15, 35]`. Khi sửa, backend tải cả hai danh sách theo `stopOrder`.
+- TI4 thêm `<input type="number" name="minutesFromStart" min="0" step="1" required>` trong **mỗi**
+  `[data-route-row]`, gồm cả hàng mặc định và `[data-route-row-template]`; lấy giá trị theo chỉ số của hàng.
+  Khi chuyển hàng lên/xuống, chuyển nguyên hàng gồm bến và phút. Không tự sửa phút sau khi đảo bến.
+- Hiện lỗi `minutesFromStart` và `minutesFromStart[i]` dưới khung/ô tương ứng bằng `th:errors`/`#fields.errors`.
+  Lỗi khác số phần tử, bến đầu khác 0 hoặc phút không tăng được backend báo qua `errorMessage`.
+- `app.js` kiểm tra ô phút khi có trong template; backend vẫn kiểm tra lại khi không chạy JavaScript.
+  Không có giá trị mặc định thay cho dữ liệu phút bị thiếu. Chỉ tích hợp KH1 vào `develop` cùng TI4 đã kiểm tra.
 
 ## Soát vé – hợp đồng JS
 

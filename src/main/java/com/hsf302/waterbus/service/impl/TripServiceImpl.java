@@ -125,6 +125,18 @@ public class TripServiceImpl implements TripService {
 
     @Override
     @Transactional(readOnly = true)
+    public long countActiveTripsOfRoute(int routeId) {
+        return tripRepository.countActiveTripsOfRoute(routeId, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveTripsOfStation(int stationId) {
+        return tripRepository.countActiveTripsOfStation(stationId, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TripManifestDTO getManifest(int tripId) {
         if (!tripRepository.existsById(tripId)) {
             throw new IllegalArgumentException("Không tìm thấy chuyến tàu.");

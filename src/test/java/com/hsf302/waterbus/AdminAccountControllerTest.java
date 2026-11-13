@@ -99,7 +99,8 @@ class AdminAccountControllerTest {
         mvc.perform(get("/admin/accounts").sessionAttr("loginAccount", adminDTO))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/account/list"))
-                .andExpect(model().attributeExists("accounts", "page"));
+                .andExpect(model().attributeExists("accounts", "page"))
+                .andExpect(content().string(not(containsString("/change-role"))));
     }
 
     @Test
@@ -138,7 +139,7 @@ class AdminAccountControllerTest {
                         .sessionAttr("loginAccount", adminDTO)
                         .param("role", "STAFF"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/accounts"))
+                .andExpect(redirectedUrl("/admin/accounts/" + customerAccount.getId()))
                 .andExpect(flash().attributeExists("successMessage"));
 
         Account updated = accountRepository.findById(customerAccount.getId()).orElseThrow();
@@ -152,7 +153,7 @@ class AdminAccountControllerTest {
                         .sessionAttr("loginAccount", adminDTO)
                         .param("role", "STAFF"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/accounts"))
+                .andExpect(redirectedUrl("/admin/accounts/" + adminAccount.getId()))
                 .andExpect(flash().attributeExists("errorMessage"));
     }
 
@@ -215,8 +216,21 @@ class AdminAccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/account/detail"))
                 .andExpect(model().attributeExists("account", "bookings"))
+                .andExpect(content().string(containsString("action=\"/admin/accounts/" + customerAccount.getId() + "/change-role\"")))
+                .andExpect(content().string(containsString("Cấp quyền Staff")))
                 .andExpect(content().string(not(containsString("reset-password"))))
                 .andExpect(content().string(not(containsString("name=\"newPassword\""))));
+    }
+
+    @Test
+    void roleActionsInDetailsMatchTheTargetAccountAndHideForSelf() throws Exception {
+        mvc.perform(get("/admin/accounts/" + staffAccount.getId()).sessionAttr("loginAccount", adminDTO))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Hạ về Khách")))
+                .andExpect(content().string(not(containsString("Cấp quyền Staff"))));
+        mvc.perform(get("/admin/accounts/" + adminAccount.getId()).sessionAttr("loginAccount", adminDTO))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("/change-role"))));
     }
 
     @Test

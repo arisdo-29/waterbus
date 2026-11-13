@@ -41,11 +41,14 @@ public class AdminStationController {
     }
 
     @GetMapping("/{id}/edit")
-    public String edit(@PathVariable int id, Model model) {
+    public String edit(@PathVariable int id, Model model, RedirectAttributes flash) {
         try {
             model.addAttribute("station", stationService.getStationForEdit(id));
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        } catch (IllegalStateException ex) {
+            flash.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/admin/stations";
         }
         return "admin/station/form";
     }
@@ -58,7 +61,7 @@ public class AdminStationController {
                 stationService.saveStation(form);
                 flash.addFlashAttribute("successMessage", "Đã lưu thông tin bến.");
                 return "redirect:/admin/stations";
-            } catch (IllegalArgumentException ex) {
+            } catch (IllegalArgumentException | IllegalStateException ex) {
                 errors.reject("station.invalid", ex.getMessage());
             } catch (DataIntegrityViolationException ex) {
                 errors.reject("station.conflict", "Không thể lưu bến. Mã có thể đã tồn tại. Vui lòng kiểm tra và thử lại.");
@@ -76,7 +79,7 @@ public class AdminStationController {
         try {
             stationService.hideStation(id);
             flash.addFlashAttribute("successMessage", "Đã ẩn bến. Dữ liệu tuyến, chuyến và vé được giữ nguyên.");
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }
         return "redirect:/admin/stations";

@@ -103,7 +103,8 @@ lịch sử đặt vé) đã được triển khai và nối với service/datab
   theo năm chuyến. TR3 vẫn phải bắt đăng nhập/giới hạn 2 vé ưu đãi ở server.
 - TR6: `POST /payment/{bookingCode}/cash`, chỉ STAFF; backend gọi luồng xác nhận thanh toán chung với method `CASH`,
   kiểm tra quyền và hiệu lực đơn, redirect sang trang vé khi thành công. Trang vé hiển thị `CASH` là “Tiền mặt”.
-  Chờ constraint KH3 trước khi ghi CASH trên SQL Server. Countdown khoá tất cả nút/form khi hết hạn hoặc sai thời hạn.
+  Đã triển khai (KH3 đã có CASH): thành công → `/booking/{bookingCode}` + flash `successMessage`; không phải STAFF hoặc
+  đơn không thanh toán được → `/payment/{bookingCode}` + flash `errorMessage`. Countdown khoá tất cả nút/form khi hết hạn hoặc sai thời hạn.
 - TR5 đã thống nhất trả `tickets[].status = 'PAST_TRIP'` cho vé VALID của chuyến COMPLETED để dùng nhãn “Đã qua chuyến”.
   Đây chỉ là trạng thái DTO hiển thị, không ghi vào `ticket.status` và không thay nhãn COMPLETED của chuyến.
 - KH5 giữ Draft đến khi có PR backend TR2/TR4/TR6 và kiểm tra tích hợp. TR5 chờ Trí merge TI1.

@@ -128,6 +128,18 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | M2 | `GET/POST /account/profile` | `account/profile` | Trí | Tân | `account` (AccountDTO), `updateProfileRequest` | `fullName`, `phone` |
 | M2 | `GET/POST /account/change-password` | `account/change-password` | Trí | Tân | `changePasswordRequest`, `errorMessage` | `currentPassword`, `newPassword`, `confirmPassword` |
 
+Sửa/ngừng hoạt động tuyến: backend gọi `TripService.countActiveTripsOfRoute(routeId)` để đếm chuyến
+`SCHEDULED`/`DEPARTED` chưa qua giờ đến. Còn chuyến → GET trang sửa chuyển về danh sách kèm `errorMessage`,
+POST lưu kiểm tra lại và trả lỗi trên form, POST ngừng hoạt động trả lỗi trên danh sách. Chuyến đã hoàn tất/huỷ không chặn sửa.
+
+Sửa bến: `StationService` gọi `TripService.countActiveTripsOfStation(stationId)` để kiểm tra chuyến
+`SCHEDULED`/`DEPARTED` chưa qua giờ đến trên các tuyến có bến đó. GET sửa bến bị chặn sẽ chuyển về danh sách kèm `errorMessage`,
+POST lưu trả lỗi trên form, không đổi dữ liệu. Ẩn bến vẫn yêu cầu không thuộc tuyến đang hoạt động và không còn chuyến chưa kết thúc.
+
+Cấp/hạ quyền Staff nằm trong `admin/account/detail`, không đặt ở danh sách tài khoản. Form giữ endpoint
+`POST /admin/accounts/{id}/change-role` với field `role`, xử lý xong chuyển về chi tiết tài khoản đó.
+Không hiển thị thao tác đổi quyền cho tài khoản ADMIN hoặc chính tài khoản đang đăng nhập.
+
 Mỗi người chỉ đổi mật khẩu của chính mình qua trang thông tin cá nhân → `/account/change-password`,
 phải nhập đúng mật khẩu hiện tại. Backend lấy ID từ session `loginAccount`, không nhận ID tài khoản cần đổi từ form.
 Trang quản trị tài khoản không có form đặt lại mật khẩu; endpoint `POST /admin/accounts/{id}/reset-password` đã bỏ, kể cả với Super Admin.

@@ -118,7 +118,7 @@ public class AdminAccountController {
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
-        return "redirect:/admin/accounts";
+        return id == AccountService.SUPER_ADMIN_ID ? "redirect:/admin/accounts" : "redirect:/admin/accounts/" + id;
     }
 
     @PostMapping("/{id}/toggle-status")

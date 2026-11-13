@@ -16,6 +16,22 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
                                                           LocalDateTime departureTime);
     long countByRouteIdAndStatusAndDepartureTimeAfter(Integer routeId, String status,
                                                       LocalDateTime departureTime);
+
+    @Query("""
+            SELECT COUNT(t) FROM Trip t
+            WHERE t.route.id = :routeId AND t.status IN ('SCHEDULED', 'DEPARTED')
+              AND t.arrivalTime > :now
+            """)
+    long countActiveTripsOfRoute(@Param("routeId") int routeId, @Param("now") LocalDateTime now);
+
+    @Query("""
+            SELECT COUNT(t) FROM Trip t
+            WHERE t.status IN ('SCHEDULED', 'DEPARTED') AND t.arrivalTime > :now
+              AND EXISTS (SELECT rs.id FROM RouteStation rs
+                          WHERE rs.route.id = t.route.id AND rs.station.id = :stationId)
+            """)
+    long countActiveTripsOfStation(@Param("stationId") int stationId, @Param("now") LocalDateTime now);
+
     @Query("SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus ORDER BY t.departureTime DESC, t.id DESC")
     List<Trip> findAllForAdmin();
 

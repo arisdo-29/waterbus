@@ -98,17 +98,6 @@
                                     <a class="btn btn-sm btn-wb-outline" th:href="@{/admin/accounts/{id}(id=${acc.id})}" title="Xem chi tiết & lịch sử đặt vé">Chi tiết</a>
 
                                     <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
-                                        <form th:if="${acc.role == 'CUSTOMER'}" th:action="@{/admin/accounts/{id}/change-role(id=${acc.id})}" method="post" class="d-inline" data-confirm="Cấp quyền Nhân viên (STAFF) cho tài khoản này?">
-                                            <input type="hidden" name="role" value="STAFF">
-                                            <button class="btn btn-sm btn-wb-outline text-primary border-primary" type="submit">Cấp quyền Staff</button>
-                                        </form>
-                                        <form th:if="${acc.role == 'STAFF'}" th:action="@{/admin/accounts/{id}/change-role(id=${acc.id})}" method="post" class="d-inline" data-confirm="Hạ vai trò của tài khoản này xuống Khách hàng (CUSTOMER)?">
-                                            <input type="hidden" name="role" value="CUSTOMER">
-                                            <button class="btn btn-sm btn-wb-outline text-secondary" type="submit">Hạ về Khách</button>
-                                        </form>
-                                    </th:block>
-
-                                    <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
                                         <form th:action="@{/admin/accounts/{id}/toggle-status(id=${acc.id})}" method="post" class="d-inline"
                                               th:data-confirm="${acc.status == 'ACTIVE' ? 'Bạn có chắc chắn muốn KHÓA tài khoản này? Người dùng sẽ không thể đăng nhập.' : 'Mở khóa cho tài khoản này?'}"
                                               th:data-confirm-variant="${acc.status == 'ACTIVE' ? 'danger' : 'default'}">

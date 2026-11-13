@@ -49,11 +49,15 @@ public class AdminRouteController {
     }
 
     @GetMapping("/{id}/edit")
-    public String edit(@PathVariable int id, Model model) {
+    public String edit(@PathVariable int id, Model model, RedirectAttributes flash) {
         try {
             model.addAttribute("route", routeService.getRouteForEdit(id));
+            assertRouteEditable(id);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        } catch (IllegalStateException ex) {
+            flash.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/admin/routes";
         }
         return form(model);
     }
@@ -63,10 +67,13 @@ public class AdminRouteController {
                        Model model, RedirectAttributes flash) {
         if (!errors.hasErrors()) {
             try {
+                if (form.getId() != null) {
+                    assertRouteEditable(form.getId());
+                }
                 routeService.saveRoute(form);
                 flash.addFlashAttribute("successMessage", "Đã lưu tuyến và thứ tự bến.");
                 return "redirect:/admin/routes";
-            } catch (IllegalArgumentException ex) {
+            } catch (IllegalArgumentException | IllegalStateException ex) {
                 errors.reject("route.invalid", ex.getMessage());
             } catch (DataIntegrityViolationException ex) {
                 errors.reject("route.conflict", "Không thể lưu tuyến. Mã có thể đã tồn tại hoặc dữ liệu vừa thay đổi. Vui lòng kiểm tra và thử lại.");
@@ -82,10 +89,10 @@ public class AdminRouteController {
     @PostMapping("/{id}/delete")
     public String hide(@PathVariable int id, RedirectAttributes flash) {
         try {
-            long upcoming = tripService.countUpcomingTripsOfRoute(id);
-            if (upcoming > 0) {
-                throw new IllegalArgumentException("Tuyến còn " + upcoming
-                        + " chuyến sắp chạy. Vui lòng huỷ các chuyến này trước khi ngừng tuyến.");
+            long active = tripService.countActiveTripsOfRoute(id);
+            if (active > 0) {
+                throw new IllegalArgumentException("Tuyến còn " + active
+                        + " chuyến đang chạy hoặc sắp khởi hành. Vui lòng chờ hoàn tất hoặc huỷ các chuyến này trước khi ngừng tuyến.");
             }
             routeService.hideRoute(id);
             flash.addFlashAttribute("successMessage", "Đã ngừng hoạt động tuyến. Chuyến và dữ liệu lịch sử được giữ nguyên.");
@@ -93,6 +100,14 @@ public class AdminRouteController {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }
         return "redirect:/admin/routes";
+    }
+
+    private void assertRouteEditable(int routeId) {
+        long active = tripService.countActiveTripsOfRoute(routeId);
+        if (active > 0) {
+            throw new IllegalStateException("Tuyến còn " + active
+                    + " chuyến đang chạy hoặc sắp khởi hành. Chỉ được sửa tuyến sau khi các chuyến này hoàn tất hoặc bị huỷ.");
+        }
     }
 
     private String form(Model model) {

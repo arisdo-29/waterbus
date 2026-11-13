@@ -71,9 +71,13 @@
 
 /* Danh sách bến trong form tuyến (dynamic rows) */
 .wb-admin .wb-route-stops-editor { display: grid; gap: 10px; }
-.wb-admin .wb-route-stop-row { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; }
+.wb-admin .wb-route-stop-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 150px auto; gap: 10px; align-items: center; }
 .wb-admin .wb-route-stop-order { display: grid; place-items: center; width: 40px; height: 44px; border-radius: 10px; background: var(--wb-sky-50); color: var(--wb-blue-700); font-weight: 700; }
 .wb-admin .wb-route-stop-row .form-select { min-height: 44px; }
+.wb-admin .wb-route-stop-minutes { min-width: 0; }
+.wb-admin .wb-route-stop-minutes label { display: grid; gap: 4px; margin: 0; color: var(--wb-muted); font-size: 12px; font-weight: 600; }
+.wb-admin .wb-route-stop-minutes .form-control { min-height: 44px; }
+.wb-admin .wb-route-stop-minutes .text-danger { display: block; }
 .wb-admin .wb-route-stop-tools { display: flex; gap: 6px; }
 .wb-admin .wb-route-stop-tools .btn { min-width: 40px; min-height: 44px; padding: 8px; border: 1px solid var(--wb-line); border-radius: 10px; color: var(--wb-blue-700); background: #fff; }
 .wb-admin .wb-route-stop-tools .btn:hover { background: var(--wb-sky-50); }
@@ -117,6 +121,7 @@
     .wb-admin .wb-admin-table td::before { content: attr(data-label); display: block; color: var(--wb-muted); font-size: 13px; font-weight: 600; }
     .wb-admin .wb-admin-table-actions { justify-content: flex-start; }
     .wb-admin .wb-route-stop-row { grid-template-columns: 36px 1fr; }
+    .wb-admin .wb-route-stop-minutes { grid-column: 2; }
     .wb-admin .wb-route-stop-tools { grid-column: 1 / -1; justify-content: flex-end; }
 }
 

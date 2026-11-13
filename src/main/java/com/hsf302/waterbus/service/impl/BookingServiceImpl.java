@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,8 +122,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 3. Chuyến: phải tồn tại và còn đang mở bán
+        // TR5: SCHEDULED (chưa rời bến đầu) hoặc DEPARTED (đã rời bến đầu, job TI1 của Trí tự đổi) đều còn bán,
+        // vì khách ở bến giữa vẫn mua được cho tới mốc ngừng bán của bến mình (isOnlineSalesClosed ở bước 4).
+        // Giống cách TripService của Trí lọc chuyến ở trang tìm chuyến / chọn ghế.
         Trip trip = tripService.getTripById(tripId);
-        if (trip == null || !"SCHEDULED".equals(trip.getStatus())) {
+        if (trip == null || !("SCHEDULED".equals(trip.getStatus()) || "DEPARTED".equals(trip.getStatus()))) {
             throw new IllegalArgumentException("Chuyến tàu này không còn nhận đặt vé.");
         }
 
@@ -154,6 +158,10 @@ public class BookingServiceImpl implements BookingService {
         }
         if (ticketType == null) {
             throw new IllegalArgumentException("Loại vé không hợp lệ.");
+        }
+        // Vé ưu đãi: phải đăng nhập và tối đa 2 vé mỗi đơn (xem checkPriorityTicketRules)
+        if (Boolean.TRUE.equals(ticketType.getRequiresVerification())) {
+            checkPriorityTicketRules(accountId, seatIds.size());
         }
 
         // 6. Tính tiền: giá vé lấy từ getPrice, giảm giá lấy từ calculateDiscount
@@ -232,6 +240,19 @@ public class BookingServiceImpl implements BookingService {
             promotionService.increaseUsedCount(promotion.getCode());
         }
         return toDTO(booking); // trả DTO cho controller, entity không ra khỏi service
+    }
+
+    // Luật riêng của vé ưu đãi (loại vé cần xác minh giấy tờ, thường miễn phí -> đơn PAID ngay, không phải trả tiền).
+    // Không chặn thì khách vãng lai giữ được hàng loạt ghế miễn phí mà không tốn gì và không để lại danh tính.
+    private void checkPriorityTicketRules(Integer accountId, int seatCount) {
+        // accountId = null nghĩa là khách vãng lai (chưa đăng nhập)
+        if (accountId == null) {
+            throw new IllegalArgumentException("Vui lòng đăng nhập để đặt vé ưu đãi.");
+        }
+        if (seatCount > BookingService.MAX_PRIORITY_TICKETS_PER_BOOKING) {
+            throw new IllegalArgumentException("Mỗi đơn chỉ được đặt tối đa "
+                    + BookingService.MAX_PRIORITY_TICKETS_PER_BOOKING + " vé ưu đãi.");
+        }
     }
 
     // Đã ngừng bán online chưa: khi tàu tới bến khách lên chỉ còn ONLINE_SALES_CUTOFF_MINUTES phút
@@ -392,10 +413,9 @@ public class BookingServiceImpl implements BookingService {
                 errors.rejectValue("birthYears[" + i + "]", "passenger.age",
                         "Vé người cao tuổi chỉ dành cho hành khách từ 70 tuổi trở lên.");
             }
-            if ("PRIORITY".equals(ticketType.getCode()) && age < 13) {
-                errors.rejectValue("birthYears[" + i + "]", "passenger.age",
-                        "Vé ưu tiên chỉ dành cho hành khách từ 13 tuổi trở lên.");
-            }
+            // Vé ưu tiên (PRIORITY: người khuyết tật, thương binh) KHÔNG giới hạn tuổi: nhóm không có vé trẻ em,
+            // nên nếu chặn dưới 13 tuổi thì trẻ khuyết tật không mua được vé miễn phí nào.
+            // Nhân viên vẫn xác minh giấy tờ khi khách lên tàu.
         }
     }
 
@@ -446,6 +466,46 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
         releaseHoldTickets(booking.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true) // đọc tài khoản chủ đơn (quan hệ LAZY)
+    public ViewAccess checkViewAccess(String bookingCode, Integer loginAccountId, String loginRole,
+                                      Set<String> viewableBookingCodes) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) {
+            return ViewAccess.NOT_FOUND;
+        }
+        // Nhân viên, quản trị xem được mọi đơn (soát vé, đặt hộ, hỗ trợ khách tại bến)
+        if ("STAFF".equalsIgnoreCase(loginRole) || "ADMIN".equalsIgnoreCase(loginRole)) {
+            return ViewAccess.ALLOWED;
+        }
+        // Đơn gắn tài khoản -> chỉ chính chủ đơn
+        if (booking.getAccount() != null) {
+            if (loginAccountId == null) {
+                return ViewAccess.NEED_LOGIN;
+            }
+            if (booking.getAccount().getId().equals(loginAccountId)) {
+                return ViewAccess.ALLOWED;
+            }
+            return ViewAccess.NOT_OWNER;
+        }
+        // Đơn khách vãng lai -> chỉ trình duyệt đã được phép (vừa đặt đơn này, hoặc đã nhập đúng SĐT)
+        if (viewableBookingCodes != null && viewableBookingCodes.contains(booking.getBookingCode())) {
+            return ViewAccess.ALLOWED;
+        }
+        return ViewAccess.NEED_PHONE;
+    }
+
+    @Override
+    public boolean verifyContactPhone(String bookingCode, String contactPhone) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElse(null);
+        // Chỉ đơn khách vãng lai mới xác minh bằng SĐT; đơn của tài khoản thì phải đăng nhập
+        if (booking == null || booking.getAccount() != null || isBlank(contactPhone)) {
+            return false;
+        }
+        // SĐT trong DB đã được bỏ khoảng trắng lúc đặt -> so với SĐT khách nhập (cũng bỏ khoảng trắng)
+        return contactPhone.trim().equals(booking.getContactPhone());
     }
 
     // Sinh 8 chữ số ngẫu nhiên cho mã đơn, thử lại nếu mã đã có trong DB
@@ -509,6 +569,11 @@ public class BookingServiceImpl implements BookingService {
         String status = t.getStatus();
         if ("HOLD".equals(status) && isHoldExpired(t.getBooking())) {
             status = "CANCELLED";
+        }
+        // TR5: vé còn hợp lệ (VALID) của chuyến đã kết thúc (COMPLETED) -> hiển thị mã PASSED ("Đã qua chuyến"),
+        // để khách không tưởng vé vẫn dùng được. Chỉ đổi chữ hiển thị, DB vẫn là VALID (giống vé HOLD ở trên).
+        if ("VALID".equals(status) && "COMPLETED".equals(t.getTrip().getStatus())) {
+            status = "PASSED";
         }
         return status;
     }

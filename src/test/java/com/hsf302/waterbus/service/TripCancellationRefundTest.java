@@ -112,6 +112,32 @@ class TripCancellationRefundTest {
     }
 
     @Test
+    void cancellationReturnsPromotionUseOnceForPaidBookings() {
+        LocalDateTime now = LocalDateTime.now();
+        jdbc.update("INSERT INTO promotion (code, name, discount_type, discount_value, min_order_amount, "
+                        + "start_at, end_at, used_count, is_active) "
+                        + "VALUES ('CANCEL_PROMO', 'Mã thử', 'FIXED', 1000, 0, ?, ?, 3, 1)",
+                now.minusDays(1), now.plusDays(1));
+        int promotionId = id("promotion", "code", "CANCEL_PROMO");
+        jdbc.update("UPDATE booking SET promotion_id = ? WHERE booking_code IN "
+                + "('CANCEL_PENDING', 'CANCEL_PAID', 'CANCEL_FREE')", promotionId);
+
+        tripService.cancelTrip(tripId, "Tàu hỏng");
+        entityManager.flush();
+        assertEquals(1, jdbc.queryForObject("SELECT used_count FROM promotion WHERE id = ?", Integer.class,
+                promotionId));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?",
+                id("booking", "booking_code", "CANCEL_PAID")));
+        assertEquals("CANCELLED", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_FREE'"));
+
+        refundService.createForCancelledTrip(tripId, "Tàu hỏng");
+        entityManager.flush();
+        assertEquals(1, jdbc.queryForObject("SELECT used_count FROM promotion WHERE id = ?", Integer.class,
+                promotionId));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund", Integer.class));
+    }
+
+    @Test
     void refundPageShowsContactAndCompletesWithoutFormFields() throws Exception {
         tripService.cancelTrip(tripId, "Tàu hỏng");
         entityManager.flush();
@@ -137,6 +163,44 @@ class TripCancellationRefundTest {
         entityManager.flush();
         assertEquals("DONE", value("SELECT status FROM refund WHERE id = ?", refundId));
         assertEquals("REFUNDED", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_PAID'"));
+    }
+
+    @Test
+    void invalidPaymentOfExpiredBookingCreatesOneRefundAndSubtractsRevenueWhenCompleted() throws Exception {
+        int bookingId = id("booking", "booking_code", "CANCEL_PAID");
+        jdbc.update("UPDATE booking SET status = 'EXPIRED' WHERE id = ?", bookingId);
+        jdbc.update("UPDATE ticket SET status = 'CANCELLED' WHERE booking_id = ?", bookingId);
+        jdbc.update("UPDATE payment SET method = 'VNPAY', transaction_ref = 'VNP-EXPIRED' WHERE booking_id = ?",
+                bookingId);
+
+        refundService.createForInvalidPayment(bookingId, "Thanh toán sau khi đơn hết hạn");
+        refundService.createForInvalidPayment(bookingId, "Không tạo thêm khoản hoàn");
+        entityManager.flush();
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund WHERE booking_id = ?", Integer.class,
+                bookingId));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?", bookingId));
+        assertEquals("Thanh toán sau khi đơn hết hạn", value("SELECT reason FROM refund WHERE booking_id = ?", bookingId));
+        assertEquals(new BigDecimal("20000"), jdbc.queryForObject(
+                "SELECT amount FROM refund WHERE booking_id = ?", BigDecimal.class, bookingId));
+        assertEquals("EXPIRED", value("SELECT status FROM booking WHERE id = ?", bookingId));
+
+        var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        String page = mvc.perform(get("/admin/refunds").param("status", "PENDING")
+                        .sessionAttr("loginAccount", admin()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(page.contains("Thanh toán sau khi đơn hết hạn"));
+        assertEquals(new BigDecimal("20000"), revenueService.getReport(LocalDate.now(), LocalDate.now())
+                .summary().totalRevenue());
+
+        int refundId = jdbc.queryForObject("SELECT id FROM refund WHERE booking_id = ?", Integer.class,
+                bookingId);
+        refundService.markRefunded(refundId, admin());
+        entityManager.flush();
+        assertEquals("REFUNDED", value("SELECT status FROM booking WHERE id = ?", bookingId));
+        assertEquals("DONE", value("SELECT status FROM refund WHERE id = ?", refundId));
+        var report = revenueService.getReport(LocalDate.now(), LocalDate.now());
+        assertEquals(BigDecimal.ZERO, report.summary().totalRevenue());
+        assertEquals(new BigDecimal("20000"), report.summary().totalRefunded());
     }
 
     private AccountDTO admin() {

@@ -18,7 +18,7 @@
         </form>
         <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(refunds)}">
             <table class="table wb-admin-table">
-                <caption class="visually-hidden">Danh sách hoàn tiền khi huỷ chuyến</caption>
+                <caption class="visually-hidden">Danh sách khoản hoàn tiền</caption>
                 <thead><tr><th scope="col">Mã đơn</th><th scope="col">Khách hàng</th><th scope="col">Số tiền</th><th scope="col">Lý do</th><th scope="col">Trạng thái</th><th scope="col">Xác nhận hoàn</th></tr></thead>
                 <tbody><tr th:each="refund : ${refunds}">
                     <td data-label="Mã đơn"><a th:href="@{/booking/{code}(code=${refund.bookingCode})}" th:text="${refund.bookingCode}">BK0001</a></td>

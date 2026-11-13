@@ -70,7 +70,7 @@ class TripCancellationRefundTest {
         ticket("CANCEL_T2", "CANCEL_PAID", "A2", "VALID");
         ticket("CANCEL_T3", "CANCEL_FREE", "A3", "VALID");
         jdbc.update("INSERT INTO payment (booking_id, method, amount, status, transaction_ref, created_at, paid_at) "
-                        + "VALUES (?, 'MOCK', 20000, 'SUCCESS', 'MOCK-CANCEL', ?, ?)",
+                        + "VALUES (?, 'VNPAY', 20000, 'SUCCESS', 'VNP-CANCEL', ?, ?)",
                 id("booking", "booking_code", "CANCEL_PAID"), LocalDateTime.now(), LocalDateTime.now());
     }
 

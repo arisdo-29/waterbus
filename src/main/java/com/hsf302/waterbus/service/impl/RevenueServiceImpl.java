@@ -63,6 +63,9 @@ public class RevenueServiceImpl implements RevenueService {
 
         for (Payment payment : paymentRepository.findByStatusAndPaidAtGreaterThanEqualAndPaidAtLessThan(
                 "SUCCESS", start, end)) {
+            if ("MOCK".equalsIgnoreCase(payment.getMethod())) {
+                continue; // giao dich thu nghiem, khong tinh vao doanh thu
+            }
             Booking booking = payment.getBooking();
             List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(booking.getId());
             gross = gross.add(payment.getAmount());
@@ -93,12 +96,15 @@ public class RevenueServiceImpl implements RevenueService {
         for (Refund refund : refundRepository.findByStatusAndRefundedAtGreaterThanEqualAndRefundedAtLessThan(
                 "DONE", start, end)) {
             Booking booking = refund.getBooking();
+            String method = paymentRepository.findByBookingIdAndStatus(booking.getId(), "SUCCESS").stream()
+                    .findFirst().map(Payment::getMethod).orElse(null);
+            if ("MOCK".equalsIgnoreCase(method)) {
+                continue;
+            }
             refunded = refunded.add(refund.getAmount());
             days.get(refund.getRefundedAt().toLocalDate()).revenue =
                     days.get(refund.getRefundedAt().toLocalDate()).revenue.subtract(refund.getAmount());
             List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(booking.getId());
-            String method = paymentRepository.findByBookingIdAndStatus(booking.getId(), "SUCCESS").stream()
-                    .findFirst().map(Payment::getMethod).orElse(null);
             addGroups(routes, types, methods, promotions, booking, tickets, method,
                     refund.getAmount().negate(), 0, 0);
         }

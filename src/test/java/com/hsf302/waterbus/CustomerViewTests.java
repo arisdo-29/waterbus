@@ -382,6 +382,7 @@ class CustomerViewTests {
                 "expiresAt", LocalDateTime.of(2026, 10, 24, 18, 15), "createdAt", LocalDateTime.of(2026, 10, 24, 18, 5),
                 "contactName", "Người đặt", "contactPhone", "0912345678", "contactEmail", "guest@example.test"));
         booking.put("paidAt", state.equals("PAID") ? LocalDateTime.of(2026, 10, 24, 18, 6) : null);
+        booking.put("promotionCode", "GIAM3K");
         Map<String, Object> trip = new HashMap<>(Map.of("id", 71, "routeName", "Tuyến thực", "tripCode", "TRIP-71"));
         trip.put("departureTime", null);
         trip.put("arrivalTime", null);

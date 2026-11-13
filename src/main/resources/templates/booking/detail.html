@@ -175,6 +175,18 @@
                 28.500 đ
               </div>
               <dl class="wb-contact-list">
+                <div th:if="${booking?.subtotal != null}">
+                  <dt>Tạm tính</dt>
+                  <dd th:text="${#numbers.formatDecimal(booking.subtotal, 0, 'POINT', 0, 'COMMA')} + ' đ'">15.000 đ</dd>
+                </div>
+                <div th:if="${booking?.promotionCode != null}">
+                  <dt>Mã khuyến mãi</dt>
+                  <dd class="wb-mono" th:text="${booking.promotionCode}">WELCOME10</dd>
+                </div>
+                <div th:if="${booking?.discountAmount != null and booking.discountAmount.signum() > 0}">
+                  <dt>Giảm giá</dt>
+                  <dd class="text-success" th:text="'- ' + ${#numbers.formatDecimal(booking.discountAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">- 1.500 đ</dd>
+                </div>
                 <div>
                   <dt>Đặt lúc</dt>
                   <dd th:text="${#temporals.format(booking?.createdAt, 'HH:mm dd/MM/yyyy')}">09:12 19/10/2026</dd>

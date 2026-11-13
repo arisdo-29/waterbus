@@ -90,7 +90,11 @@
               </div>
             </div>
             <div class="wb-trip-details">
-              <span class="wb-chip" th:text="${trip?.routeName}">Tuyến số 1</span><span class="wb-trip-code">Mã chuyến: <strong th:text="${trip?.tripCode}">20261020-R1-0700</strong></span>
+              <span class="wb-chip">
+                <span th:each="s : ${stations}" th:if="${s?.id == fromStationId}" th:text="${s?.name}">Bạch Đằng</span>
+                <span class="mx-1" aria-hidden="true">→</span>
+                <span th:each="s : ${stations}" th:if="${s?.id == toStationId}" th:text="${s?.name}">Thanh Đa</span>
+              </span><span class="wb-trip-code">Mã chuyến: <strong th:text="${trip?.tripCode}">20261020-R1-0700</strong></span>
             </div>
             <div class="wb-trip-action">
               <span class="wb-seats-left" th:classappend="${trip?.availableSeats == 0 ? 'is-sold-out' : (trip?.availableSeats < 10 ? 'is-low' : '')}" th:text="${trip?.availableSeats == 0 ? 'Hết chỗ' : 'Còn ' + trip?.availableSeats + ' ghế trống'}">Còn 8 ghế trống</span><a class="btn btn-wb-accent" href="/templates/trip/seats.html" th:href="@{/trips/{id}/seats(id=${trip?.id}, fromStationId=${fromStationId}, toStationId=${toStationId})}" th:classappend="${trip?.availableSeats == 0 ? 'disabled' : ''}">Chọn ghế <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></a>

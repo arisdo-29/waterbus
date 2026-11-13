@@ -69,7 +69,7 @@ public class AdminRouteController {
             } catch (IllegalArgumentException ex) {
                 errors.reject("route.invalid", ex.getMessage());
             } catch (DataIntegrityViolationException ex) {
-                errors.reject("route.conflict", "Không thể lưu tuyến. Mã có thể đã tồn tại hoặc dữ liệu vừa thay đổi; vui lòng kiểm tra và thử lại.");
+                errors.reject("route.conflict", "Không thể lưu tuyến. Mã có thể đã tồn tại hoặc dữ liệu vừa thay đổi. Vui lòng kiểm tra và thử lại.");
             }
         }
         model.addAttribute("errorMessage", errors.getAllErrors().stream()
@@ -88,7 +88,7 @@ public class AdminRouteController {
                         + " chuyến sắp chạy. Vui lòng huỷ các chuyến này trước khi ngừng tuyến.");
             }
             routeService.hideRoute(id);
-            flash.addFlashAttribute("successMessage", "Đã ngừng hoạt động tuyến; không xoá chuyến hoặc dữ liệu lịch sử.");
+            flash.addFlashAttribute("successMessage", "Đã ngừng hoạt động tuyến. Chuyến và dữ liệu lịch sử được giữ nguyên.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }

@@ -118,7 +118,7 @@ public class AdminTripController {
             tripService.cancelTrips(tripIds, reason, waterbusId, departureFrom, departureTo);
             flash.addFlashAttribute("successMessage",
                     "Đã huỷ " + tripIds.size()
-                            + " chuyến. Các khoản hoàn đang chờ xử lý; hãy chuyển tiền ngoài hệ thống rồi xác nhận tại đây.");
+                            + " chuyến. Các khoản hoàn đang chờ xử lý. Hãy chuyển tiền ngoài hệ thống rồi xác nhận tại đây.");
             return "redirect:/admin/refunds?status=PENDING";
         } catch (IllegalArgumentException ex) {
             model.addAttribute("errorMessage", ex.getMessage());

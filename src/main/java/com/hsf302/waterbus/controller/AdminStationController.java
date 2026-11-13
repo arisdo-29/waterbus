@@ -61,7 +61,7 @@ public class AdminStationController {
             } catch (IllegalArgumentException ex) {
                 errors.reject("station.invalid", ex.getMessage());
             } catch (DataIntegrityViolationException ex) {
-                errors.reject("station.conflict", "Không thể lưu bến. Mã có thể đã tồn tại; vui lòng kiểm tra và thử lại.");
+                errors.reject("station.conflict", "Không thể lưu bến. Mã có thể đã tồn tại. Vui lòng kiểm tra và thử lại.");
             }
         }
         model.addAttribute("errorMessage", errors.getAllErrors().stream()
@@ -75,7 +75,7 @@ public class AdminStationController {
     public String hide(@PathVariable int id, RedirectAttributes flash) {
         try {
             stationService.hideStation(id);
-            flash.addFlashAttribute("successMessage", "Đã ẩn bến; dữ liệu tuyến, chuyến và vé được giữ nguyên.");
+            flash.addFlashAttribute("successMessage", "Đã ẩn bến. Dữ liệu tuyến, chuyến và vé được giữ nguyên.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }

@@ -62,7 +62,8 @@ class CustomerViewTests {
             assertThat(html).contains("Khách &lt;script&gt;", "href=\"/my-bookings\"", "method=\"post\"",
                             "action=\"/auth/logout\"")
                     .doesNotContain("href=\"/auth/login\"", "href=\"/auth/register\"");
-            assertThat(html.contains("href=\"/admin/trips\"")).isEqualTo(role.equals("ADMIN") || role.equals("STAFF"));
+            assertThat(html.contains("href=\"/admin/trips\"")).isEqualTo(role.equals("ADMIN"));
+            assertThat(html.contains("href=\"/admin/checkin\"")).isEqualTo(role.equals("STAFF"));
         }
     }
 
@@ -281,14 +282,12 @@ class CustomerViewTests {
         staff.setAttribute("loginAccount", account("STAFF"));
         String staffMenu = render("sidebar", fixture("PENDING"), get("/__test/views/sidebar").session(staff));
         assertThat(staffMenu.split("data-admin-nav=\"/admin/checkin\"", -1)).hasSize(2);
-        assertThat(staffMenu.indexOf("data-admin-nav=\"/admin/checkin\""))
-                .isLessThan(staffMenu.indexOf("data-admin-nav=\"/admin/trips\""));
-        assertThat(staffMenu).doesNotContain("/admin/revenue", "/admin/refunds", "/admin/accounts", "/admin/waterbuses");
+        assertThat(staffMenu).doesNotContain("/admin/trips", "/admin/revenue", "/admin/refunds", "/admin/accounts", "/admin/waterbuses");
 
         assertThat(render("navbar", fixture("PENDING"), get("/__test/views/navbar").session(admin)))
                 .contains("href=\"/admin/revenue\"");
         assertThat(render("navbar", fixture("PENDING"), get("/__test/views/navbar").session(staff)))
-                .contains("href=\"/admin/trips\"").doesNotContain("/admin/revenue");
+                .contains("href=\"/admin/checkin\"").doesNotContain("/admin/trips", "/admin/revenue");
     }
 
     @ParameterizedTest

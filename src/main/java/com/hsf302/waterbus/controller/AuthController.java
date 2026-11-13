@@ -101,7 +101,7 @@ public class AuthController {
                 return "/";
             }
             if ("STAFF".equalsIgnoreCase(account.getRole())) {
-                if (!redirectUrl.startsWith("/admin/checkin") && !redirectUrl.startsWith("/admin/trips")) {
+                if (!redirectUrl.startsWith("/admin/checkin")) {
                     return "/admin/checkin";
                 }
             }

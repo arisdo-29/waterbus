@@ -46,8 +46,11 @@
                 <li>
                   <a class="dropdown-item" href="/templates/account/profile.html" th:href="@{/account/profile}">Thông tin cá nhân</a>
                 </li>
-                <li th:if="${session.loginAccount.role == 'ADMIN' or session.loginAccount.role == 'STAFF'}">
+                <li th:if="${session.loginAccount.role == 'ADMIN'}">
                   <a class="dropdown-item" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}">Quản trị</a>
+                </li>
+                <li th:if="${session.loginAccount.role == 'STAFF'}">
+                  <a class="dropdown-item" href="/templates/admin/checkin/index.html" th:href="@{/admin/checkin}">Quản trị</a>
                 </li>
                 <li th:if="${session.loginAccount.role == 'ADMIN'}">
                   <a class="dropdown-item" href="/templates/admin/revenue/index.html" th:href="@{/admin/revenue}">Doanh thu</a>
@@ -134,7 +137,7 @@
       </div>
       <nav class="wb-admin-side-nav" aria-label="Menu quản trị">
         <a th:if="${session.loginAccount?.role == 'STAFF'}" class="wb-admin-side-link" href="/templates/admin/checkin/index.html" th:href="@{/admin/checkin}" data-admin-nav="/admin/checkin"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Soát vé</span></a>
-        <a class="wb-admin-side-link" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}" data-admin-nav="/admin/trips"><i class="bi bi-water" aria-hidden="true"></i><span>Chuyến tàu</span></a>
+        <a th:if="${session.loginAccount?.role == 'ADMIN'}" class="wb-admin-side-link" href="/templates/admin/trip/list.html" th:href="@{/admin/trips}" data-admin-nav="/admin/trips"><i class="bi bi-water" aria-hidden="true"></i><span>Chuyến tàu</span></a>
         <th:block th:if="${session.loginAccount?.role == 'ADMIN'}">
             <a class="wb-admin-side-link" href="/templates/admin/revenue/index.html" th:href="@{/admin/revenue}" data-admin-nav="/admin/revenue"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i><span>Doanh thu</span></a>
             <a class="wb-admin-side-link" href="/templates/admin/refund/list.html" th:href="@{/admin/refunds}" data-admin-nav="/admin/refunds"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>Hoàn tiền</span></a>

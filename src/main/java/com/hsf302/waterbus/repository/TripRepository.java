@@ -31,6 +31,27 @@ public interface TripRepository extends JpaRepository<Trip, Integer> {
                                          @Param("departureTo") LocalDateTime departureTo,
                                          @Param("now") LocalDateTime now);
 
+    @Query("""
+            SELECT t FROM Trip t JOIN FETCH t.route JOIN FETCH t.waterbus
+            WHERE t.waterbus.id = :waterbusId AND t.status = 'SCHEDULED'
+              AND t.departureTime > :now AND t.arrivalTime > :startsAt
+              AND t.departureTime < :endsAt
+            ORDER BY t.departureTime, t.id
+            """)
+    List<Trip> findScheduledOverlappingOutage(@Param("waterbusId") int waterbusId,
+                                              @Param("startsAt") LocalDateTime startsAt,
+                                              @Param("endsAt") LocalDateTime endsAt,
+                                              @Param("now") LocalDateTime now);
+
+    @Query("""
+            SELECT COUNT(t) FROM Trip t WHERE t.waterbus.id = :waterbusId
+              AND t.status IN ('SCHEDULED', 'DEPARTED')
+              AND t.departureTime <= :now AND t.arrivalTime > :startsAt
+            """)
+    long countStartedTripsOverlappingOutage(@Param("waterbusId") int waterbusId,
+                                            @Param("startsAt") LocalDateTime startsAt,
+                                            @Param("now") LocalDateTime now);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Trip t WHERE t.id = :id")
     Optional<Trip> findByIdForUpdate(@Param("id") int id);

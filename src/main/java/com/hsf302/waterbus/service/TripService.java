@@ -21,6 +21,9 @@ public interface TripService {
     List<TripCancellationPreviewDTO> getCancellableTrips(int waterbusId, LocalDateTime departureFrom,
                                                           LocalDateTime departureTo);
 
+    List<TripCancellationPreviewDTO> getTripsAffectedByOutage(int waterbusId, LocalDateTime startsAt,
+                                                               LocalDateTime endsAt);
+
     List<AdminTripDTO> getTodayTrips();
 
     TripManifestDTO getManifest(int tripId);

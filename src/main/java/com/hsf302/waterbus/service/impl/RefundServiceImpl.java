@@ -11,6 +11,7 @@ import com.hsf302.waterbus.repository.BookingRepository;
 import com.hsf302.waterbus.repository.RefundRepository;
 import com.hsf302.waterbus.repository.TicketRepository;
 import com.hsf302.waterbus.service.AccountService;
+import com.hsf302.waterbus.service.PromotionService;
 import com.hsf302.waterbus.service.RefundService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,13 +27,16 @@ public class RefundServiceImpl implements RefundService {
     private final BookingRepository bookingRepository;
     private final TicketRepository ticketRepository;
     private final AccountService accountService;
+    private final PromotionService promotionService;
 
     public RefundServiceImpl(RefundRepository refundRepository, BookingRepository bookingRepository,
-                             TicketRepository ticketRepository, AccountService accountService) {
+                             TicketRepository ticketRepository, AccountService accountService,
+                             PromotionService promotionService) {
         this.refundRepository = refundRepository;
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
         this.accountService = accountService;
+        this.promotionService = promotionService;
     }
 
     @Override
@@ -58,12 +62,20 @@ public class RefundServiceImpl implements RefundService {
                         refund.setAmount(booking.getTotalAmount());
                         refund.setReason(reason);
                         refundRepository.save(refund);
+                        releasePromotionUse(booking);
                     }
                 } else {
+                    releasePromotionUse(booking);
                     booking.setStatus("CANCELLED");
                     bookingRepository.save(booking);
                 }
             }
+        }
+    }
+
+    private void releasePromotionUse(Booking booking) {
+        if (booking.getPromotion() != null) {
+            promotionService.decreaseUsedCount(booking.getPromotion().getCode());
         }
     }
 

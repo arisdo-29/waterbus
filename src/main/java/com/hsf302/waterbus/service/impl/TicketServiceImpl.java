@@ -207,10 +207,17 @@ public class TicketServiceImpl implements TicketService {
             throw new IllegalStateException(msg);
         }
 
-        if (ticket.getTrip() != null && "CANCELLED".equalsIgnoreCase(ticket.getTrip().getStatus())) {
-            String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã bị hủy, không thể soát vé!";
-            logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
-            throw new IllegalStateException(msg);
+        if (ticket.getTrip() != null) {
+            if ("CANCELLED".equalsIgnoreCase(ticket.getTrip().getStatus())) {
+                String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã bị hủy, không thể soát vé!";
+                logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
+                throw new IllegalStateException(msg);
+            }
+            if (TicketCheckinDTO.isTripPastOrCompleted(ticket.getTrip())) {
+                String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã kết thúc hành trình, vé đã hết hạn sử dụng và không thể soát vé!";
+                logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
+                throw new IllegalStateException(msg);
+            }
         }
 
         if (ticket.getBooking() != null) {

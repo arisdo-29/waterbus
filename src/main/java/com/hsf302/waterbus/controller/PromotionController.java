@@ -11,6 +11,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Controller
 @RequestMapping("/admin/promotions")
@@ -68,6 +69,13 @@ public class PromotionController {
         if (promotion.getStartAt() != null && promotion.getEndAt() != null &&
                 !promotion.getEndAt().isAfter(promotion.getStartAt())) {
             bindingResult.rejectValue("endAt", "error.endAt", "Thời gian kết thúc phải sau thời gian bắt đầu");
+        }
+
+        if (promotion.getId() == null && promotion.getStartAt() != null) {
+            LocalDateTime nowWithTolerance = LocalDateTime.now().minusMinutes(5);
+            if (promotion.getStartAt().isBefore(nowWithTolerance)) {
+                bindingResult.rejectValue("startAt", "error.startAt", "Thời gian bắt đầu khuyến mãi không được ở trong quá khứ");
+            }
         }
 
         if (bindingResult.hasErrors()) {

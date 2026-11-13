@@ -20,6 +20,7 @@ public class BookingDTO implements Serializable {
     private final LocalDateTime expiresAt;
     private final LocalDateTime paidAt;
     private final String refundStatus;
+    private String promotionCode;
 
     public BookingDTO(Integer id, String bookingCode, String status, String contactName, String contactPhone,
                       String contactEmail, BigDecimal subtotal, BigDecimal discountAmount, BigDecimal totalAmount,
@@ -50,9 +51,15 @@ public class BookingDTO implements Serializable {
         if (b == null) {
             return null;
         }
-        return new BookingDTO(b.getId(), b.getBookingCode(), displayStatus, b.getContactName(),
+        BookingDTO dto = new BookingDTO(b.getId(), b.getBookingCode(), displayStatus, b.getContactName(),
                 b.getContactPhone(), b.getContactEmail(), b.getSubtotal(), b.getDiscountAmount(),
                 b.getTotalAmount(), b.getCreatedAt(), b.getExpiresAt(), b.getPaidAt(), refundStatus);
+        dto.promotionCode = b.getPromotion() != null ? b.getPromotion().getCode() : null;
+        return dto;
+    }
+
+    public String getPromotionCode() {
+        return promotionCode;
     }
 
     public Integer getId() {

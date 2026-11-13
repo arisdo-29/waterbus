@@ -12,9 +12,9 @@
     <main class="wb-main wb-admin-content">
         <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
         <header class="wb-admin-head"><div><span class="wb-eyebrow">Quản trị</span><h1>Hoàn tiền</h1><p>Hoàn tiền cho khách ngoài hệ thống, sau đó xác nhận tại đây.</p></div></header>
-        <form th:action="@{/admin/refunds}" action="/admin/refunds" method="get" class="wb-admin-form-card row g-3 align-items-end mb-4">
+        <form th:action="@{/admin/refunds}" action="/admin/refunds" method="get" class="wb-admin-form-card wb-admin-filter">
             <div class="col-12 col-sm-6"><label class="form-label" for="refundStatus">Trạng thái</label><select class="form-select" id="refundStatus" name="status"><option value="" th:selected="${statusFilter == null or statusFilter == ''}">Tất cả</option><option value="PENDING" th:selected="${statusFilter == 'PENDING'}">Chờ hoàn</option><option value="DONE" th:selected="${statusFilter == 'DONE'}">Đã hoàn</option></select></div>
-            <div class="col-12 col-sm-3"><button class="btn btn-wb-accent w-100" type="submit">Lọc</button></div>
+            <div class="wb-admin-filter-actions"><button class="btn btn-wb-accent w-100" type="submit">Lọc</button></div>
         </form>
         <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(refunds)}">
             <table class="table wb-admin-table">

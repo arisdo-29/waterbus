@@ -139,7 +139,6 @@ public class AdminCheckinController {
     public String checkIn(@RequestParam("ticketCode") String ticketCode,
                           @RequestParam(name = "tripId", required = false) Integer tripId,
                           @RequestParam(name = "source", required = false, defaultValue = "MANUAL") String source,
-                          @RequestParam(name = "override", required = false, defaultValue = "false") boolean override,
                           HttpSession session,
                           RedirectAttributes redirectAttributes) {
 
@@ -147,7 +146,8 @@ public class AdminCheckinController {
         Integer staffId = loginAccount != null ? loginAccount.getId() : null;
 
         try {
-            TicketCheckinDTO checkedIn = ticketService.checkIn(ticketCode.trim().toUpperCase(), staffId, source, override);
+            validateCheckinTrip(ticketCode, tripId);
+            TicketCheckinDTO checkedIn = ticketService.checkIn(ticketCode.trim().toUpperCase(), staffId, source, false);
             redirectAttributes.addFlashAttribute("resultStatus", "success");
             redirectAttributes.addFlashAttribute("resultMessage",
                     "Vé [" + checkedIn.getTicketCode() + "] - Ghế " + checkedIn.getSeatCode() + " (" + checkedIn.getPassengerName() + "), mời lên tàu!");
@@ -174,6 +174,9 @@ public class AdminCheckinController {
         Integer staffId = loginAccount != null ? loginAccount.getId() : null;
 
         try {
+            for (String code : ticketCodes) {
+                validateCheckinTrip(code, tripId);
+            }
             List<TicketCheckinDTO> checkedList = ticketService.checkInGroup(ticketCodes, staffId, "GROUP");
             redirectAttributes.addFlashAttribute("resultStatus", "success");
             redirectAttributes.addFlashAttribute("resultMessage",
@@ -213,6 +216,17 @@ public class AdminCheckinController {
         }
 
         return "redirect:/admin/checkin" + (tripId != null ? "?tripId=" + tripId : "");
+    }
+
+    private void validateCheckinTrip(String ticketCode, Integer tripId) {
+        if (tripId == null) {
+            throw new IllegalArgumentException("Vui lòng chọn chuyến đang soát vé.");
+        }
+        TicketCheckinDTO ticket = ticketService.getTicketInfo(ticketCode.trim().toUpperCase());
+        if (!tripId.equals(ticket.getTripId())) {
+            throw new IllegalStateException("Vé thuộc chuyến " + ticket.getTripCode()
+                    + ", không phải chuyến đang soát. Không thể xác nhận lên tàu.");
+        }
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

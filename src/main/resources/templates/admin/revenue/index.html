@@ -16,10 +16,10 @@
         </header>
 
         <section class="wb-admin-form-card mb-4" aria-label="Lọc doanh thu">
-            <form th:action="@{/admin/revenue}" action="/admin/revenue" method="get" class="row g-3 align-items-end">
+            <form th:action="@{/admin/revenue}" action="/admin/revenue" method="get" class="wb-admin-filter mb-0">
                 <div class="col-12 col-sm-5"><label class="form-label" for="revenueFrom">Từ ngày</label><input class="form-control" type="date" id="revenueFrom" name="from" th:value="${from}" required></div>
                 <div class="col-12 col-sm-5"><label class="form-label" for="revenueTo">Đến ngày</label><input class="form-control" type="date" id="revenueTo" name="to" th:value="${to}" required></div>
-                <div class="col-12 col-sm-2"><button class="btn btn-wb-accent w-100" type="submit">Xem</button></div>
+                <div class="wb-admin-filter-actions"><button class="btn btn-wb-accent w-100" type="submit">Xem</button></div>
             </form>
         </section>
 

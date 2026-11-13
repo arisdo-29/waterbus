@@ -18,6 +18,7 @@ public interface TicketService {
 
     TicketCheckinDTO checkIn(String ticketCode);
 
+    // Giữ tham số cho các bên đang gọi; overrideTripTime không còn cho phép bỏ qua giờ soát vé.
     TicketCheckinDTO checkIn(String ticketCode, Integer staffAccountId, String source, boolean overrideTripTime);
 
     List<TicketCheckinDTO> checkInGroup(List<String> ticketCodes, Integer staffAccountId, String source);

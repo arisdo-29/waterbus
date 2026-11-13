@@ -240,20 +240,4 @@ public class AccountServiceImpl implements AccountService {
         return AccountDTO.fromEntity(saved);
     }
 
-    @Override
-    @Transactional
-    public void resetPassword(int targetAccountId, String newPassword) {
-        if (targetAccountId == SUPER_ADMIN_ID) {
-            throw new IllegalArgumentException("Không thể đặt lại mật khẩu cho tài khoản Super Admin!");
-        }
-
-        if (newPassword == null || newPassword.trim().length() < 6) {
-            throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 6 ký tự.");
-        }
-
-        Account target = requireAccount(targetAccountId);
-
-        target.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
-        accountRepository.save(target);
-    }
 }

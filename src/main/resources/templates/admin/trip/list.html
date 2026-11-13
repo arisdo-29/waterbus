@@ -31,7 +31,7 @@
             <button class="wb-admin-menu-toggle mb-4" type="button" data-admin-sidebar-toggle aria-controls="wbAdminSidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i>Menu quản trị</button>
             <header class="wb-admin-head">
                 <div><span class="wb-eyebrow">Quản trị</span><h1>Chuyến tàu</h1><p>Quản lý thông tin chuyến tàu của Saigon Waterbus.</p></div>
-                <div th:if="${session.loginAccount?.role == 'ADMIN'}" class="d-flex flex-wrap gap-2">
+                <div th:if="${session.loginAccount?.role == 'ADMIN'}" class="wb-admin-head-actions">
                     <a class="btn btn-wb-outline" th:href="@{/admin/trips/cancel}"><i class="bi bi-x-octagon me-2" aria-hidden="true"></i>Hủy hàng loạt</a>
                     <a class="btn btn-wb-accent" href="/templates/admin/trip/form.html" th:href="@{/admin/trips/new}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Thêm mới</a>
                 </div>

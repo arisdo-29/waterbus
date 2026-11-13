@@ -16,6 +16,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -190,18 +192,19 @@ class AdminAccountControllerTest {
     }
 
     @Test
-    @DisplayName("Đặt lại mật khẩu cho tài khoản")
-    void testResetPassword_Success() throws Exception {
-        mvc.perform(post("/admin/accounts/" + customerAccount.getId() + "/reset-password")
-                        .sessionAttr("loginAccount", adminDTO)
-                        .param("newPassword", "NewPassword789!"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/accounts"))
-                .andExpect(flash().attributeExists("successMessage"));
-
-        Account updated = accountRepository.findById(customerAccount.getId()).orElseThrow();
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        assertTrue(encoder.matches("NewPassword789!", updated.getPasswordHash()));
+    @DisplayName("Admin và Super Admin không thể gọi lại endpoint đặt lại mật khẩu đã bỏ")
+    void testResetPassword_RemovedEndpoint_DoesNotChangePasswords() throws Exception {
+        AccountDTO superAdminDTO = new AccountDTO(0, "superadmin@test.vn", "Super Admin", null, "ADMIN", "ACTIVE");
+        for (AccountDTO actor : new AccountDTO[]{adminDTO, superAdminDTO}) {
+            for (Account target : new Account[]{customerAccount, staffAccount, adminAccount}) {
+                String originalHash = target.getPasswordHash();
+                mvc.perform(post("/admin/accounts/" + target.getId() + "/reset-password")
+                                .sessionAttr("loginAccount", actor)
+                                .param("newPassword", "NewPassword789!"))
+                        .andExpect(status().isNotFound());
+                assertEquals(originalHash, accountRepository.findById(target.getId()).orElseThrow().getPasswordHash());
+            }
+        }
     }
 
     @Test
@@ -211,7 +214,75 @@ class AdminAccountControllerTest {
                         .sessionAttr("loginAccount", adminDTO))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/account/detail"))
-                .andExpect(model().attributeExists("account", "bookings"));
+                .andExpect(model().attributeExists("account", "bookings"))
+                .andExpect(content().string(not(containsString("reset-password"))))
+                .andExpect(content().string(not(containsString("name=\"newPassword\""))));
+    }
+
+    @Test
+    @DisplayName("Khách hàng, nhân viên và admin đều có thể đổi mật khẩu của chính mình trong trang cá nhân")
+    void testChangePassword_OwnAccount_AllRoles() throws Exception {
+        Account[] accounts = {customerAccount, staffAccount, adminAccount};
+        String[] currentPasswords = {"CustPass123!", "StaffPass123!", "AdminPass123!"};
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        for (int i = 0; i < accounts.length; i++) {
+            Account account = accounts[i];
+            mvc.perform(get("/account/profile")
+                            .sessionAttr("loginAccount", AccountDTO.fromEntity(account)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("/account/change-password")));
+            mvc.perform(post("/account/change-password")
+                            .sessionAttr("loginAccount", AccountDTO.fromEntity(account))
+                            .param("currentPassword", currentPasswords[i])
+                            .param("newPassword", "MyNewPassword789!")
+                            .param("confirmPassword", "MyNewPassword789!"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/account/profile"))
+                    .andExpect(flash().attributeExists("successMessage"));
+            assertTrue(encoder.matches("MyNewPassword789!",
+                    accountRepository.findById(account.getId()).orElseThrow().getPasswordHash()));
+        }
+    }
+
+    @Test
+    @DisplayName("Gửi thêm ID người khác vào form đổi mật khẩu vẫn chỉ thay đổi tài khoản đang đăng nhập")
+    void testChangePassword_SubmittedAccountIdCannotTargetAnotherAccount() throws Exception {
+        String customerHash = customerAccount.getPasswordHash();
+        mvc.perform(post("/account/change-password")
+                        .sessionAttr("loginAccount", adminDTO)
+                        .param("id", customerAccount.getId().toString())
+                        .param("accountId", customerAccount.getId().toString())
+                        .param("targetAccountId", customerAccount.getId().toString())
+                        .param("currentPassword", "AdminPass123!")
+                        .param("newPassword", "MyNewPassword789!")
+                        .param("confirmPassword", "MyNewPassword789!"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/account/profile"))
+                .andExpect(flash().attributeExists("successMessage"));
+        assertEquals(customerHash, accountRepository.findById(customerAccount.getId()).orElseThrow().getPasswordHash());
+        assertTrue(new BCryptPasswordEncoder().matches("MyNewPassword789!",
+                accountRepository.findById(adminAccount.getId()).orElseThrow().getPasswordHash()));
+    }
+
+    @Test
+    @DisplayName("Đổi mật khẩu cá nhân yêu cầu đăng nhập và mật khẩu hiện tại chính xác")
+    void testChangePassword_RequiresLoginAndCorrectCurrentPassword() throws Exception {
+        String originalHash = customerAccount.getPasswordHash();
+        mvc.perform(post("/account/change-password")
+                        .param("currentPassword", "CustPass123!")
+                        .param("newPassword", "MyNewPassword789!")
+                        .param("confirmPassword", "MyNewPassword789!"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/auth/login"));
+        mvc.perform(post("/account/change-password")
+                        .sessionAttr("loginAccount", AccountDTO.fromEntity(customerAccount))
+                        .param("currentPassword", "WrongPassword123!")
+                        .param("newPassword", "MyNewPassword789!")
+                        .param("confirmPassword", "MyNewPassword789!"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("account/change-password"))
+                .andExpect(model().attributeExists("errorMessage"));
+        assertEquals(originalHash, accountRepository.findById(customerAccount.getId()).orElseThrow().getPasswordHash());
     }
 
     @Test

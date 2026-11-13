@@ -139,16 +139,4 @@ public class AdminAccountController {
         return "redirect:/admin/accounts";
     }
 
-    @PostMapping("/{id}/reset-password")
-    public String resetPassword(@PathVariable int id,
-                                @RequestParam("newPassword") String newPassword,
-                                RedirectAttributes redirectAttributes) {
-        try {
-            accountService.resetPassword(id, newPassword);
-            redirectAttributes.addFlashAttribute("successMessage", "Đặt lại mật khẩu mới thành công!");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
-        }
-        return "redirect:/admin/accounts";
-    }
 }

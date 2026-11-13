@@ -112,6 +112,32 @@ class TripCancellationRefundTest {
     }
 
     @Test
+    void cancellationReturnsPromotionUseOnceForPaidBookings() {
+        LocalDateTime now = LocalDateTime.now();
+        jdbc.update("INSERT INTO promotion (code, name, discount_type, discount_value, min_order_amount, "
+                        + "start_at, end_at, used_count, is_active) "
+                        + "VALUES ('CANCEL_PROMO', 'Mã thử', 'FIXED', 1000, 0, ?, ?, 3, 1)",
+                now.minusDays(1), now.plusDays(1));
+        int promotionId = id("promotion", "code", "CANCEL_PROMO");
+        jdbc.update("UPDATE booking SET promotion_id = ? WHERE booking_code IN "
+                + "('CANCEL_PENDING', 'CANCEL_PAID', 'CANCEL_FREE')", promotionId);
+
+        tripService.cancelTrip(tripId, "Tàu hỏng");
+        entityManager.flush();
+        assertEquals(1, jdbc.queryForObject("SELECT used_count FROM promotion WHERE id = ?", Integer.class,
+                promotionId));
+        assertEquals("PENDING", value("SELECT status FROM refund WHERE booking_id = ?",
+                id("booking", "booking_code", "CANCEL_PAID")));
+        assertEquals("CANCELLED", value("SELECT status FROM booking WHERE booking_code = 'CANCEL_FREE'"));
+
+        refundService.createForCancelledTrip(tripId, "Tàu hỏng");
+        entityManager.flush();
+        assertEquals(1, jdbc.queryForObject("SELECT used_count FROM promotion WHERE id = ?", Integer.class,
+                promotionId));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM refund", Integer.class));
+    }
+
+    @Test
     void refundPageShowsContactAndCompletesWithoutFormFields() throws Exception {
         tripService.cancelTrip(tripId, "Tàu hỏng");
         entityManager.flush();

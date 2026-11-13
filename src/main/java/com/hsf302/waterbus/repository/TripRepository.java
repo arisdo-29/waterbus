@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-// Module: BE2 - Tàu, Ghế & Chuyến
 public interface TripRepository extends JpaRepository<Trip, Integer> {
     long countByWaterbusIdAndStatusAndDepartureTimeAfter(Integer waterbusId, String status,
                                                           LocalDateTime departureTime);

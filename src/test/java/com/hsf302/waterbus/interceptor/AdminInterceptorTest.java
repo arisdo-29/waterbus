@@ -58,12 +58,10 @@ class AdminInterceptorTest {
         AccountDTO staff = new AccountDTO(2, "staff@waterbus.vn", "Nhan vien", "0900000002", "STAFF", "ACTIVE");
         when(session.getAttribute("loginAccount")).thenReturn(staff);
 
-        // 1. Soát vé -> Cho phép
         when(request.getRequestURI()).thenReturn("/admin/checkin");
         when(request.getMethod()).thenReturn("GET");
         assertTrue(interceptor.preHandle(request, response, new Object()));
 
-        // 2. Xem danh sách chuyến tàu -> Cho phép
         when(request.getRequestURI()).thenReturn("/admin/trips");
         when(request.getMethod()).thenReturn("GET");
         assertTrue(interceptor.preHandle(request, response, new Object()));
@@ -77,13 +75,11 @@ class AdminInterceptorTest {
         AccountDTO staff = new AccountDTO(2, "staff@waterbus.vn", "Nhan vien", "0900000002", "STAFF", "ACTIVE");
         when(session.getAttribute("loginAccount")).thenReturn(staff);
 
-        // 1. Vào trang Khuyến mãi -> Bị chặn
         when(request.getRequestURI()).thenReturn("/admin/promotions");
         when(request.getMethod()).thenReturn("GET");
         assertFalse(interceptor.preHandle(request, response, new Object()));
         verify(response, times(1)).sendRedirect("/admin/checkin?error=forbidden");
 
-        // 2. Tạo chuyến mới (POST /admin/trips/save) -> Bị chặn
         when(request.getRequestURI()).thenReturn("/admin/trips/save");
         when(request.getMethod()).thenReturn("POST");
         assertFalse(interceptor.preHandle(request, response, new Object()));

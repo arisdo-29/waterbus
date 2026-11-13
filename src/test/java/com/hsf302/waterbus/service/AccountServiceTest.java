@@ -275,7 +275,7 @@ class AccountServiceTest {
         when(accountRepository.findById(2)).thenReturn(Optional.of(user));
         when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
 
-        AccountDTO updated = accountService.changeRole(2, "STAFF", 1); // Admin id = 1
+        AccountDTO updated = accountService.changeRole(2, "STAFF", 1);
 
         assertNotNull(updated);
         assertEquals("STAFF", updated.getRole());
@@ -303,7 +303,7 @@ class AccountServiceTest {
     @Test
     void testChangeRole_Self_ThrowsException() {
         assertThrows(IllegalArgumentException.class, () ->
-                accountService.changeRole(1, "CUSTOMER", 1) // tự đổi quyền mình
+                accountService.changeRole(1, "CUSTOMER", 1)
         );
         verify(accountRepository, never()).save(any());
     }
@@ -344,11 +344,9 @@ class AccountServiceTest {
         when(accountRepository.findById(2)).thenReturn(Optional.of(user));
         when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
 
-        // 1. ACTIVE -> LOCKED
         AccountDTO locked = accountService.toggleStatus(2, 1);
         assertEquals("LOCKED", locked.getStatus());
 
-        // 2. LOCKED -> ACTIVE
         AccountDTO unlocked = accountService.toggleStatus(2, 1);
         assertEquals("ACTIVE", unlocked.getStatus());
     }
@@ -356,7 +354,7 @@ class AccountServiceTest {
     @Test
     void testToggleStatus_Self_ThrowsException() {
         assertThrows(IllegalArgumentException.class, () ->
-                accountService.toggleStatus(1, 1) // tự khóa chính mình
+                accountService.toggleStatus(1, 1)
         );
         verify(accountRepository, never()).save(any());
     }
@@ -392,17 +390,14 @@ class AccountServiceTest {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator validator = factory.getValidator();
 
-        // 1. Số điện thoại hợp lệ (10 số, bắt đầu bằng 0)
         RegisterRequest reqValid = new RegisterRequest("test@test.com", "123456", "Test", "0901234567");
         assertTrue(validator.validate(reqValid).isEmpty());
 
-        // 2. Số điện thoại để trống / null (hợp lệ vì phone là tùy chọn)
         RegisterRequest reqNull = new RegisterRequest("test@test.com", "123456", "Test", null);
         assertTrue(validator.validate(reqNull).isEmpty());
         RegisterRequest reqEmpty = new RegisterRequest("test@test.com", "123456", "Test", "   ");
         assertTrue(validator.validate(reqEmpty).isEmpty());
 
-        // 3. Số điện thoại không hợp lệ (không bắt đầu bằng 0, 9 số, 11 số, hoặc chứa +84)
         RegisterRequest reqInvalid1 = new RegisterRequest("test@test.com", "123456", "Test", "090123456");
         assertFalse(validator.validate(reqInvalid1).isEmpty());
 
@@ -415,7 +410,6 @@ class AccountServiceTest {
         RegisterRequest reqInvalid4 = new RegisterRequest("test@test.com", "123456", "Test", "1234567890");
         assertFalse(validator.validate(reqInvalid4).isEmpty());
 
-        // Tương tự với UpdateProfileRequest
         UpdateProfileRequest profileValid = new UpdateProfileRequest("Test", "0912345678");
         assertTrue(validator.validate(profileValid).isEmpty());
 
@@ -425,19 +419,16 @@ class AccountServiceTest {
 
     @Test
     void testSuperAdmin_CannotBeModified_ThrowsException() {
-        // 1. Thao tác changeRole trên SUPER_ADMIN_ID (id = 0) bị từ chối
         IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class, () ->
                 accountService.changeRole(AccountService.SUPER_ADMIN_ID, "STAFF", 1)
         );
         assertTrue(ex1.getMessage().contains("Super Admin"));
 
-        // 2. Thao tác toggleStatus trên SUPER_ADMIN_ID bị từ chối
         IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class, () ->
                 accountService.toggleStatus(AccountService.SUPER_ADMIN_ID, 1)
         );
         assertTrue(ex2.getMessage().contains("Super Admin"));
 
-        // 3. Thao tác resetPassword trên SUPER_ADMIN_ID bị từ chối
         IllegalArgumentException ex3 = assertThrows(IllegalArgumentException.class, () ->
                 accountService.resetPassword(AccountService.SUPER_ADMIN_ID, "Password123")
         );
@@ -455,17 +446,14 @@ class AccountServiceTest {
         when(accountRepository.findById(2)).thenReturn(Optional.of(otherAdmin));
         when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
 
-        // 1. Admin thường (id = 1) không thể mở khóa hoặc khóa tài khoản Admin khác (id = 2)
         assertThrows(IllegalArgumentException.class, () ->
                 accountService.toggleStatus(2, 1)
         );
 
-        // 2. Super Admin (id = 0) CÓ THỂ mở khóa tài khoản Admin khác (cứu khi admin bị khóa)
         AccountDTO unlocked = accountService.toggleStatus(2, AccountService.SUPER_ADMIN_ID);
         assertNotNull(unlocked);
         assertEquals("ACTIVE", unlocked.getStatus());
 
-        // 3. Super Admin (id = 0) CÓ THỂ đổi role tài khoản Admin khác sang STAFF
         AccountDTO roleChanged = accountService.changeRole(2, "STAFF", AccountService.SUPER_ADMIN_ID);
         assertNotNull(roleChanged);
         assertEquals("STAFF", roleChanged.getRole());

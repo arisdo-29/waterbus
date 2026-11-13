@@ -27,7 +27,6 @@
                 <a class="btn btn-wb-accent" href="/templates/admin/account/form.html" th:href="@{/admin/accounts/create}"><i class="bi bi-person-plus me-2" aria-hidden="true"></i>Thêm nhân viên</a>
             </header>
 
-            <!-- Thanh tìm kiếm & bộ lọc -->
             <section class="card border-0 shadow-sm p-3 mb-4 rounded-3">
                 <form method="get" th:action="@{/admin/accounts}" class="row g-2 align-items-center">
                     <div class="col-12 col-md-5">
@@ -58,7 +57,6 @@
                 </form>
             </section>
 
-            <!-- Bảng danh sách tài khoản -->
             <section class="wb-admin-table-wrap" th:unless="${#lists.isEmpty(accounts)}">
                 <table class="table wb-admin-table">
                     <caption class="visually-hidden">Danh sách tài khoản</caption>
@@ -99,7 +97,6 @@
                                 <div class="wb-admin-table-actions">
                                     <a class="btn btn-sm btn-wb-outline" th:href="@{/admin/accounts/{id}(id=${acc.id})}" title="Xem chi tiết & lịch sử đặt vé">Chi tiết</a>
 
-                                    <!-- Đổi quyền (CUSTOMER <-> STAFF), không áp dụng cho ADMIN hoặc chính mình -->
                                     <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
                                         <form th:if="${acc.role == 'CUSTOMER'}" th:action="@{/admin/accounts/{id}/change-role(id=${acc.id})}" method="post" class="d-inline" data-confirm="Cấp quyền Nhân viên (STAFF) cho tài khoản này?">
                                             <input type="hidden" name="role" value="STAFF">
@@ -111,7 +108,6 @@
                                         </form>
                                     </th:block>
 
-                                    <!-- Khóa / Mở khóa (không áp dụng cho ADMIN hoặc chính mình) -->
                                     <th:block th:if="${acc.role != 'ADMIN' and acc.id != session.loginAccount?.id}">
                                         <form th:action="@{/admin/accounts/{id}/toggle-status(id=${acc.id})}" method="post" class="d-inline"
                                               th:data-confirm="${acc.status == 'ACTIVE' ? 'Bạn có chắc chắn muốn KHÓA tài khoản này? Người dùng sẽ không thể đăng nhập.' : 'Mở khóa cho tài khoản này?'}"
@@ -128,7 +124,6 @@
                     </tbody>
                 </table>
 
-                <!-- Phân trang -->
                 <nav th:if="${page.totalPages > 1}" class="d-flex justify-content-between align-items-center mt-3 px-2" aria-label="Phân trang tài khoản">
                     <small class="text-muted">Hiển thị trang <span th:text="${page.number + 1}">1</span> / <span th:text="${page.totalPages}">1</span> (Tổng <span th:text="${page.totalElements}">10</span> tài khoản)</small>
                     <ul class="pagination pagination-sm mb-0">
@@ -145,7 +140,6 @@
                 </nav>
             </section>
 
-            <!-- Trạng thái trống -->
             <section class="wb-admin-table-wrap wb-admin-empty" th:if="${#lists.isEmpty(accounts)}">
                 <i class="bi bi-people" aria-hidden="true"></i>
                 <h2>Không tìm thấy tài khoản nào</h2>

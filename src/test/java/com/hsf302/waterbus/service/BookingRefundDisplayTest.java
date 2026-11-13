@@ -20,8 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// BE4 R6: đơn có chuyến bị huỷ phải hiện đúng ở trang xem vé (/booking/{mã}) và "Vé của tôi" (/my-bookings).
-// Đi hết luồng thật: đặt vé -> trả tiền VNPay -> nhà vận hành huỷ chuyến (chờ hoàn tiền) -> admin xác nhận đã hoàn.
 @SpringBootTest
 @Transactional
 class BookingRefundDisplayTest {
@@ -33,9 +31,9 @@ class BookingRefundDisplayTest {
     @Autowired private WebApplicationContext context;
 
     private MockMvc mvc;
-    private AccountDTO lan;  // khách đã đăng nhập, chủ của đơn
+    private AccountDTO lan;
     private AccountDTO admin;
-    private Booking booking; // đơn đã trả tiền, sau đó chuyến bị huỷ
+    private Booking booking;
 
     @BeforeEach
     void setUp() {
@@ -69,7 +67,6 @@ class BookingRefundDisplayTest {
         admin = new AccountDTO(id("account", "email", "refund-admin@example.com"),
                 "refund-admin@example.com", "Admin hoàn tiền", null, "ADMIN", "ACTIVE");
 
-        // Đặt vé + trả tiền qua VNPay, rồi nhà vận hành huỷ chuyến -> hệ thống tạo khoản hoàn tiền PENDING
         booking = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatId), ticketTypeId, s1, s2,
                 "", lan.getId(), "Lan", "0901234567", "lan@example.com");
         paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
@@ -78,22 +75,18 @@ class BookingRefundDisplayTest {
 
     @Test
     void cancelledTripShowsWaitingForRefund() throws Exception {
-        // Chưa hoàn xong: đơn vẫn PAID, khoản hoàn PENDING
         BookingDTO dto = bookingService.getBookingDetail(booking.getBookingCode());
         assertThat(dto.getStatus()).isEqualTo("PAID");
         assertThat(dto.getRefundStatus()).isEqualTo("PENDING");
 
-        // Trang xem vé: banner vàng "Chuyến đã bị huỷ" kèm lý do, vé đã huỷ, không báo "Đặt vé thành công"
         assertThat(page("/booking/" + booking.getBookingCode()))
                 .contains("wb-refund-banner is-pending", "Nuoc lon", "Đã huỷ")
                 .doesNotContain("Đặt vé thành công!", "wb-refund-banner is-done");
-        // "Vé của tôi": đơn có nhãn "Chờ hoàn tiền"
         assertThat(page("/my-bookings")).contains(booking.getBookingCode(), "Chờ hoàn tiền");
     }
 
     @Test
     void refundedBookingShowsRefundedEverywhere() throws Exception {
-        // Admin ghi nhận đã chuyển tiền hoàn cho khách -> khoản hoàn DONE, đơn REFUNDED
         int refundId = refundService.getRefundOfBooking(booking.getId()).getId();
         refundService.markRefunded(refundId, admin);
         assertThat(refundService.getRefundOfBooking(booking.getId()).getRefundedAt()).isNotNull();
@@ -102,16 +95,13 @@ class BookingRefundDisplayTest {
         assertThat(dto.getStatus()).isEqualTo("REFUNDED");
         assertThat(dto.getRefundStatus()).isEqualTo("DONE");
 
-        // Trang xem vé: "Đơn đã hoàn tiền" + banner xanh, không còn mã QR lên tàu
         assertThat(page("/booking/" + booking.getBookingCode()))
                 .contains("Đơn đã hoàn tiền", "wb-refund-banner is-done")
                 .doesNotContain("wb-refund-banner is-pending", "Đưa nhân viên quét");
-        // "Vé của tôi": nhãn "Đã hoàn tiền", không còn "Chờ hoàn tiền"
         assertThat(page("/my-bookings")).contains(booking.getBookingCode(), "Đã hoàn tiền")
                 .doesNotContain("Chờ hoàn tiền");
     }
 
-    // Mở trang bằng tài khoản của Lan (đã đăng nhập), trả về HTML
     private String page(String url) throws Exception {
         return mvc.perform(get(url).sessionAttr("loginAccount", lan))
                 .andExpect(status().isOk())

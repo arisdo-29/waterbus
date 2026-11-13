@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.Nationalized;
 
-/** Bảng [station] - module phụ trách: BE1 - Tuyến & Bến. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "station")
 public class Station {

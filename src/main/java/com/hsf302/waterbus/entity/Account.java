@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Nationalized;
 
-/** Bảng [account] - module phụ trách: BE3 - Tài khoản, Loại vé & Khuyến mãi. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "account")
 public class Account {

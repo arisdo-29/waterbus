@@ -1,5 +1,3 @@
-// Run after mvnw test. Uses an existing Playwright installation, with no project dependency changes.
-// PLAYWRIGHT_MODULE may point to playwright-core when it is installed outside this repository.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -31,7 +29,6 @@ const server = http.createServer((request, response) => {
         const page = await browser.newPage();
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
-        // These checks exercise local assets; external fonts/icons are not required.
         await page.route(/^https:\/\//, route => route.abort());
         for (const width of [360, 1280]) {
             await page.setViewportSize({ width, height: 900 });
@@ -66,7 +63,6 @@ const server = http.createServer((request, response) => {
         assert(prevented, 'Identical stations must prevent submission');
         assert(await page.locator('[data-search-error]').isVisible());
 
-        // Freeze the browser clock so fixtures stay reproducible after the Maven run.
         await page.clock.install({ time: new Date('2026-10-20T00:00:00+07:00') });
         for (const state of ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED']) {
             await page.goto(base + '/payment-' + state + '.html');

@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Nationalized;
 
-/** Bảng [promotion] - module phụ trách: BE3 - Tài khoản, Loại vé & Khuyến mãi. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "promotion")
 public class Promotion {

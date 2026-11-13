@@ -9,7 +9,6 @@
   </head>
   <body>
     <nav th:replace="~{fragments/layout :: navbar}"></nav>
-    <!--/* Vừa thanh toán xong (flash successMessage + PAID): banner lớn bên dưới đã báo, không lặp alert */-->
     <th:block th:unless="${booking?.status == 'PAID' and successMessage != null}">
       <div th:replace="~{fragments/layout :: alerts}"></div>
     </th:block>
@@ -20,7 +19,6 @@
         <p>Lưu lại mã vé để xuất trình khi lên tàu.</p>
       </section>
       <section class="container wb-section-top">
-        <!--/* Banner "Đặt vé thành công" chỉ hiện 1 lần ngay sau thanh toán (flash mất khi tải lại trang) */-->
         <div th:unless="${booking?.status == 'PAID' and successMessage == null}" class="wb-booking-status" th:classappend="${booking?.status == 'PAID'} ? 'wb-status-paid' : (${booking?.status == 'PENDING'} ? 'wb-status-pending' : 'wb-status-muted')" th:switch="${booking?.status}">
           <div th:case="'PAID'">
             <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
@@ -72,7 +70,6 @@
           </div>
         </div>
       </section>
-      <!--/* Hoàn tiền khi nhà vận hành huỷ chuyến: refund PENDING -> vàng; refund DONE hoặc booking REFUNDED -> xanh */-->
       <section class="container wb-section-top" th:if="${refund != null or booking?.status == 'REFUNDED'}">
         <div class="wb-refund-banner is-pending" th:if="${refund?.status == 'PENDING'}" role="status">
           <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
@@ -97,13 +94,11 @@
       <section class="container wb-section-top">
         <div class="wb-booking-code-box wb-card">
           <span>Mã đơn</span><strong class="wb-mono" th:text="${booking?.bookingCode}">BK0000002</strong><button class="btn btn-wb-outline" type="button" data-copy-code="BK0000002" th:data-copy-code="${booking?.bookingCode}"><i class="bi bi-copy me-2" aria-hidden="true"></i><span data-copy-label>Sao chép</span></button>
-          <!--/* QR mã đơn: nhân viên quét 1 lần để soát cả nhóm (chỉ khi đơn đã thanh toán) */-->
           <div class="wb-booking-qr" th:if="${booking?.status == 'PAID'}">
             <div class="wb-ticket-qr" data-qr-value="BK0000002" th:attr="data-qr-value=${booking?.bookingCode}"></div>
             <small>Đưa nhân viên quét để lên tàu cả nhóm</small>
           </div>
         </div>
-        <!--/* Khách chưa đăng nhập không xem lại được đơn trong "Vé của tôi": nhắc lưu/in vé về máy */-->
         <div class="alert alert-warning wb-print-hidden mt-3 mb-0" role="alert" th:if="${booking?.status == 'PAID' and session.loginAccount == null}">
           <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i><strong>Hãy lưu vé về máy.</strong>
           Bạn chưa đăng nhập nên vé chỉ xem được bằng mã đơn. Hãy lưu hoặc in vé về máy (kèm mã QR) để dùng khi check-in lên tàu.
@@ -112,7 +107,6 @@
       </section>
       <section class="container wb-section-top">
         <div class="wb-ticket-list">
-          <!--/* passengerName/birthYear đọc qua @view.prop: DTO chưa có field thì coi như null, không lỗi */-->
           <article class="wb-printed-ticket wb-card" th:each="ticket : ${tickets}" th:with="passengerName=${@view.prop(ticket, 'passengerName')}, birthYear=${@view.prop(ticket, 'birthYear')}, priorityTicket=${@view.prop(ticket, 'requiresVerification') == true or birthYear != null}">
             <div class="wb-printed-ticket-main">
               <div class="wb-ticket-main-head">

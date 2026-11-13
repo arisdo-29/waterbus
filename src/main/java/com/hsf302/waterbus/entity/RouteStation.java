@@ -3,7 +3,6 @@ package com.hsf302.waterbus.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
-/** Bảng [route_station] - module phụ trách: BE1 - Tuyến & Bến. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "route_station")
 public class RouteStation {

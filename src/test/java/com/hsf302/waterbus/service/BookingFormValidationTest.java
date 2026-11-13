@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 M4: validate form POST /booking bằng BookingForm + @Valid + BindingResult.
 @SpringBootTest
 @Transactional
 class BookingFormValidationTest {
@@ -66,22 +65,18 @@ class BookingFormValidationTest {
         String html = mvc.perform(booking("  ", "12345", "abc", "X".repeat(31)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("booking/checkout"))
-                // Mỗi ô sai có lỗi riêng trong BindingResult "bookingForm" -> template hiện được th:errors
                 .andExpect(model().attributeHasFieldErrors("bookingForm",
                         "contactName", "contactPhone", "contactEmail", "promoCode"))
-                // Vẫn đủ model như trước để trang checkout vẽ lại được
                 .andExpect(model().attributeExists("trip", "seats", "ticketType", "subtotal",
                         "fromStation", "toStation", "fromStationId", "toStationId"))
-                // L-14: alert đầu trang chỉ nhắc chung, không lặp lại từng lỗi
                 .andExpect(model().attribute("errorMessage", "Vui lòng kiểm tra các ô được đánh dấu."))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(html).contains("value=\"12345\"", "value=\"abc\""); // giữ lại giá trị khách vừa gõ
-        // Mỗi câu lỗi hiện đúng 1 lần (dưới ô của nó): tách HTML theo câu lỗi -> được 2 mảnh = có 1 lần
+        assertThat(html).contains("value=\"12345\"", "value=\"abc\"");
         assertThat(html.split("Vui lòng nhập họ và tên.", -1)).hasSize(2);
         assertThat(html.split("Số điện thoại phải gồm 10 chữ số", -1)).hasSize(2);
         assertThat(html.split("Email không đúng định dạng.", -1)).hasSize(2);
         assertThat(html.split("Mã khuyến mãi tối đa 30 ký tự.", -1)).hasSize(2);
-        assertThat(count("booking")).isZero(); // nhập sai -> chưa tạo đơn
+        assertThat(count("booking")).isZero();
     }
 
     @Test
@@ -91,12 +86,11 @@ class BookingFormValidationTest {
                 .andExpect(model().attributeHasFieldErrorCode("bookingForm", "contactPhone", "NotBlank"))
                 .andExpect(model().attribute("errorMessage", "Vui lòng kiểm tra các ô được đánh dấu."))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(html.split("Vui lòng nhập số điện thoại.", -1)).hasSize(2); // chỉ hiện 1 lần, dưới ô SĐT
+        assertThat(html.split("Vui lòng nhập số điện thoại.", -1)).hasSize(2);
     }
 
     @Test
     void seatErrorStaysInAlertBecauseSeatHasNoFieldOnPage() throws Exception {
-        // Vừa trống họ tên (có ô để hiện) vừa không có ghế (seatIds là ô ẩn, không có chỗ hiện lỗi)
         mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .param("tripId", String.valueOf(tripId))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
@@ -120,7 +114,7 @@ class BookingFormValidationTest {
                 .andExpect(model().attributeHasFieldErrors("bookingForm", "seatIds"))
                 .andExpect(model().attribute("errorMessage", "Vui lòng chọn ít nhất 1 ghế."));
 
-        mvc.perform(post("/booking").param("acceptPolicy", "true") // thiếu tripId (form bị sửa tay) -> 400 như trước
+        mvc.perform(post("/booking").param("acceptPolicy", "true")
                         .param("seatIds", String.valueOf(seatId))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
                         .param("fromStationId", String.valueOf(s1)).param("toStationId", String.valueOf(s2))
@@ -132,10 +126,9 @@ class BookingFormValidationTest {
 
     @Test
     void moreThanTenSeatsIsRejected() throws Exception {
-        // Giống người dùng sửa tay request (bỏ qua JS trang chọn ghế): gửi 11 ghế
         MockHttpServletRequestBuilder request = booking("Lan", "0901234567", "lan@example.com", "");
         for (int i = 1; i <= 10; i++) {
-            request.param("seatIds", String.valueOf(seatId + i)); // thêm 10 ghế nữa -> tổng 11
+            request.param("seatIds", String.valueOf(seatId + i));
         }
         mvc.perform(request)
                 .andExpect(view().name("booking/checkout"))
@@ -164,7 +157,6 @@ class BookingFormValidationTest {
                 .andExpect(model().attributeExists("bookingForm"));
     }
 
-    // Form ở trang checkout gửi lên, đủ chuyến/ghế/bến; chỉ thay phần khách tự nhập
     private MockHttpServletRequestBuilder booking(String name, String phone, String email, String promo) {
         return post("/booking").param("acceptPolicy", "true")
                 .param("tripId", String.valueOf(tripId)).param("seatIds", String.valueOf(seatId))
@@ -180,19 +172,15 @@ class BookingFormValidationTest {
                 + "VALUES ('PRIORITY', 'Nguoi khuyet tat', 0, 1, 1)");
         jdbc.update("INSERT INTO ticket_type (code, name, price, requires_verification, is_active) "
                 + "VALUES ('SENIOR_70', 'Nguoi cao tuoi', 0, 1, 1)");
-        // Chuyến trong setUp chạy ngày mai -> tuổi tính theo năm của ngày mai
-        int childBirthYear = LocalDate.now().plusDays(1).getYear() - 8; // trẻ 8 tuổi
+        int childBirthYear = LocalDate.now().plusDays(1).getYear() - 8;
 
-        // Vé ưu tiên (khuyết tật, thương binh) cho trẻ 8 tuổi -> hợp lệ (trước đây bị chặn vì dưới 13 tuổi)
         Errors priority = passengerErrors(id("ticket_type", "code", "PRIORITY"), childBirthYear);
         assertThat(priority.hasFieldErrors("birthYears[0]")).isFalse();
 
-        // Vé người cao tuổi vẫn giữ luật từ 70 tuổi trở lên
         Errors senior = passengerErrors(id("ticket_type", "code", "SENIOR_70"), childBirthYear);
         assertThat(senior.getFieldError("birthYears[0]").getDefaultMessage()).contains("từ 70 tuổi");
     }
 
-    // Gọi validatePassengers với 1 ghế, 1 hành khách có năm sinh cho trước; trả về các lỗi tìm được
     private Errors passengerErrors(int ticketTypeId, int birthYear) {
         BookingForm form = new BookingForm();
         form.setTripId(tripId);

@@ -11,20 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/*
- * VÍ DỤ MẪU ĐẦY ĐỦ 1 LUỒNG: Entity -> Repository -> Service -> DTO -> Controller -> View.
- * Các bạn copy cách làm này cho module của mình.
- *
- * Lưu ý khác với project mẫu của giảng viên: ArtifactServiceImpl trong đó THIẾU @Service,
- * nên Spring không tạo bean và Controller không inject được. Ở đây nhớ luôn có @Service.
- */
 @Service
 public class StationServiceImpl implements StationService {
 
     private final StationRepository stationRepository;
     private final RouteStationRepository routeStationRepository;
 
-    // Constructor injection (khuyên dùng thay cho @Autowired trên field)
     public StationServiceImpl(StationRepository stationRepository, RouteStationRepository routeStationRepository) {
         this.stationRepository = stationRepository;
         this.routeStationRepository = routeStationRepository;
@@ -88,7 +80,6 @@ public class StationServiceImpl implements StationService {
     }
 
     private void requireNoActiveRoute(int stationId) {
-        // Dùng chung cho nút ẩn và bỏ chọn trạng thái trong form sửa bến.
         if (routeStationRepository.existsByStationIdAndRouteIsActiveTrue(stationId)) {
             throw new IllegalArgumentException("Bến còn thuộc tuyến đang hoạt động. Vui lòng ngừng tuyến trước khi ẩn bến.");
         }

@@ -10,17 +10,12 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-// Module: BE4. Dữ liệu form ở trang checkout gửi lên POST /booking.
-// Tên field = name của input trong templates/booking/checkout.html (theo docs/PAGES.md), Spring tự điền vào.
 public class BookingForm {
-    // 4 ô ẩn: chuyến, loại vé, bến đi, bến đến (Controller tự kiểm tra null)
     private Integer tripId;
     private Integer ticketTypeId;
     private Integer fromStationId;
     private Integer toStationId;
 
-    // Annotation chỉ nhận hằng số lúc biên dịch: MAX_SEATS_PER_BOOKING là hằng int nên dùng được,
-    // ghép chuỗi với hằng đó vẫn là hằng -> đổi con số 1 chỗ thì cả giới hạn lẫn câu báo lỗi cùng đổi
     @NotEmpty(message = "Vui lòng chọn ít nhất 1 ghế.")
     @Size(max = BookingService.MAX_SEATS_PER_BOOKING,
             message = "Bạn chỉ có thể chọn tối đa " + BookingService.MAX_SEATS_PER_BOOKING + " ghế trong một lần đặt.")
@@ -42,13 +37,9 @@ public class BookingForm {
     @Size(max = 30, message = "Mã khuyến mãi tối đa 30 ký tự.")
     private String promoCode;
 
-    // Vé ưu đãi: mỗi ghế 1 họ tên + 1 năm sinh, cùng thứ tự với seatIds (ghế thứ i <-> phần tử thứ i).
-    // Vé thường thì form không gửi 2 ô này -> để null. BookingService.validatePassengers kiểm tra chi tiết.
     private List<String> passengerNames;
     private List<Integer> birthYears;
 
-    // Ô tick "Tôi đã đọc chính sách vé". Dùng boolean (không phải Boolean):
-    // không tick thì trình duyệt không gửi gì -> giữ mặc định false -> @AssertTrue báo lỗi.
     @AssertTrue(message = "Vui lòng xác nhận đã đọc chính sách vé.")
     private boolean acceptPolicy;
 
@@ -74,13 +65,9 @@ public class BookingForm {
     public void setPassengerNames(List<String> passengerNames) { this.passengerNames = passengerNames; }
     public List<Integer> getBirthYears() { return birthYears; }
     public void setBirthYears(List<Integer> birthYears) { this.birthYears = birthYears; }
-    // Field kiểu boolean thì getter tên là isXxx (Java Bean), Spring vẫn tự hiểu
     public boolean isAcceptPolicy() { return acceptPolicy; }
     public void setAcceptPolicy(boolean acceptPolicy) { this.acceptPolicy = acceptPolicy; }
 
-    // Form -> entity Booking mới: chỉ chép phần KHÁCH NHẬP là thông tin liên hệ (đã bỏ khoảng trắng 2 đầu).
-    // Phần hệ thống tính ra (mã đơn, tiền, trạng thái, hạn giữ chỗ, tài khoản, mã KM) là nghiệp vụ
-    // -> BookingService set, không phải việc của form.
     public Booking toEntity() {
         Booking booking = new Booking();
         booking.setContactName(clean(contactName));
@@ -89,8 +76,6 @@ public class BookingForm {
         return booking;
     }
 
-    // Bỏ khoảng trắng 2 đầu; ô để trống -> null.
-    // Nhờ vậy ô SĐT trống chỉ báo "Vui lòng nhập số điện thoại." (@Pattern bỏ qua null), không báo thêm lỗi định dạng.
     private static String clean(String text) {
         if (text == null || text.trim().isEmpty()) {
             return null;

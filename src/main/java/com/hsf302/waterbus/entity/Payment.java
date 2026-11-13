@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/** Bảng [payment] - module phụ trách: BE4 - Đặt vé & Thanh toán. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "payment")
 public class Payment {

@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-// Module: BE3 (Tân) - Tài khoản, phân quyền và hồ sơ cá nhân
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -199,7 +198,6 @@ public class AccountServiceImpl implements AccountService {
 
         Account target = requireAccount(targetAccountId);
 
-        // Chỉ Super Admin (id = 0) mới có quyền đổi vai trò của một tài khoản ADMIN khác
         if ("ADMIN".equalsIgnoreCase(target.getRole()) && currentAdminId != SUPER_ADMIN_ID) {
             throw new IllegalArgumentException("Không thể thay đổi vai trò của tài khoản Quản trị viên!");
         }
@@ -231,7 +229,6 @@ public class AccountServiceImpl implements AccountService {
 
         Account target = requireAccount(targetAccountId);
 
-        // Chỉ Super Admin (id = 0) mới có quyền khóa hoặc mở khóa tài khoản ADMIN khác
         if ("ADMIN".equalsIgnoreCase(target.getRole()) && currentAdminId != SUPER_ADMIN_ID) {
             throw new IllegalArgumentException("Không thể khóa tài khoản Quản trị viên!");
         }

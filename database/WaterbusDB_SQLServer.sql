@@ -1,21 +1,9 @@
-/* =====================================================================
-   SAIGON WATERBUS - Database script cho SQL Server (2016 trở lên)
-   Dự án HSF302 - Spring Boot 4.1.1 + Spring Data JPA
-   ---------------------------------------------------------------------
-   Cách chạy: mở file trong SSMS (hoặc Azure Data Studio), bấm Execute.
-   Script chạy lại được nhiều lần: nó xóa bảng cũ rồi tạo lại.
-   Đã gộp schema/seed 22/10, 08/11, 12/11. Không chạy lại migration cũ sau script này.
-   Lịch mẫu còn chờ phân công tàu TI7: giữ PR Draft đến khi hết chồng giờ.
-   FILE CHUNG - thay đổi schema: tạo file mới trong database/changes/
-   ===================================================================== */
-
 IF DB_ID(N'WaterbusDB') IS NULL
     CREATE DATABASE WaterbusDB;
 GO
 USE WaterbusDB;
 GO
 
--- Cần cho filtered unique index chống trùng ghế, kể cả khi chạy bằng sqlcmd.
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_PADDING ON;
@@ -25,7 +13,6 @@ SET ARITHABORT ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
 
-/* ---------- Xóa bảng cũ (theo thứ tự con -> cha) ---------- */
 DROP TABLE IF EXISTS refund;
 DROP TABLE IF EXISTS ticket_scan_log;
 DROP TABLE IF EXISTS ticket;
@@ -42,9 +29,6 @@ DROP TABLE IF EXISTS route;
 DROP TABLE IF EXISTS station;
 GO
 
-/* =====================================================================
-   1. NHÓM TUYẾN - BẾN
-   ===================================================================== */
 CREATE TABLE station (
     id          INT IDENTITY(1,1) NOT NULL,
     code        VARCHAR(20)       NOT NULL,
@@ -55,7 +39,6 @@ CREATE TABLE station (
     CONSTRAINT UQ_station_code UNIQUE (code)
 );
 
--- Mỗi chiều đi là 1 route riêng (VD: Bạch Đằng -> Linh Đông và Linh Đông -> Bạch Đằng)
 CREATE TABLE route (
     id          INT IDENTITY(1,1) NOT NULL,
     code        VARCHAR(20)       NOT NULL,
@@ -66,12 +49,11 @@ CREATE TABLE route (
     CONSTRAINT UQ_route_code UNIQUE (code)
 );
 
--- Bảng trung gian route <-> station, có thứ tự bến
 CREATE TABLE route_station (
     id                  INT IDENTITY(1,1) NOT NULL,
     route_id            INT NOT NULL,
     station_id          INT NOT NULL,
-    stop_order          INT NOT NULL,          -- 1, 2, 3 ...
+    stop_order          INT NOT NULL,
     minutes_from_start  INT NOT NULL CONSTRAINT DF_rs_minutes DEFAULT 0,
     CONSTRAINT PK_route_station PRIMARY KEY (id),
     CONSTRAINT FK_rs_route   FOREIGN KEY (route_id)   REFERENCES route(id),
@@ -82,9 +64,6 @@ CREATE TABLE route_station (
     CONSTRAINT CK_rs_minutes CHECK (minutes_from_start >= 0)
 );
 
-/* =====================================================================
-   2. NHÓM TÀU - GHẾ - CHUYẾN
-   ===================================================================== */
 CREATE TABLE waterbus (
     id          INT IDENTITY(1,1) NOT NULL,
     code        VARCHAR(20)       NOT NULL,
@@ -100,8 +79,8 @@ CREATE TABLE waterbus (
 CREATE TABLE seat (
     id           INT IDENTITY(1,1) NOT NULL,
     waterbus_id  INT              NOT NULL,
-    seat_code    VARCHAR(5)       NOT NULL,      -- VD: A1, A2 ... K6
-    seat_row     INT              NOT NULL,      -- dùng để vẽ sơ đồ ghế
+    seat_code    VARCHAR(5)       NOT NULL,
+    seat_row     INT              NOT NULL,
     seat_col     INT              NOT NULL,
     is_active    BIT              NOT NULL CONSTRAINT DF_seat_active DEFAULT 1,
     CONSTRAINT PK_seat PRIMARY KEY (id),
@@ -127,9 +106,6 @@ CREATE TABLE trip (
 );
 CREATE INDEX IX_trip_route_departure ON trip(route_id, departure_time);
 
-/* =====================================================================
-   3. NHÓM VÉ - ĐẶT VÉ - THANH TOÁN - KHUYẾN MÃI
-   ===================================================================== */
 CREATE TABLE ticket_type (
     id                     INT IDENTITY(1,1) NOT NULL,
     code                   VARCHAR(30)       NOT NULL,
@@ -146,7 +122,7 @@ CREATE TABLE ticket_type (
 CREATE TABLE account (
     id             INT IDENTITY(1,1) NOT NULL,
     email          VARCHAR(100)      NOT NULL,
-    password_hash  VARCHAR(100)      NOT NULL,   -- BCrypt, KHÔNG lưu mật khẩu thô
+    password_hash  VARCHAR(100)      NOT NULL,
     full_name      NVARCHAR(100)     NOT NULL,
     phone          VARCHAR(15)       NULL,
     role           VARCHAR(20)       NOT NULL CONSTRAINT DF_account_role DEFAULT 'CUSTOMER',
@@ -162,13 +138,13 @@ CREATE TABLE promotion (
     id                INT IDENTITY(1,1) NOT NULL,
     code              VARCHAR(30)       NOT NULL,
     name              NVARCHAR(100)     NOT NULL,
-    discount_type     VARCHAR(10)       NOT NULL,     -- PERCENT | FIXED
+    discount_type     VARCHAR(10)       NOT NULL,
     discount_value    DECIMAL(12,2)     NOT NULL,
-    max_discount      DECIMAL(12,0)     NULL,         -- trần giảm khi PERCENT
+    max_discount      DECIMAL(12,0)     NULL,
     min_order_amount  DECIMAL(12,0)     NOT NULL CONSTRAINT DF_promo_min DEFAULT 0,
     start_at          DATETIME2(0)      NOT NULL,
     end_at            DATETIME2(0)      NOT NULL,
-    usage_limit       INT               NULL,         -- NULL = không giới hạn
+    usage_limit       INT               NULL,
     used_count        INT               NOT NULL CONSTRAINT DF_promo_used DEFAULT 0,
     is_active         BIT               NOT NULL CONSTRAINT DF_promo_active DEFAULT 1,
     CONSTRAINT PK_promotion PRIMARY KEY (id),
@@ -182,7 +158,7 @@ CREATE TABLE promotion (
 CREATE TABLE booking (
     id               INT IDENTITY(1,1) NOT NULL,
     booking_code     VARCHAR(20)       NOT NULL,
-    account_id       INT               NULL,          -- NULL = khách vãng lai
+    account_id       INT               NULL,
     promotion_id     INT               NULL,
     contact_name     NVARCHAR(100)     NOT NULL,
     contact_phone    VARCHAR(15)       NOT NULL,
@@ -192,7 +168,7 @@ CREATE TABLE booking (
     total_amount     DECIMAL(12,0)     NOT NULL,
     status           VARCHAR(20)       NOT NULL CONSTRAINT DF_booking_status DEFAULT 'PENDING',
     created_at       DATETIME2(0)      NOT NULL CONSTRAINT DF_booking_created DEFAULT SYSDATETIME(),
-    expires_at       DATETIME2(0)      NOT NULL,      -- hạn giữ ghế (VD: created_at + 10 phút)
+    expires_at       DATETIME2(0)      NOT NULL,
     paid_at          DATETIME2(0)      NULL,
     CONSTRAINT PK_booking PRIMARY KEY (id),
     CONSTRAINT UQ_booking_code UNIQUE (booking_code),
@@ -202,20 +178,20 @@ CREATE TABLE booking (
                                         AND total_amount = subtotal - discount_amount),
     CONSTRAINT CK_booking_status CHECK (status IN ('PENDING','PAID','EXPIRED','CANCELLED','REFUNDED'))
 );
-CREATE INDEX IX_booking_status_expires ON booking(status, expires_at);   -- job hủy đơn quá hạn
+CREATE INDEX IX_booking_status_expires ON booking(status, expires_at);
 CREATE INDEX IX_booking_account ON booking(account_id);
 
 CREATE TABLE payment (
     id               INT IDENTITY(1,1) NOT NULL,
     booking_id       INT               NOT NULL,
-    method           VARCHAR(20)       NOT NULL,      -- VNPAY | CASH; MOCK/MOMO cho du lieu cu
+    method           VARCHAR(20)       NOT NULL,
     amount           DECIMAL(12,0)     NOT NULL,
     status           VARCHAR(20)       NOT NULL CONSTRAINT DF_payment_status DEFAULT 'PENDING',
-    transaction_ref  VARCHAR(100)      NULL,          -- mã giao dịch cổng thanh toán trả về
+    transaction_ref  VARCHAR(100)      NULL,
     created_at       DATETIME2(0)      NOT NULL CONSTRAINT DF_payment_created DEFAULT SYSDATETIME(),
     paid_at          DATETIME2(0)      NULL,
     CONSTRAINT PK_payment PRIMARY KEY (id),
-    CONSTRAINT UQ_payment_booking UNIQUE (booking_id),               -- 1 booking - 0..1 payment
+    CONSTRAINT UQ_payment_booking UNIQUE (booking_id),
     CONSTRAINT FK_payment_booking FOREIGN KEY (booking_id) REFERENCES booking(id),
     CONSTRAINT CK_payment_method CHECK (method IN ('MOCK','VNPAY','MOMO','CASH')),
     CONSTRAINT CK_payment_status CHECK (status IN ('PENDING','SUCCESS','FAILED')),
@@ -224,14 +200,14 @@ CREATE TABLE payment (
 
 CREATE TABLE ticket (
     id               INT IDENTITY(1,1) NOT NULL,
-    ticket_code      VARCHAR(20)       NOT NULL,      -- in lên QR để soát vé
+    ticket_code      VARCHAR(20)       NOT NULL,
     booking_id       INT               NOT NULL,
     trip_id          INT               NOT NULL,
     seat_id          INT               NOT NULL,
     ticket_type_id   INT               NOT NULL,
     from_station_id  INT               NOT NULL,
     to_station_id    INT               NOT NULL,
-    price            DECIMAL(12,0)     NOT NULL,      -- chụp lại giá lúc mua
+    price            DECIMAL(12,0)     NOT NULL,
     status           VARCHAR(20)       NOT NULL CONSTRAINT DF_ticket_status DEFAULT 'HOLD',
     checked_in_at    DATETIME2(0)      NULL,
     passenger_name   NVARCHAR(100)     NULL,
@@ -249,8 +225,6 @@ CREATE TABLE ticket (
     CONSTRAINT CK_ticket_price    CHECK (price >= 0),
     CONSTRAINT CK_ticket_status   CHECK (status IN ('HOLD','VALID','USED','CANCELLED'))
 );
--- CHỐNG ĐẶT TRÙNG GHẾ: 1 ghế trên 1 chuyến chỉ có 1 vé đang hiệu lực.
--- Vé CANCELLED không bị tính nên ghế được nhả ra cho người khác.
 CREATE UNIQUE INDEX UX_ticket_trip_seat_active
     ON ticket(trip_id, seat_id)
     WHERE status IN ('HOLD','VALID','USED');
@@ -258,10 +232,10 @@ CREATE INDEX IX_ticket_booking ON ticket(booking_id);
 
 CREATE TABLE ticket_scan_log (
     id            INT IDENTITY(1,1) NOT NULL,
-    ticket_code   VARCHAR(30)       NULL,          -- mã nhập/quét được, có thể sai nên không FK
+    ticket_code   VARCHAR(30)       NULL,
     booking_code  VARCHAR(20)       NULL,
     trip_id       INT               NULL,
-    staff_id      INT               NOT NULL,      -- account STAFF/ADMIN thao tác
+    staff_id      INT               NOT NULL,
     action        VARCHAR(20)       NOT NULL,
     result        VARCHAR(10)       NOT NULL,
     source        VARCHAR(20)       NOT NULL,
@@ -283,11 +257,11 @@ CREATE TABLE refund (
     reason           NVARCHAR(255)     NOT NULL,
     transaction_ref  VARCHAR(100)      NULL,
     note             NVARCHAR(255)     NULL,
-    processed_by     INT               NULL,          -- account ADMIN xử lý
+    processed_by     INT               NULL,
     refunded_at      DATETIME2(0)      NULL,
     created_at       DATETIME2(0)      NOT NULL CONSTRAINT DF_refund_created DEFAULT SYSDATETIME(),
     CONSTRAINT PK_refund PRIMARY KEY (id),
-    CONSTRAINT UQ_refund_booking UNIQUE (booking_id),               -- 1 booking - 0..1 refund
+    CONSTRAINT UQ_refund_booking UNIQUE (booking_id),
     CONSTRAINT FK_refund_booking   FOREIGN KEY (booking_id)   REFERENCES booking(id),
     CONSTRAINT FK_refund_processor FOREIGN KEY (processed_by) REFERENCES account(id),
     CONSTRAINT CK_refund_amount CHECK (amount >= 0),
@@ -298,11 +272,6 @@ CREATE INDEX IX_scan_trip ON ticket_scan_log(trip_id);
 
 GO
 
-/* =====================================================================
-   4. DỮ LIỆU MẪU
-   ===================================================================== */
-
--- 8 ben va 6 tuyen tu du lieu da chot ngay 22/10/2026.
 SET IDENTITY_INSERT station ON;
 INSERT INTO station (id, code, name, address) VALUES
  (1, 'BD',  N'Bạch Đằng',       N'Bến Bạch Đằng, 10B Tôn Đức Thắng, phường Sài Gòn'),
@@ -338,42 +307,33 @@ FROM (VALUES
 JOIN route   r ON r.code = v.route_code
 JOIN station s ON s.code = v.station_code;
 
--- Tàu
 INSERT INTO waterbus (code, name, capacity, status) VALUES
  ('WB01', N'Waterbus 01', 66, 'ACTIVE'),
  ('WB02', N'Waterbus 02', 66, 'ACTIVE'),
  ('WB03', N'Waterbus 03', 66, 'MAINTENANCE');
 
--- Ghế: mỗi tàu 66 ghế = 11 hàng (A..K) x 6 cột
 INSERT INTO seat (waterbus_id, seat_code, seat_row, seat_col)
 SELECT w.id, CONCAT(CHAR(64 + r.n), c.n), r.n, c.n
 FROM waterbus w
 CROSS JOIN (VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11)) AS r(n)
 CROSS JOIN (VALUES (1),(2),(3),(4),(5),(6)) AS c(n);
 
--- Loại vé (giá đồng giá 15.000đ/lượt, một số đối tượng được miễn phí)
 INSERT INTO ticket_type (code, name, price, requires_verification, description) VALUES
  ('STANDARD',  N'Vé thường',               15000, 0, N'Áp dụng cho mọi chặng'),
  ('SENIOR_70', N'Người từ 70 tuổi trở lên', 0,     1, N'Xuất trình CCCD khi lên tàu'),
  ('PRIORITY',  N'Người khuyết tật, thương binh', 0, 1, N'Xuất trình giấy tờ khi lên tàu');
 
--- Lịch giờ gốc 22/10; chưa chốt phân công tàu TI7, PR phải giữ Draft.
--- weekend_only = 1: chuyến "S", chỉ chạy thứ 7, chủ nhật (và ngày lễ - không xét ở đây)
--- Mã D/S ghi trong cột cuối để đối chiếu với lịch thật, không lưu vào DB.
 ;WITH days AS (
     SELECT 0 AS d UNION ALL SELECT d + 1 FROM days WHERE d < 6
 ),
 sched AS (
     SELECT * FROM (VALUES
-        -- Tuyến số 1, chiều đi (Bạch Đằng -> Linh Đông)
         ('R1',  'WB01', '08:30', 0, 'D1'),  ('R1',  'WB02', '09:30', 1, 'S1'),
         ('R1',  'WB01', '11:00', 0, 'D7'),  ('R1',  'WB01', '14:30', 0, 'D11'),
         ('R1',  'WB01', '17:10', 0, 'D19'),
-        -- Tuyến số 1, chiều về (Linh Đông -> Bạch Đằng)
         ('R1-R','WB01', '09:45', 0, 'D4'),  ('R1-R','WB02', '11:00', 1, 'S2'),
         ('R1-R','WB01', '13:15', 0, 'D8'),  ('R1-R','WB01', '16:00', 0, 'D14'),
         ('R1-R','WB01', '18:25', 0, 'D20'),
-        -- Chuyến ngắn Bạch Đằng -> Thảo Điền
         ('R2',  'WB02', '09:00', 0, 'D3'),  ('R2',  'WB02', '10:30', 0, 'D5'),
         ('R2',  'WB02', '13:00', 1, 'S3'),  ('R2',  'WB02', '13:30', 0, 'D9'),
         ('R2',  'WB02', '15:00', 1, 'S5'),  ('R2',  'WB02', '15:30', 0, 'D13'),
@@ -383,7 +343,6 @@ sched AS (
         ('R2',  'WB02', '20:15', 0, 'D27'), ('R2',  'WB02', '21:15', 0, 'D29'),
         ('R2',  'WB02', '21:45', 0, 'D31'), ('R2',  'WB02', '22:00', 1, 'S9'),
         ('R2',  'WB02', '22:45', 0, 'D33'),
-        -- Chuyến ngắn Thảo Điền -> Bạch Đằng
         ('R2-R','WB02', '09:40', 0, 'D2'),  ('R2-R','WB02', '11:15', 0, 'D6'),
         ('R2-R','WB02', '14:00', 1, 'S4'),  ('R2-R','WB02', '14:30', 0, 'D10'),
         ('R2-R','WB02', '15:45', 1, 'S6'),  ('R2-R','WB02', '16:15', 0, 'D12'),
@@ -392,7 +351,6 @@ sched AS (
         ('R2-R','WB02', '20:30', 0, 'D26'), ('R2-R','WB02', '20:45', 1, 'S8'),
         ('R2-R','WB02', '21:00', 0, 'D28'), ('R2-R','WB02', '22:00', 0, 'D30'),
         ('R2-R','WB02', '22:30', 0, 'D32'), ('R2-R','WB02', '22:45', 1, 'S10'),
-        -- Đưa đón Bạch Đằng <-> Thủ Thiêm (lịch thật không đặt mã chuyến)
         ('R3',  'WB01', '23:10', 0, '-'),   ('R3',  'WB01', '23:20', 0, '-'),
         ('R3-R','WB01', '08:15', 0, '-'),   ('R3-R','WB01', '08:40', 0, '-')
     ) AS s(route_code, waterbus_code, dep, weekend_only, real_code)
@@ -406,7 +364,6 @@ x AS (
     CROSS JOIN sched s
     JOIN route r    ON r.code = s.route_code
     JOIN waterbus w ON w.code = s.waterbus_code
-    -- 1900-01-01 là thứ 2 => % 7 = 5 là thứ 7, 6 là chủ nhật (không phụ thuộc SET DATEFIRST)
     WHERE s.weekend_only = 0
        OR DATEDIFF(DAY, '19000101', DATEADD(DAY, d.d, CAST(SYSDATETIME() AS DATE))) % 7 IN (5, 6)
 )
@@ -418,35 +375,25 @@ WHERE NOT EXISTS (SELECT 1 FROM trip t
                   WHERE t.trip_code = CONCAT(CONVERT(CHAR(8), x.departure_time, 112), '-', x.route_code, '-', REPLACE(x.dep, ':', '')));
 
 
--- Tài khoản mẫu (mật khẩu đã mã hóa BCrypt)
---   admin@waterbus.vn    / Admin@123
---   staff@waterbus.vn    / Staff@123
---   customer@gmail.com   / Customer@123
 INSERT INTO account (email, password_hash, full_name, phone, role) VALUES
  ('admin@waterbus.vn',  '$2a$10$fmRV08iLfd4U7d3KQI4V9.ucz1nf61tCzlyPMeaqkdOKaoYFQkftG', N'Quản trị viên', '0900000001', 'ADMIN'),
  ('staff@waterbus.vn',  '$2a$10$HNNXWkyVXfQ/B9k8XNi9Hut9AN5HIGZS0VlejEeJF52NNAtojv.7a', N'Nhân viên bến', '0900000002', 'STAFF'),
  ('customer@gmail.com', '$2a$10$7K3UB/0aoVCKOX29nBbndO3nQmwCwumb11EHBibUaRAJ7pMVLG5dK', N'Nguyễn Văn A',  '0900000003', 'CUSTOMER');
 
--- Super admin id = 0 (AccountService.SUPER_ADMIN_ID): không bị đổi quyền/khoá/reset mật khẩu.
---   superadmin@waterbus.vn / SuperAdmin@123
--- Chèn SAU 3 tài khoản trên nên chúng vẫn giữ id 1, 2, 3.
 SET IDENTITY_INSERT account ON;
 INSERT INTO account (id, email, password_hash, full_name, phone, role) VALUES
  (0, 'superadmin@waterbus.vn', '$2a$10$ZovUZgJ.m6ejc9p2fYelQueDB3a/rEhDydGii95HwtIAbtKQVXR6u', N'Super Admin', '0900000000', 'ADMIN');
 SET IDENTITY_INSERT account OFF;
 
--- Khuyến mãi mẫu
 INSERT INTO promotion (code, name, discount_type, discount_value, max_discount, min_order_amount,
                        start_at, end_at, usage_limit) VALUES
  ('WELCOME10', N'Giảm 10%, tối đa 10.000 đ', 'PERCENT', 10, 10000, 0,
      CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 3, CAST(SYSDATETIME() AS DATE)), 100),
  ('GIAM5K',    N'Giảm 5.000đ cho đơn từ 30.000đ', 'FIXED', 5000, NULL, 30000,
      CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 1, CAST(SYSDATETIME() AS DATE)), NULL),
- -- Mã demo đơn 0 đ: giảm 100%, không trần -> tổng tiền 0 -> đơn PAID ngay, không qua VNPay
  ('FREE100',   N'Miễn phí 100% (demo)', 'PERCENT', 100, NULL, 0,
      CAST(SYSDATETIME() AS DATE), DATEADD(MONTH, 1, CAST(SYSDATETIME() AS DATE)), 5);
 
--- 1 đơn mẫu ĐÃ THANH TOÁN: 2 vé thường, chuyến R1 gần nhất, ghế A1, A2, chặng Bạch Đằng -> Thanh Đa
 DECLARE @trip INT = (SELECT TOP 1 t.id FROM trip t JOIN route r ON r.id = t.route_id
                      WHERE r.code = 'R1' AND t.departure_time > SYSDATETIME() ORDER BY t.departure_time);
 DECLARE @bus INT  = (SELECT waterbus_id FROM trip WHERE id = @trip);
@@ -473,9 +420,6 @@ FROM seat s
 WHERE s.waterbus_id = @bus AND s.seat_code IN ('A1', 'A2');
 GO
 
-/* =====================================================================
-   5. KIỂM TRA NHANH
-   ===================================================================== */
 SELECT 'station' AS tbl, COUNT(*) AS total FROM station
 UNION ALL SELECT 'route', COUNT(*) FROM route
 UNION ALL SELECT 'route_station', COUNT(*) FROM route_station
@@ -490,10 +434,3 @@ UNION ALL SELECT 'ticket', COUNT(*) FROM ticket
 UNION ALL SELECT 'payment', COUNT(*) FROM payment
 UNION ALL SELECT 'refund', COUNT(*) FROM refund
 UNION ALL SELECT 'ticket_scan_log', COUNT(*) FROM ticket_scan_log;
-
--- Ghế còn trống của 1 chuyến (câu truy vấn mẫu cho màn hình chọn ghế)
--- SELECT s.* FROM seat s
--- JOIN trip t ON t.waterbus_id = s.waterbus_id AND t.id = @tripId
--- WHERE s.is_active = 1
---   AND NOT EXISTS (SELECT 1 FROM ticket tk WHERE tk.trip_id = t.id AND tk.seat_id = s.id
---                   AND tk.status IN ('HOLD','VALID','USED'));

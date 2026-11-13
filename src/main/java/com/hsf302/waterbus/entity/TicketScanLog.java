@@ -6,10 +6,6 @@ import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
-/**
- * Bảng [ticket_scan_log] - module phụ trách: BE3 - Soát vé.
- * Khớp với database/changes/2026-11-08_db_hanh-khach-soat-ve-hoan-tien.sql
- */
 @Entity
 @Table(name = "ticket_scan_log")
 public class TicketScanLog {
@@ -18,7 +14,6 @@ public class TicketScanLog {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    /** Mã vé nhập/quét được, có thể sai nên không liên kết khoá ngoại. */
     @Size(max = 30)
     @Column(name = "ticket_code", length = 30)
     private String ticketCode;
@@ -36,19 +31,16 @@ public class TicketScanLog {
     @JoinColumn(name = "staff_id", nullable = false)
     private Account staff;
 
-    /** VIEW, CHECKIN, REJECT */
     @Size(max = 20)
     @NotNull
     @Column(name = "action", nullable = false, length = 20)
     private String action;
 
-    /** SUCCESS, FAILED */
     @Size(max = 10)
     @NotNull
     @Column(name = "result", nullable = false, length = 10)
     private String result;
 
-    /** MANUAL, QR, MANIFEST, OVERRIDE */
     @Size(max = 20)
     @NotNull
     @Column(name = "source", nullable = false, length = 20)

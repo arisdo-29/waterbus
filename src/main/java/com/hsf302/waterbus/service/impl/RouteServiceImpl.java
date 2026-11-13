@@ -54,7 +54,6 @@ public class RouteServiceImpl implements RouteService {
 
     @Override
     public Map<Integer, List<StationDTO>> getRouteViewsWithStops() {
-        // Gom bến theo tuyến (key = id tuyến, giữ thứ tự tuyến) cho trang /routes
         Map<Integer, List<StationDTO>> stopsByRoute = new LinkedHashMap<>();
         for (RouteDTO route : getActiveRouteViews()) {
             stopsByRoute.put(route.id(), getStationViewsOfRoute(route.id()));
@@ -106,14 +105,12 @@ public class RouteServiceImpl implements RouteService {
         List<RouteStation> existing = getStopsOfRoute(route.getId());
         Map<Integer, RouteStation> byStation = existing.stream()
                 .collect(Collectors.toMap(s -> s.getStation().getId(), Function.identity()));
-        // Dời thứ tự tạm để tránh trùng khi đảo bến trong cùng tuyến.
         int temporaryOrder = existing.stream().mapToInt(RouteStation::getStopOrder).max().orElse(0);
         for (RouteStation stop : existing) {
             temporaryOrder = Math.incrementExact(temporaryOrder);
             stop.setStopOrder(temporaryOrder);
         }
         stopRepository.flush();
-        // No schema FK references route_station. Only removed memberships are deleted; routes/stations are never deleted.
         stopRepository.deleteAll(existing.stream().filter(s -> !ids.contains(s.getStation().getId())).toList());
         stopRepository.flush();
         for (int index = 0; index < ids.size(); index++) {

@@ -6,9 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-/**
- * Repository cho bảng ticket_scan_log - Module BE3: Soát vé (Staff Check-in).
- */
 @Repository
 public interface TicketScanLogRepository extends JpaRepository<TicketScanLog, Integer> {
 

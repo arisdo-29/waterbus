@@ -25,8 +25,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4: ghi nhận đơn đã trả tiền (confirmPaid, VNPay gọi khi trả tiền thành công) và trang GET /payment/{bookingCode}.
-// Thanh toán MOCK đã bỏ, chỉ còn VNPay (luồng VNPay đầy đủ nằm trong VnPayPaymentTest).
 @SpringBootTest
 @Transactional
 class PaymentServiceTest {
@@ -37,7 +35,7 @@ class PaymentServiceTest {
     @Autowired private EntityManager entityManager;
     @Autowired private WebApplicationContext context;
 
-    private Booking booking; // đơn PENDING, 2 vé HOLD, có mã khuyến mãi
+    private Booking booking;
 
     @BeforeEach
     void setUp() {
@@ -65,16 +63,14 @@ class PaymentServiceTest {
                         + "start_at, end_at, used_count, is_active) VALUES ('TEST10', 'Giam 10%', 'PERCENT', 10, 0, ?, ?, 0, 1)",
                 LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1));
 
-        // Tạo đơn bằng chính luồng đặt vé (#14): 2 vé x 15.000 - 10% = 27.000
         booking = BookingTestHelper.createBooking(bookingService, tripId, seatIds, ticketTypeId, s1, s2,
                 "TEST10", null, "Lan", "0901234567", "lan@example.com");
     }
 
     @Test
     void confirmPaidMarksEverythingPaidAndCountsPromotionUse() {
-        // "14123456" = mã giao dịch VNPay gửi về (vnp_TransactionNo)
         Payment payment = paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
-        entityManager.flush(); // ghi thay đổi xuống DB trước khi đọc lại bằng SQL
+        entityManager.flush();
 
         assertThat(payment.getStatus()).isEqualTo("SUCCESS");
         assertThat(payment.getMethod()).isEqualTo("VNPAY");
@@ -93,14 +89,12 @@ class PaymentServiceTest {
 
     @Test
     void canStillPayAfterTripDepartedAndPaidTicketShowsPassedAfterTripCompleted() {
-        // Trong lúc khách đang thanh toán, tàu rời bến đầu -> job TI1 đổi chuyến sang DEPARTED
         tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("DEPARTED");
-        assertThat(paymentService.getCannotPayReason(booking.getId())).isNull(); // vẫn thanh toán được
+        assertThat(paymentService.getCannotPayReason(booking.getId())).isNull();
         paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
         assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
                 .containsExactly("VALID", "VALID");
 
-        // Chuyến kết thúc (COMPLETED) -> vé VALID hiển thị PAST_TRIP ("Đã qua chuyến"), DB vẫn là VALID
         tripService.getTripById(id("trip", "trip_code", "TEST_TRIP1")).setStatus("COMPLETED");
         assertThat(bookingService.getTicketsOfBooking(booking.getId())).extracting(TicketDTO::getStatus)
                 .containsExactly("PAST_TRIP", "PAST_TRIP");
@@ -112,16 +106,16 @@ class PaymentServiceTest {
     @Test
     void confirmPaidRejectsPaidOrExpiredBookingWithoutChangingIt() {
         paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456");
-        assertThatThrownBy(() -> paymentService.confirmPaid(booking.getId(), "VNPAY", "14123457")) // trả tiền lần 2
+        assertThatThrownBy(() -> paymentService.confirmPaid(booking.getId(), "VNPAY", "14123457"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("không còn chờ thanh toán");
 
-        booking.setStatus("PENDING"); // giả lập đơn còn chờ nhưng đã quá 10 phút giữ chỗ
+        booking.setStatus("PENDING");
         booking.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         assertThatThrownBy(() -> paymentService.confirmPaid(booking.getId(), "VNPAY", "14123458"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("hết thời gian giữ chỗ");
         assertThatThrownBy(() -> paymentService.confirmPaid(-1, "VNPAY", "14123459"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Không tìm thấy");
-        assertThat(count("payment")).isEqualTo(1); // chỉ lần thanh toán đầu tiên tạo payment
+        assertThat(count("payment")).isEqualTo(1);
     }
 
     @Test
@@ -132,7 +126,6 @@ class PaymentServiceTest {
                 .andExpect(view().name("payment/index"))
                 .andExpect(model().attributeExists("booking", "trip", "tickets"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        // Trang chỉ còn nút thanh toán VNPay, không còn link tới URL /mock đã bỏ
         assertThat(html).contains(booking.getBookingCode(), "Tuyen test", "TEST_TRIP1", "A1", "A2",
                 "Ben mot", "Ben hai", "27.000 đ", "-3.000 đ", "/payment/" + booking.getBookingCode() + "/vnpay")
                 .doesNotContain("/payment/" + booking.getBookingCode() + "/mock");
@@ -149,14 +142,12 @@ class PaymentServiceTest {
         AccountDTO customer = new AccountDTO(100, "khach@example.com", "Khach", "0900000001", "CUSTOMER", "ACTIVE");
         AccountDTO staff = new AccountDTO(101, "staff@example.com", "Nhan vien", "0900000002", "STAFF", "ACTIVE");
 
-        // Khách (hoặc chưa đăng nhập) gửi thẳng request -> bị chặn, đơn vẫn chờ, không có payment
         mvc.perform(post("/payment/" + code + "/cash").sessionAttr("loginAccount", customer))
                 .andExpect(redirectedUrl("/payment/" + code))
                 .andExpect(flash().attribute("errorMessage", "Chỉ nhân viên tại bến mới được xác nhận thu tiền mặt."));
         mvc.perform(post("/payment/" + code + "/cash")).andExpect(redirectedUrl("/payment/" + code));
         assertThat(count("payment")).isZero();
 
-        // Nhân viên xác nhận đã thu tiền -> đơn PAID, vé VALID, payment CASH không có mã giao dịch
         mvc.perform(post("/payment/" + code + "/cash").sessionAttr("loginAccount", staff))
                 .andExpect(redirectedUrl("/booking/" + code))
                 .andExpect(flash().attribute("successMessage", "Đã xác nhận thu tiền mặt. Vé đã sẵn sàng."));
@@ -168,7 +159,6 @@ class PaymentServiceTest {
         assertThat(jdbc.queryForList("SELECT status FROM ticket WHERE booking_id = ?", String.class, booking.getId()))
                 .containsExactly("VALID", "VALID");
 
-        // Bấm lần 2 -> đơn không còn chờ thanh toán -> báo lỗi, không tạo payment thứ 2
         mvc.perform(post("/payment/" + code + "/cash").sessionAttr("loginAccount", staff))
                 .andExpect(redirectedUrl("/payment/" + code))
                 .andExpect(flash().attribute("errorMessage", "Đơn này không còn chờ thanh toán."));
@@ -177,7 +167,6 @@ class PaymentServiceTest {
 
     @Test
     void mockPaymentUrlNoLongerExists() throws Exception {
-        // Đã bỏ thanh toán MOCK: ai gửi thẳng tới URL cũ thì nhận 404, đơn vẫn chờ, không có payment nào
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         mvc.perform(post("/payment/" + booking.getBookingCode() + "/mock"))
                 .andExpect(status().isNotFound());
@@ -189,14 +178,12 @@ class PaymentServiceTest {
 
     @Test
     void vnPayWithoutConfigGoesBackToPaymentPage() throws Exception {
-        // Test này không khai báo vnpay.tmn-code / vnpay.hash-secret -> giống máy chưa điền khoá VNPay.
-        // Phải về trang thanh toán kèm lời báo, không được ra trang lỗi 500
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage",
                         "Hiện chưa thanh toán được qua VNPay. Vui lòng thử lại sau hoặc liên hệ nhân viên."));
-        assertThat(count("payment")).isZero(); // không ghi gì
+        assertThat(count("payment")).isZero();
     }
 
     private int id(String table, String codeColumn, String code) {

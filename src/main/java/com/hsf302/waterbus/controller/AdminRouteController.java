@@ -87,7 +87,6 @@ public class AdminRouteController {
     }
 
     private String form(Model model) {
-        // Include inactive stations so legacy/inactive routes and invalid submissions retain their selection.
         model.addAttribute("stations", stationService.getStations());
         return "admin/route/form";
     }

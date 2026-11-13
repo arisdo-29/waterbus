@@ -30,8 +30,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4: thanh toán VNPay Sandbox. Không gọi VNPay thật: test tự tạo dữ liệu "VNPay trả về"
-// rồi ký bằng chính buildQuery + hmacSHA512 với khoá test bên dưới.
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = {"vnpay.tmn-code=TESTCODE", "vnpay.hash-secret=TESTSECRET"})
@@ -44,12 +42,11 @@ class VnPayPaymentTest {
     @Autowired private WebApplicationContext context;
 
     private MockMvc mvc;
-    private Booking booking; // đơn PENDING, 2 vé HOLD, có mã khuyến mãi: 2 x 15.000 - 10% = 27.000
+    private Booking booking;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        // Dữ liệu mẫu giống PaymentServiceTest
         jdbc.update("INSERT INTO station (code, name, is_active) VALUES ('TEST_S1', 'Ben mot', 1)");
         jdbc.update("INSERT INTO station (code, name, is_active) VALUES ('TEST_S2', 'Ben hai', 1)");
         int s1 = id("station", "code", "TEST_S1");
@@ -83,19 +80,18 @@ class VnPayPaymentTest {
         String url = vnPayService.createPaymentUrl(booking.getBookingCode(), "0:0:0:0:0:0:0:1");
 
         assertThat(url).startsWith("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?");
-        // Tách phần dữ liệu và chữ ký ra khỏi URL
         String query = url.substring(url.indexOf('?') + 1, url.indexOf("&vnp_SecureHash="));
         String hash = url.substring(url.indexOf("&vnp_SecureHash=") + "&vnp_SecureHash=".length());
         Map<String, String> params = parseQuery(query);
 
-        assertThat(params.get("vnp_Amount")).isEqualTo("2700000"); // 27.000 đ x 100
+        assertThat(params.get("vnp_Amount")).isEqualTo("2700000");
         assertThat(params.get("vnp_TmnCode")).isEqualTo("TESTCODE");
         assertThat(params.get("vnp_TxnRef")).startsWith(booking.getBookingCode())
-                .hasSize(booking.getBookingCode().length() + 14); // mã đơn + yyyyMMddHHmmss
-        assertThat(params.get("vnp_IpAddr")).isEqualTo("127.0.0.1"); // IPv6 localhost -> IPv4
+                .hasSize(booking.getBookingCode().length() + 14);
+        assertThat(params.get("vnp_IpAddr")).isEqualTo("127.0.0.1");
         assertThat(params).hasSize(13);
-        assertThat(hash).isEqualTo(VnPayServiceImpl.hmacSHA512("TESTSECRET", query)); // chữ ký đúng
-        assertThat(count("payment")).isZero(); // tạo link không ghi gì vào DB
+        assertThat(hash).isEqualTo(VnPayServiceImpl.hmacSHA512("TESTSECRET", query));
+        assertThat(count("payment")).isZero();
     }
 
     @Test
@@ -107,15 +103,13 @@ class VnPayPaymentTest {
             Map<String, String> params = parseQuery(query);
 
             assertThat(params.get("vnp_BankCode")).isEqualTo(bankCode);
-            assertThat(params).hasSize(14); // 13 tham số cũ + vnp_BankCode
-            // vnp_BankCode nằm trong phần được ký -> ai sửa mã trên URL thì VNPay báo sai chữ ký
+            assertThat(params).hasSize(14);
             assertThat(hash).isEqualTo(VnPayServiceImpl.hmacSHA512("TESTSECRET", query));
         }
     }
 
     @Test
     void emptyOrUnknownBankCodeIsNotSent() {
-        // Arrays.asList (không dùng List.of) vì List.of không cho chứa null
         for (String bankCode : Arrays.asList(null, "", "ABC", "vnpayqr")) {
             String url = vnPayService.createPaymentUrl(booking.getBookingCode(), "127.0.0.1", bankCode);
             assertThat(url).as("bankCode = %s", bankCode).doesNotContain("vnp_BankCode");
@@ -124,7 +118,6 @@ class VnPayPaymentTest {
 
     @Test
     void vnPayButtonPassesBankCodeToPaymentUrl() throws Exception {
-        // Giống form trang thanh toán: bankCode nằm trên URL action, kèm field method
         String qrUrl = mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay?bankCode=VNPAYQR").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
@@ -135,7 +128,7 @@ class VnPayPaymentTest {
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(plainUrl).startsWith("https://sandbox.vnpayment.vn/").doesNotContain("vnp_BankCode");
 
-        assertThat(count("payment")).isZero(); // chỉ tạo link, chưa ghi gì
+        assertThat(count("payment")).isZero();
     }
 
     @Test
@@ -143,7 +136,7 @@ class VnPayPaymentTest {
         mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/booking/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("successMessage", "Thanh toán VNPay thành công! Vé của bạn đã sẵn sàng."));
-        entityManager.flush(); // ghi thay đổi xuống DB trước khi đọc lại bằng SQL
+        entityManager.flush();
 
         assertThat(bookingStatus()).isEqualTo("PAID");
         assertThat(jdbc.queryForMap("SELECT method, status, transaction_ref, amount FROM payment WHERE booking_id = ?", booking.getId()))
@@ -156,7 +149,6 @@ class VnPayPaymentTest {
 
     @Test
     void successBannerShowsOnlyOnceAfterPaying() throws Exception {
-        // Ngay sau khi VNPay trả về thành công (còn flash) -> trang vé hiện banner "Đặt vé thành công!"
         FlashMap paidFlash = mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/booking/" + booking.getBookingCode()))
                 .andReturn().getFlashMap();
@@ -165,7 +157,6 @@ class VnPayPaymentTest {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(detail).contains("Đặt vé thành công!");
 
-        // Tải lại / vào xem vé lần sau (hết flash) -> không hiện banner nữa
         String reload = mvc.perform(get("/booking/" + booking.getBookingCode()).sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -176,7 +167,6 @@ class VnPayPaymentTest {
     void returningTwiceKeepsOnePaymentAndCountsPromotionOnce() throws Exception {
         Map<String, String> params = returnParams("2700000", "00", "00");
         mvc.perform(vnPayReturn(params, "TESTSECRET")).andExpect(redirectedUrl("/booking/" + booking.getBookingCode()));
-        // Khách bấm F5 trang kết quả -> VNPay gửi lại y hệt
         mvc.perform(vnPayReturn(params, "TESTSECRET")).andExpect(redirectedUrl("/booking/" + booking.getBookingCode()));
         entityManager.flush();
 
@@ -186,7 +176,6 @@ class VnPayPaymentTest {
 
     @Test
     void wrongSignatureIsRejectedWithoutTouchingDatabase() throws Exception {
-        // Ký bằng chuỗi bí mật khác = giống ai đó tự sửa URL
         mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "SAISECRET"))
                 .andExpect(redirectedUrl("/"))
                 .andExpect(flash().attribute("errorMessage", "Dữ liệu thanh toán trả về không hợp lệ."));
@@ -198,7 +187,6 @@ class VnPayPaymentTest {
 
     @Test
     void wrongAmountIsRejected() throws Exception {
-        // Chữ ký đúng nhưng số tiền chỉ 1.000 đ (khác 27.000 đ của đơn)
         mvc.perform(vnPayReturn(returnParams("100000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage", "Số tiền thanh toán không khớp với đơn."));
@@ -210,7 +198,6 @@ class VnPayPaymentTest {
 
     @Test
     void customerCancelOnVnPayShowsMessage() throws Exception {
-        // Mã 24 = khách bấm "Huỷ" trên trang VNPay
         mvc.perform(vnPayReturn(returnParams("2700000", "24", "02"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage", "Bạn đã huỷ thanh toán VNPay."));
@@ -222,7 +209,7 @@ class VnPayPaymentTest {
 
     @Test
     void expiredBookingKeepsPaymentRecordButIsNotPaid() throws Exception {
-        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1)); // giả lập: khách trả tiền khi đã quá 10 phút giữ chỗ
+        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 
         mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
@@ -231,7 +218,6 @@ class VnPayPaymentTest {
                                 + booking.getBookingCode() + "."));
         entityManager.flush();
 
-        // Có payment SUCCESS làm bằng chứng tiền đã trừ, nhưng đơn/vé/mã KM không đổi
         assertThat(jdbc.queryForMap("SELECT method, status FROM payment WHERE booking_id = ?", booking.getId()))
                 .containsEntry("method", "VNPAY").containsEntry("status", "SUCCESS");
         assertThat(bookingStatus()).isEqualTo("PENDING");
@@ -242,17 +228,14 @@ class VnPayPaymentTest {
 
     @Test
     void paidButInvalidBookingGetsOnePendingRefund() throws Exception {
-        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1)); // khách trả tiền khi đơn đã hết hạn giữ chỗ
+        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 
-        // VNPay báo trả tiền thành công -> lưu payment SUCCESS + tạo khoản chờ hoàn tiền cho khách
         mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()));
-        // Khách bấm F5 trang kết quả -> VNPay gửi lại y hệt -> KHÔNG tạo khoản hoàn thứ 2
         mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()));
         entityManager.flush();
 
-        // Đúng 1 khoản hoàn: PENDING, đủ số tiền khách đã trả (27.000 đ), ghi rõ lý do
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM refund WHERE booking_id = ?", Integer.class, booking.getId()))
                 .isEqualTo(1);
         assertThat(jdbc.queryForMap("SELECT status, amount, reason FROM refund WHERE booking_id = ?", booking.getId()))
@@ -260,31 +243,28 @@ class VnPayPaymentTest {
                 .containsEntry("reason", "Thanh toán sau khi đơn hết hạn");
         assertThat(jdbc.queryForObject("SELECT amount FROM refund WHERE booking_id = ?", java.math.BigDecimal.class,
                 booking.getId())).isEqualByComparingTo("27000");
-        assertThat(count("payment")).isEqualTo(1); // vẫn chỉ 1 payment
+        assertThat(count("payment")).isEqualTo(1);
     }
 
     @Test
     void usedUpPromotionShowsMessageInsteadOfErrorPage() throws Exception {
         useUpPromotion();
 
-        // Bấm nút VNPay -> không sang VNPay, quay lại trang thanh toán kèm lời báo
         mvc.perform(post("/payment/" + booking.getBookingCode() + "/vnpay").param("method", "VNPAY").sessionAttr(BookingAccessHelper.VIEWABLE_CODES, BookingTestHelper.viewable(booking.getBookingCode())))
                 .andExpect(redirectedUrl("/payment/" + booking.getBookingCode()))
                 .andExpect(flash().attribute("errorMessage",
                         "Mã khuyến mãi TEST10 đã hết lượt sử dụng. Vui lòng đặt vé lại không dùng mã này."));
-        // confirmPaid cũng chặn bằng IllegalArgumentException (controller bắt được), không để lỗi DB văng ra
         assertThatThrownBy(() -> paymentService.confirmPaid(booking.getId(), "VNPAY", "14123456"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("hết lượt sử dụng");
         entityManager.flush();
 
         assertThat(bookingStatus()).isEqualTo("PENDING");
         assertThat(count("payment")).isZero();
-        assertThat(promotionUsedCount()).isEqualTo(1); // không bị cộng vượt usage_limit
+        assertThat(promotionUsedCount()).isEqualTo(1);
     }
 
     @Test
     void promotionUsedUpWhileOnVnPayKeepsPaymentRecord() throws Exception {
-        // Khách đã sang VNPay, trong lúc đó khách khác dùng mất lượt cuối của mã
         useUpPromotion();
 
         mvc.perform(vnPayReturn(returnParams("2700000", "00", "00"), "TESTSECRET"))
@@ -294,20 +274,17 @@ class VnPayPaymentTest {
                                 + booking.getBookingCode() + "."));
         entityManager.flush();
 
-        // Giống đơn hết hạn: lưu payment SUCCESS làm bằng chứng, đơn/vé giữ nguyên, mã KM không bị cộng thêm
         assertThat(jdbc.queryForObject("SELECT status FROM payment WHERE booking_id = ?", String.class, booking.getId()))
                 .isEqualTo("SUCCESS");
         assertThat(bookingStatus()).isEqualTo("PENDING");
         assertThat(promotionUsedCount()).isEqualTo(1);
     }
 
-    // Giả lập: mã TEST10 chỉ có 1 lượt và khách khác đã dùng mất lượt đó
     private void useUpPromotion() {
         booking.getPromotion().setUsageLimit(1);
         booking.getPromotion().setUsedCount(1);
     }
 
-    // Tham số giống hệt VNPay gửi kèm khi trả khách về (chưa có chữ ký)
     private Map<String, String> returnParams(String amount, String responseCode, String transactionStatus) {
         Map<String, String> params = new HashMap<>();
         params.put("vnp_Amount", amount);
@@ -323,7 +300,6 @@ class VnPayPaymentTest {
         return params;
     }
 
-    // GET /payment/vnpay-return kèm các tham số trên và chữ ký tính bằng secret
     private MockHttpServletRequestBuilder vnPayReturn(Map<String, String> params, String secret) {
         MockHttpServletRequestBuilder request = get("/payment/vnpay-return");
         params.forEach((name, value) -> request.param(name, value));
@@ -332,7 +308,6 @@ class VnPayPaymentTest {
         return request;
     }
 
-    // "a=1&b=x+y" -> {a=1, b=x y}
     private Map<String, String> parseQuery(String query) {
         Map<String, String> params = new HashMap<>();
         for (String pair : query.split("&")) {

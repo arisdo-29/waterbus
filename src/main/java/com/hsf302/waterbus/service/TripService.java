@@ -11,8 +11,6 @@ import com.hsf302.waterbus.entity.Trip;
 import java.time.LocalDate;
 import java.util.List;
 
-// Module: BE2 - Tàu, Ghế & Chuyến
-// Các method có chữ "HỢP ĐỒNG" là module khác sẽ gọi -> muốn đổi chữ ký phải báo nhóm trước.
 public interface TripService {
     int ONLINE_SALES_CUTOFF_MINUTES = 10;
 
@@ -22,33 +20,25 @@ public interface TripService {
 
     TripManifestDTO getManifest(int tripId);
 
-    /** HỢP ĐỒNG cho BE1: số chuyến SCHEDULED của tuyến có giờ khởi hành trong tương lai. */
     long countUpcomingTripsOfRoute(int routeId);
 
     void createAdminTrip(AdminTripForm form);
 
     void cancelTrip(int tripId, String reason);
 
-    /** Tìm chuyến đi qua bến đi rồi tới bến đến trong ngày (màn hình tìm chuyến). */
     List<Trip> searchTrips(int fromStationId, int toStationId, LocalDate date);
 
     List<TripSearchDTO> searchTripResults(int fromStationId, int toStationId, LocalDate date);
 
-    /** Thông tin chuyến cho trang chọn ghế; null nếu chuyến không còn bán vé. */
     BookingTripDTO getBookableTrip(int tripId);
 
-    /** Giờ tại hai bến đã chọn cho trang chọn ghế; null nếu chuyến không đi qua chặng này. */
     BookingTripDTO getBookableTrip(int tripId, int fromStationId, int toStationId);
 
-    /** HỢP ĐỒNG cho BE4: lấy chuyến theo id để gắn vào vé; null nếu không có. */
     Trip getTripById(int tripId);
 
-    /** Sơ đồ ghế của chuyến: mọi ghế đang dùng của tàu, available = còn trống. */
     List<SeatDTO> getSeatMap(int tripId);
 
-    /** HỢP ĐỒNG cho BE4: ghế còn trống của chuyến (không có vé HOLD/VALID/USED). */
     List<Seat> getAvailableSeats(int tripId);
 
-    /** HỢP ĐỒNG cho BE4: kiểm tra lại 1 ghế ngay trước khi tạo vé. */
     boolean isSeatAvailable(int tripId, int seatId);
 }

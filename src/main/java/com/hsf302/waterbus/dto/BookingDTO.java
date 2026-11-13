@@ -6,8 +6,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-// Module: BE4 - Đặt vé & Thanh toán. Thông tin 1 đơn đặt vé đưa ra view (attribute "booking").
-// Viết theo kiểu StationDTO. Tên field khớp docs/PAGES.md.
 public class BookingDTO implements Serializable {
     private final Integer id;
     private final String bookingCode;
@@ -20,7 +18,7 @@ public class BookingDTO implements Serializable {
     private final BigDecimal totalAmount;
     private final LocalDateTime createdAt;
     private final LocalDateTime expiresAt;
-    private final LocalDateTime paidAt; // null khi chưa thanh toán
+    private final LocalDateTime paidAt;
     private final String refundStatus;
 
     public BookingDTO(Integer id, String bookingCode, String status, String contactName, String contactPhone,
@@ -48,9 +46,6 @@ public class BookingDTO implements Serializable {
         this.refundStatus = refundStatus;
     }
 
-    // Entity Booking -> DTO: chỉ chép field. 2 trạng thái là NGHIỆP VỤ nên BookingService tính rồi truyền vào:
-    // - displayStatus: trạng thái để hiển thị (đơn PENDING đã quá hạn giữ chỗ -> "EXPIRED" dù DB chưa đổi)
-    // - refundStatus: trạng thái hoàn tiền (PENDING / DONE), null nếu đơn không có khoản hoàn
     public static BookingDTO fromEntity(Booking b, String displayStatus, String refundStatus) {
         if (b == null) {
             return null;

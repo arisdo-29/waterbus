@@ -60,7 +60,6 @@
                 </div>
               </div>
             </div>
-            <!--/* Vé ưu đãi (requiresVerification): mỗi ghế 1 hành khách, thứ tự passengerNames/birthYears = thứ tự seatIds */-->
             <div class="wb-card wb-form-card wb-passenger-card" th:if="${ticketType?.requiresVerification}" th:with="currentYear=${#temporals.year(#temporals.createNow())}" data-passenger-section th:data-ticket-code="${ticketType?.code}" th:data-travel-year="${trip?.departureTime != null ? #temporals.year(trip.departureTime) : #temporals.year(#temporals.createNow())}">
               <span class="wb-eyebrow">Vé ưu đãi</span>
               <h2>Thông tin hành khách</h2>
@@ -79,7 +78,6 @@
                   <div class="wb-field-error" data-birth-year-error aria-live="polite"></div>
                 </div>
               </div>
-              <!--/* Lỗi chung của cả danh sách (VD số tên không khớp số ghế) */-->
               <div class="wb-field-error" th:each="err : ${#fields.detailedErrors()}" th:if="${err.fieldName == 'passengerNames' or err.fieldName == 'birthYears'}" th:text="${err.message}"></div>
             </div>
           </div>

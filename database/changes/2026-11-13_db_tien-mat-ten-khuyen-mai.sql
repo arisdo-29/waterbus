@@ -1,5 +1,3 @@
--- Nâng cấp DB đang dùng, không xoá đơn/vé. Chạy lại được.
--- KH3: CASH dùng cho TR6; giữ MOCK/MOMO để đọc dữ liệu cũ.
 USE WaterbusDB;
 GO
 SET XACT_ABORT ON;

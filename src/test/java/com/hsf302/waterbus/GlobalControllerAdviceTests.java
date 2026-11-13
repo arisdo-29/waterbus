@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Kiểm tra GlobalControllerAdvice: URL sai kiểu / thiếu tham số -> về trang chủ kèm errorMessage
 @SpringBootTest
 class GlobalControllerAdviceTests {
     private static final String MESSAGE = "Đường dẫn không hợp lệ hoặc thiếu thông tin.";
@@ -32,7 +31,6 @@ class GlobalControllerAdviceTests {
     @Test
     void missingRequiredParameterRedirectsHomeWithMessage() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        // Thiếu tripId (bắt buộc) -> MissingServletRequestParameterException
         mvc.perform(post("/booking/checkout").param("ticketTypeId", "1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))

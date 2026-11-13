@@ -21,8 +21,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 TR2: chỉ chủ đơn, nhân viên, hoặc trình duyệt đã được phép (vừa đặt / nhập đúng SĐT)
-// mới xem, huỷ, thanh toán được 1 đơn. Mã đơn chỉ 8 chữ số nên không được coi là "bí mật".
 @SpringBootTest
 @Transactional
 class BookingAccessTest {
@@ -72,16 +70,14 @@ class BookingAccessTest {
         AccountDTO minh = account("minh@example.com", "CUSTOMER");
         String code = bookFor(lan.getId(), seatA1).getBookingCode();
 
-        // Lan (chủ đơn) xem được
         mvc.perform(get("/booking/" + code).sessionAttr("loginAccount", lan))
                 .andExpect(status().isOk()).andExpect(view().name("booking/detail"));
 
-        // Minh đổi mã đơn trên URL -> bị chặn ở cả 4 chỗ: xem, huỷ, trang thanh toán, nút VNPay
         expectNotOwner(get("/booking/" + code).sessionAttr("loginAccount", minh));
         expectNotOwner(post("/booking/" + code + "/cancel").sessionAttr("loginAccount", minh));
         expectNotOwner(get("/payment/" + code).sessionAttr("loginAccount", minh));
         expectNotOwner(post("/payment/" + code + "/vnpay").sessionAttr("loginAccount", minh));
-        assertThat(bookingStatus(code)).isEqualTo("PENDING"); // Minh không huỷ được đơn của Lan
+        assertThat(bookingStatus(code)).isEqualTo("PENDING");
     }
 
     @Test
@@ -89,7 +85,6 @@ class BookingAccessTest {
         AccountDTO lan = account("lan@example.com", "CUSTOMER");
         String code = bookFor(lan.getId(), seatA1).getBookingCode();
 
-        // Đơn của tài khoản, chưa đăng nhập -> sang trang đăng nhập, nhớ đúng trang để quay lại
         MockHttpSession session = new MockHttpSession();
         mvc.perform(get("/booking/" + code).session(session)).andExpect(redirectedUrl("/auth/login"));
         assertThat(session.getAttribute("redirectAfterLogin")).isEqualTo("/booking/" + code);
@@ -112,21 +107,18 @@ class BookingAccessTest {
 
     @Test
     void guestBookingOnAnotherBrowserNeedsTheCorrectPhone() throws Exception {
-        String code = bookFor(null, seatA1).getBookingCode(); // khách vãng lai, SĐT 0901234567
+        String code = bookFor(null, seatA1).getBookingCode();
         MockHttpSession otherBrowser = new MockHttpSession();
 
-        // Máy khác mở đơn -> phải xác minh SĐT trước
         mvc.perform(get("/booking/" + code).session(otherBrowser))
                 .andExpect(redirectedUrl("/booking/" + code + "/verify"));
 
-        // Nhập SAI SĐT -> quay lại trang xác minh, báo lỗi, vẫn không xem được
         mvc.perform(post("/booking/" + code + "/verify").session(otherBrowser).param("contactPhone", "0999999999"))
                 .andExpect(redirectedUrl("/booking/" + code + "/verify"))
                 .andExpect(flash().attribute("errorMessage", "Số điện thoại không khớp với đơn đặt vé này."));
         mvc.perform(get("/booking/" + code).session(otherBrowser))
                 .andExpect(redirectedUrl("/booking/" + code + "/verify"));
 
-        // Nhập ĐÚNG SĐT -> xem được đơn và trang thanh toán trên trình duyệt này
         mvc.perform(post("/booking/" + code + "/verify").session(otherBrowser).param("contactPhone", " 0901234567 "))
                 .andExpect(redirectedUrl("/booking/" + code));
         mvc.perform(get("/booking/" + code).session(otherBrowser))
@@ -138,7 +130,6 @@ class BookingAccessTest {
     @Test
     void browserThatJustBookedCanViewWithoutPhone() throws Exception {
         MockHttpSession sameBrowser = new MockHttpSession();
-        // Khách vãng lai đặt vé qua form trang checkout
         String paymentUrl = mvc.perform(post("/booking").session(sameBrowser).param("acceptPolicy", "true")
                         .param("tripId", String.valueOf(tripId)).param("seatIds", String.valueOf(seatA1))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
@@ -148,10 +139,8 @@ class BookingAccessTest {
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(paymentUrl).matches("/payment/BK[0-9]{8}");
 
-        // Cùng trình duyệt vừa đặt -> vào thẳng trang thanh toán, không phải nhập SĐT
         mvc.perform(get(paymentUrl).session(sameBrowser))
                 .andExpect(status().isOk()).andExpect(view().name("payment/index"));
-        // Trình duyệt khác -> phải xác minh
         String code = paymentUrl.substring("/payment/".length());
         mvc.perform(get(paymentUrl).session(new MockHttpSession()))
                 .andExpect(redirectedUrl("/booking/" + code + "/verify"));
@@ -163,7 +152,6 @@ class BookingAccessTest {
                 .andExpect(flash().attribute("errorMessage", NOT_OWNER_MESSAGE));
     }
 
-    // Đặt 1 vé thường cho tài khoản accountId (null = khách vãng lai), SĐT liên hệ 0901234567
     private Booking bookFor(Integer accountId, int seatId) {
         return BookingTestHelper.createBooking(bookingService, tripId, List.of(seatId), ticketTypeId, s1, s2,
                 "", accountId, "Lan", "0901234567", "lan@example.com");

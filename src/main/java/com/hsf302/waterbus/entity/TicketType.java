@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import org.hibernate.annotations.Nationalized;
 
-/** Bảng [ticket_type] - module phụ trách: BE3 - Tài khoản, Loại vé & Khuyến mãi. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "ticket_type")
 public class TicketType {

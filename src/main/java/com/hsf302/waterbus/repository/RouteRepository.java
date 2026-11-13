@@ -8,7 +8,6 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
-// Module: BE1 - Tuyến & Bến
 public interface RouteRepository extends JpaRepository<Route, Integer> {
     List<Route> findByIsActiveTrueOrderByIdAsc();
 

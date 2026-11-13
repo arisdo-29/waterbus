@@ -157,7 +157,6 @@ class AdminAccountControllerTest {
     @Test
     @DisplayName("Khóa và mở khóa tài khoản")
     void testToggleStatus_Success() throws Exception {
-        // 1. Khóa
         mvc.perform(post("/admin/accounts/" + customerAccount.getId() + "/toggle-status")
                         .sessionAttr("loginAccount", adminDTO))
                 .andExpect(status().is3xxRedirection())
@@ -167,7 +166,6 @@ class AdminAccountControllerTest {
         Account locked = accountRepository.findById(customerAccount.getId()).orElseThrow();
         assertEquals("LOCKED", locked.getStatus());
 
-        // 2. Mở khóa
         mvc.perform(post("/admin/accounts/" + customerAccount.getId() + "/toggle-status")
                         .sessionAttr("loginAccount", adminDTO))
                 .andExpect(status().is3xxRedirection())

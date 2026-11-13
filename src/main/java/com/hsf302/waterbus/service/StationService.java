@@ -5,7 +5,6 @@ import com.hsf302.waterbus.dto.StationForm;
 
 import java.util.List;
 
-// Module: BE1 - Tuyến & Bến
 public interface StationService {
     List<StationDTO> getStations();
 

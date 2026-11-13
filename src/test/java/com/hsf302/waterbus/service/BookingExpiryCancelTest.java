@@ -25,7 +25,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 M4: job tự huỷ đơn quá hạn (BookingExpiryJob) và khách huỷ đơn chưa thanh toán (cancelBooking).
 @SpringBootTest
 @Transactional
 class BookingExpiryCancelTest {
@@ -41,7 +40,7 @@ class BookingExpiryCancelTest {
     private int ticketTypeId;
     private int s1;
     private int s2;
-    private List<Integer> seats; // 4 ghế A1..A4
+    private List<Integer> seats;
 
     @BeforeEach
     void setUp() {
@@ -71,15 +70,15 @@ class BookingExpiryCancelTest {
 
     @Test
     void jobExpiresOnlyOverduePendingBookingsAndReleasesTheirSeats() {
-        Booking overdue = book(List.of(seats.get(0), seats.get(1)), null);  // quá hạn -> phải bị huỷ
-        Booking stillHeld = book(List.of(seats.get(2)), null);             // còn hạn -> giữ nguyên
-        Booking paid = book(List.of(seats.get(3)), null);                  // đã trả tiền -> giữ nguyên
-        paymentService.confirmPaid(paid.getId(), "VNPAY", "14123456"); // trả tiền qua VNPay
+        Booking overdue = book(List.of(seats.get(0), seats.get(1)), null);
+        Booking stillHeld = book(List.of(seats.get(2)), null);
+        Booking paid = book(List.of(seats.get(3)), null);
+        paymentService.confirmPaid(paid.getId(), "VNPAY", "14123456");
         overdue.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         paid.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 
         expiryJob.expireOverdueBookings();
-        entityManager.flush(); // ghi xuống DB trước khi đọc lại bằng SQL
+        entityManager.flush();
 
         assertThat(status(overdue)).isEqualTo("EXPIRED");
         assertThat(ticketStatuses(overdue)).containsExactly("CANCELLED", "CANCELLED");
@@ -87,7 +86,6 @@ class BookingExpiryCancelTest {
         assertThat(ticketStatuses(stillHeld)).containsExactly("HOLD");
         assertThat(status(paid)).isEqualTo("PAID");
         assertThat(ticketStatuses(paid)).containsExactly("VALID");
-        // 2 ghế của đơn quá hạn đã được nhả -> người khác đặt lại được
         assertThat(tripService.getAvailableSeats(tripId)).extracting(Seat::getId)
                 .containsExactly(seats.get(0), seats.get(1));
         Booking rebook = book(List.of(seats.get(0)), null);
@@ -101,20 +99,17 @@ class BookingExpiryCancelTest {
         Booking guest = book(List.of(seats.get(0)), null);
         Booking ofLan = book(List.of(seats.get(1)), lanId);
 
-        // Đơn khách vãng lai: huỷ được, vé được nhả
         bookingService.cancelBooking(guest.getBookingCode(), null);
         entityManager.flush();
         assertThat(status(guest)).isEqualTo("CANCELLED");
         assertThat(ticketStatuses(guest)).containsExactly("CANCELLED");
 
-        // Huỷ lần 2 / sai mã / không phải chủ đơn -> báo lỗi, đơn của Lan vẫn PENDING
         assertCancelFails(guest.getBookingCode(), null, "Chỉ huỷ được đơn chưa thanh toán.");
         assertCancelFails("SAIMA123", null, "Không tìm thấy đơn đặt vé.");
         assertCancelFails(ofLan.getBookingCode(), minhId, "Bạn không có quyền huỷ đơn này.");
         assertCancelFails(ofLan.getBookingCode(), null, "Bạn không có quyền huỷ đơn này.");
         assertThat(status(ofLan)).isEqualTo("PENDING");
 
-        // Đúng chủ đơn -> huỷ được
         bookingService.cancelBooking(ofLan.getBookingCode(), lanId);
         entityManager.flush();
         assertThat(status(ofLan)).isEqualTo("CANCELLED");
@@ -129,12 +124,9 @@ class BookingExpiryCancelTest {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         String url = "/booking/" + ofLan.getBookingCode();
 
-        // Chưa đăng nhập -> không phải chủ đơn -> lỗi
-        // TR2: giờ không huỷ được và được đưa sang trang đăng nhập (đăng nhập xong quay lại đúng trang đơn)
         mvc.perform(post(url + "/cancel"))
                 .andExpect(redirectedUrl("/auth/login"));
-        assertThat(status(ofLan)).isEqualTo("PENDING"); // chưa bị huỷ
-        // Đăng nhập đúng chủ đơn -> huỷ thành công
+        assertThat(status(ofLan)).isEqualTo("PENDING");
         mvc.perform(post(url + "/cancel").sessionAttr("loginAccount", lan))
                 .andExpect(redirectedUrl(url))
                 .andExpect(flash().attribute("successMessage", "Đã huỷ đơn."));
@@ -147,26 +139,22 @@ class BookingExpiryCancelTest {
         int lanId = account("lan@example.com");
         AccountDTO lan = new AccountDTO(lanId, "lan@example.com", "Test", "0900000000", "CUSTOMER", "ACTIVE");
         Booking overdue = book(List.of(seats.get(0)), lanId);
-        overdue.setExpiresAt(LocalDateTime.now().minusMinutes(1)); // đã quá hạn giữ chỗ, nhưng job CHƯA chạy
+        overdue.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 
-        // Dữ liệu đưa ra view: đơn "EXPIRED", vé "CANCELLED" (đúng như job sẽ làm)
         assertThat(bookingService.getBookingDetail(overdue.getBookingCode()).getStatus()).isEqualTo("EXPIRED");
         assertThat(bookingService.getTicketsOfBooking(overdue.getId())).extracting(TicketDTO::getStatus)
                 .containsExactly("CANCELLED");
 
-        // Trang xem vé và "Vé của tôi" hiện là hết hạn, không còn mời thanh toán
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         assertThat(page(mvc, "/booking/" + overdue.getBookingCode(), lan))
                 .contains("Đơn đã hết hạn").doesNotContain("Vui lòng hoàn tất thanh toán để giữ chỗ.");
         assertThat(page(mvc, "/my-bookings", lan)).contains("Hết hạn giữ chỗ").doesNotContain("Chờ thanh toán");
 
-        // DB vẫn PENDING / HOLD: chỉ đổi chữ hiển thị, việc ghi DB + nhả ghế vẫn để job làm
         entityManager.flush();
         assertThat(status(overdue)).isEqualTo("PENDING");
         assertThat(ticketStatuses(overdue)).containsExactly("HOLD");
     }
 
-    // Mở trang bằng tài khoản đã đăng nhập, trả về HTML
     private String page(MockMvc mvc, String url, AccountDTO account) throws Exception {
         return mvc.perform(get(url).sessionAttr("loginAccount", account))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);

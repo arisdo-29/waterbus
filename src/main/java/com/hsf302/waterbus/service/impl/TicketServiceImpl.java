@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-// Module: BE3 (Tân) - Soát vé (Staff Check-in) theo M4 & M5
 @Service
 public class TicketServiceImpl implements TicketService {
 
@@ -145,7 +144,6 @@ public class TicketServiceImpl implements TicketService {
                     }
                 }
             } catch (Exception ignored) {
-                // Giữ baseTime nếu không tra được bến dừng
             }
         }
         return baseTime;
@@ -212,14 +210,12 @@ public class TicketServiceImpl implements TicketService {
             throw new IllegalStateException(msg);
         }
 
-        // Kiểm tra chuyến tàu: từ chối vé của chuyến đã bị huỷ
         if (ticket.getTrip() != null && "CANCELLED".equalsIgnoreCase(ticket.getTrip().getStatus())) {
             String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã bị hủy, không thể soát vé!";
             logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
             throw new IllegalStateException(msg);
         }
 
-        // Kiểm tra đơn đặt vé: từ chối vé của đơn đã bị huỷ hoặc đã hoàn tiền
         if (ticket.getBooking() != null) {
             String bookingStatus = ticket.getBooking().getStatus();
             if ("CANCELLED".equalsIgnoreCase(bookingStatus)) {
@@ -234,12 +230,10 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        // Kiểm tra khung giờ lên tàu và ngày khởi hành (chỉ kiểm tra nếu có boardingTime và không có override)
         LocalDateTime boardingTime = calculateBoardingTime(ticket);
         if (boardingTime != null && !overrideTripTime) {
             LocalDateTime now = LocalDateTime.now();
 
-            // 1. Chuyến ngày khác (không phải hôm nay)
             if (!now.toLocalDate().isEqual(boardingTime.toLocalDate())) {
                 String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " khởi hành ngày "
                         + boardingTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
@@ -248,7 +242,6 @@ public class TicketServiceImpl implements TicketService {
                 throw new IllegalStateException(msg);
             }
 
-            // 2. Soát quá sớm (trước giờ lên tàu trên 60 phút)
             if (now.isBefore(boardingTime.minusMinutes(60))) {
                 String msg = "Chưa đến giờ soát vé cho chuyến " + ticket.getTrip().getTripCode()
                         + " (giờ lên tàu dự kiến lúc " + boardingTime.format(TIME_FORMAT)
@@ -257,7 +250,6 @@ public class TicketServiceImpl implements TicketService {
                 throw new IllegalStateException(msg);
             }
 
-            // 3. Soát quá muộn (chuyến đã qua bến quá 15 phút)
             if (now.isAfter(boardingTime.plusMinutes(15))) {
                 String msg = "Chuyến tàu " + ticket.getTrip().getTripCode() + " đã qua bến lúc " + boardingTime.format(TIME_FORMAT) + ". Cần xác nhận Override để soát vé muộn!";
                 logScan(ticket.getTicketCode(), getBookingCode(ticket), ticket.getTrip(), staffAccountId, "CHECKIN", "FAILED", safeSource, msg);
@@ -265,7 +257,6 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        // Cập nhật trạng thái vé sang USED và đóng dấu thời gian soát vé
         ticket.setStatus("USED");
         ticket.setCheckedInAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         Ticket saved = ticketRepository.save(ticket);
@@ -309,7 +300,6 @@ public class TicketServiceImpl implements TicketService {
 
         String safeReason = (reason == null || reason.isBlank()) ? "Không xuất trình được giấy tờ hợp lệ" : reason.trim();
 
-        // Chuyển vé sang CANCELLED để nhả ghế
         ticket.setStatus("CANCELLED");
         Ticket saved = ticketRepository.save(ticket);
 
@@ -362,7 +352,6 @@ public class TicketServiceImpl implements TicketService {
                 ticketScanLogRepository.save(log);
             }
         } catch (Exception ignored) {
-            // Log không được làm fail giao dịch chính
         }
     }
 }

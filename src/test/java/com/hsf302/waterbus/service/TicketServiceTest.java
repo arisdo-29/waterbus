@@ -66,7 +66,6 @@ class TicketServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Tạo các entity liên quan
         Station st1 = new Station();
         st1.setCode("ST_TEST_1");
         st1.setName("Bến Test 1");
@@ -158,7 +157,6 @@ class TicketServiceTest {
         booking.setPaidAt(LocalDateTime.now());
         booking = bookingRepository.save(booking);
 
-        // 1. Vé hợp lệ (VALID)
         validTicket = new Ticket();
         validTicket.setTicketCode("TK_VALID_01");
         validTicket.setBooking(booking);
@@ -171,7 +169,6 @@ class TicketServiceTest {
         validTicket.setStatus("VALID");
         validTicket = ticketRepository.save(validTicket);
 
-        // 2. Vé đã dùng (USED)
         usedTicket = new Ticket();
         usedTicket.setTicketCode("TK_USED_01");
         usedTicket.setBooking(booking);
@@ -185,7 +182,6 @@ class TicketServiceTest {
         usedTicket.setCheckedInAt(LocalDateTime.now().minusMinutes(30));
         usedTicket = ticketRepository.save(usedTicket);
 
-        // 3. Vé đang giữ chỗ chưa thanh toán (HOLD)
         holdTicket = new Ticket();
         holdTicket.setTicketCode("TK_HOLD_01");
         holdTicket.setBooking(booking);
@@ -198,7 +194,6 @@ class TicketServiceTest {
         holdTicket.setStatus("HOLD");
         holdTicket = ticketRepository.save(holdTicket);
 
-        // 4. Vé đã hủy (CANCELLED)
         cancelledTicket = new Ticket();
         cancelledTicket.setTicketCode("TK_CANCELLED_01");
         cancelledTicket.setBooking(booking);
@@ -227,7 +222,6 @@ class TicketServiceTest {
         assertEquals("Bến Test 1", result.getFromStationName());
         assertEquals("Bến Test 2", result.getToStationName());
 
-        // Kiểm tra trong database thực tế
         Ticket inDb = ticketRepository.findByTicketCode("TK_VALID_01").orElseThrow();
         assertEquals("USED", inDb.getStatus());
         assertNotNull(inDb.getCheckedInAt());
@@ -279,7 +273,6 @@ class TicketServiceTest {
     @Test
     @DisplayName("Vé của chuyến tàu đã bị hủy (CANCELLED) -> ném ngoại lệ IllegalStateException")
     void checkIn_cancelledTrip_throwsException() {
-        // Cập nhật trip sang CANCELLED
         Trip trip = validTicket.getTrip();
         trip.setStatus("CANCELLED");
         tripRepository.save(trip);
@@ -293,7 +286,6 @@ class TicketServiceTest {
     @Test
     @DisplayName("Vé của đơn đặt vé đã bị hủy (CANCELLED) hoặc hoàn tiền (REFUNDED) -> ném ngoại lệ IllegalStateException")
     void checkIn_cancelledOrRefundedBooking_throwsException() {
-        // 1. Đơn bị CANCELLED
         Booking booking = validTicket.getBooking();
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
@@ -303,7 +295,6 @@ class TicketServiceTest {
         });
         assertTrue(ex1.getMessage().contains("đã bị hủy"));
 
-        // 2. Đơn bị REFUNDED
         booking.setStatus("REFUNDED");
         bookingRepository.save(booking);
 
@@ -323,7 +314,6 @@ class TicketServiceTest {
         assertEquals("VALID", info.getStatus());
         assertNull(info.getCheckedInAt());
 
-        // Database vẫn là VALID
         Ticket inDb = ticketRepository.findByTicketCode("TK_VALID_01").orElseThrow();
         assertEquals("VALID", inDb.getStatus());
         assertNull(inDb.getCheckedInAt());
@@ -352,7 +342,6 @@ class TicketServiceTest {
     @Test
     @DisplayName("Từ chối vé ưu đãi (rejectPriorityTicket) -> chuyển sang CANCELLED và nhả ghế")
     void rejectPriorityTicket_success() {
-        // Cập nhật vé thành loại ưu đãi cần xác minh
         TicketType priorityType = new TicketType();
         priorityType.setCode("TT_PRIORITY_TEST");
         priorityType.setName("Vé Ưu Đãi Test");
@@ -431,21 +420,17 @@ class TicketServiceTest {
     @Test
     @DisplayName("TA1: Khách lên bến dọc đường (st2, minutesFromStart=45) soát vé thành công theo giờ lên tàu thực tế")
     void checkIn_midStation_withinStationWindow_success() {
-        // Tàu đã rời bến đầu 20 phút trước (quá +15 phút so với departureTime ở bến đầu)
         Trip trip = validTicket.getTrip();
         trip.setDepartureTime(LocalDateTime.now().minusMinutes(20));
         tripRepository.save(trip);
 
-        // Khách lên ở st2 (minutesFromStart = 45 -> giờ lên tàu thực tế là now + 25 phút)
         validTicket.setFromStation(st2);
         ticketRepository.save(validTicket);
 
-        // Tính toán giờ lên tàu và kiểm tra khung giờ
         java.time.LocalDateTime boardingTime = ticketService.calculateBoardingTime(validTicket.getTicketCode());
         assertNotNull(boardingTime);
         assertFalse(ticketService.isOutsideCheckinWindow(validTicket.getTicketCode()));
 
-        // Soát vé không cần override thành công
         TicketCheckinDTO result = ticketService.checkIn(validTicket.getTicketCode(), staff.getId(), "MANUAL", false);
         assertNotNull(result);
         assertEquals("USED", result.getStatus());
@@ -461,7 +446,6 @@ class TicketServiceTest {
         });
         assertTrue(ex.getMessage().contains("chưa được thanh toán"));
 
-        // Kiểm tra log FAILED vẫn được lưu
         var logs = ticketScanLogRepository.findAll();
         assertTrue(logs.size() > initialCount);
         boolean foundFailedLog = logs.stream().anyMatch(l ->

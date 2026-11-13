@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Module: BE2 - Tàu, Ghế & Chuyến.
 @Service
 public class TripServiceImpl implements TripService {
     private final TripRepository tripRepository;
@@ -121,7 +120,6 @@ public class TripServiceImpl implements TripService {
                 .map(stop -> stop.getMinutesFromStart())
                 .filter(minutes -> minutes != null)
                 .max(Comparator.naturalOrder()).orElse(0);
-        // Routes without configured travel times use the same 50-minute estimate as the demo schedule.
         if (duration <= 0) duration = 50;
 
         LocalDateTime arrivalTime = departureTime.plusMinutes(duration);
@@ -176,7 +174,6 @@ public class TripServiceImpl implements TripService {
             Segment segment = segmentForRoute(route.getId(), fromStationId, toStationId);
             if (segment == null) continue;
             segments.put(route.getId(), segment);
-            // The requested date is the boarding date, which may differ from the trip's first-stop date.
             LocalDateTime start = date.atStartOfDay().minusMinutes(segment.departureMinutes());
             LocalDateTime end = date.plusDays(1).atStartOfDay().minusMinutes(segment.departureMinutes());
             tripRepository.searchTripsForRoute(route.getId(), start, end).stream()

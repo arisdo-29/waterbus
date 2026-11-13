@@ -3,7 +3,6 @@ package com.hsf302.waterbus.dto;
 import com.hsf302.waterbus.entity.Station;
 import jakarta.validation.constraints.*;
 
-/** Only these fields may be submitted by the station admin form. */
 public class StationForm {
     @Positive(message = "ID bến không hợp lệ.")
     private Integer id;
@@ -18,7 +17,6 @@ public class StationForm {
     @NotNull(message = "Vui lòng chọn trạng thái bến.")
     private Boolean isActive = true;
 
-    // Đổ dữ liệu bến có sẵn vào form để mở trang sửa
     public static StationForm fromEntity(Station s) {
         StationForm form = new StationForm();
         form.setId(s.getId());
@@ -29,7 +27,6 @@ public class StationForm {
         return form;
     }
 
-    // Chép các field được phép sửa từ form sang entity (không chép id)
     public void applyTo(Station s) {
         s.setCode(code);
         s.setName(name);

@@ -185,7 +185,7 @@
                 </div>
                 <div th:if="${payment?.method != null}">
                   <dt>Phương thức</dt>
-                  <dd th:switch="${payment.method}"><span th:case="'CASH'">Tiền mặt</span><span th:case="'MOCK'">Mô phỏng (demo)</span><span th:case="'VNPAY'">VNPay</span><span th:case="'MOMO'">MoMo</span><span th:case="*" th:text="${payment.method}">VNPay</span></dd>
+                  <dd th:switch="${payment.method}"><span th:case="'CASH'">Tiền mặt</span><span th:case="'VNPAY'">VNPay</span><span th:case="'MOMO'">MoMo</span><span th:case="*" th:text="${payment.method}">VNPay</span></dd>
                 </div>
                 <div th:if="${payment?.transactionRef != null}">
                   <dt>Mã giao dịch</dt>

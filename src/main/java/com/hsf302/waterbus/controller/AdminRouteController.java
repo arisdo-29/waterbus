@@ -3,6 +3,7 @@ package com.hsf302.waterbus.controller;
 import com.hsf302.waterbus.dto.RouteForm;
 import com.hsf302.waterbus.service.RouteService;
 import com.hsf302.waterbus.service.StationService;
+import com.hsf302.waterbus.service.TripService;
 import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AdminRouteController {
     private final RouteService routeService;
     private final StationService stationService;
+    private final TripService tripService;
 
-    public AdminRouteController(RouteService routeService, StationService stationService) {
+    public AdminRouteController(RouteService routeService, StationService stationService,
+                                TripService tripService) {
         this.routeService = routeService;
         this.stationService = stationService;
+        this.tripService = tripService;
     }
 
     @InitBinder("route")
@@ -78,6 +82,11 @@ public class AdminRouteController {
     @PostMapping("/{id}/delete")
     public String hide(@PathVariable int id, RedirectAttributes flash) {
         try {
+            long upcoming = tripService.countUpcomingTripsOfRoute(id);
+            if (upcoming > 0) {
+                throw new IllegalArgumentException("Tuyến còn " + upcoming
+                        + " chuyến sắp chạy. Vui lòng huỷ các chuyến này trước khi ngừng tuyến.");
+            }
             routeService.hideRoute(id);
             flash.addFlashAttribute("successMessage", "Đã ngừng hoạt động tuyến; không xoá chuyến hoặc dữ liệu lịch sử.");
         } catch (IllegalArgumentException ex) {

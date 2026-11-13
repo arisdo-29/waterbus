@@ -128,6 +128,10 @@ Trí làm mẫu chung `templates/admin/_template/list.html` (bảng + nút Thêm
 | M2 | `GET/POST /account/profile` | `account/profile` | Trí | Tân | `account` (AccountDTO), `updateProfileRequest` | `fullName`, `phone` |
 | M2 | `GET/POST /account/change-password` | `account/change-password` | Trí | Tân | `changePasswordRequest`, `errorMessage` | `currentPassword`, `newPassword`, `confirmPassword` |
 
+Mỗi người chỉ đổi mật khẩu của chính mình qua trang thông tin cá nhân → `/account/change-password`,
+phải nhập đúng mật khẩu hiện tại. Backend lấy ID từ session `loginAccount`, không nhận ID tài khoản cần đổi từ form.
+Trang quản trị tài khoản không có form đặt lại mật khẩu; endpoint `POST /admin/accounts/{id}/reset-password` đã bỏ, kể cả với Super Admin.
+
 Menu quản trị (`adminSidebar` trong `layout.html`): ADMIN thấy Chuyến tàu, Doanh thu, Hoàn tiền, Tài khoản, Tàu, Bến, Tuyến,
 Khuyến mãi, Loại vé, Soát vé; STAFF thấy Soát vé (đầu danh sách) và Chuyến tàu. Dropdown tài khoản trên navbar của ADMIN
 có thêm "Doanh thu". Ẩn link chỉ là giao diện; BE của từng trang vẫn phải tự chặn quyền (chỉ ADMIN cho 3 URL mới).
@@ -187,6 +191,11 @@ Template `admin/checkin/index.html` do **Trí** giữ, backend do **Tân** làm;
 | `data-qr-reader` | `<div>` rỗng (khung camera) | JS tự ẩn/hiện; nút "Tắt camera" và dòng thông báo do JS tự thêm (hoặc tự đặt `data-qr-stop`, `data-qr-message`) |
 | `data-checkin-preview` | Modal Bootstrap (`class="modal fade"`) server render khi `GET /admin/checkin?ticketCode=...` tìm thấy vé/đơn | JS tự mở; trong modal là `<form method="post" th:action="@{/admin/checkin}">` có hidden `ticketCode`; nút submit gắn **`data-checkin-confirm`** được focus sẵn (bấm 1 lần hoặc Enter). Đóng modal → ô nhập trống, focus lại |
 | `data-checkin-result` | Thẻ rỗng server render sau khi soát (POST xong) | `data-result="success"` hoặc `"error"`, `data-message="Nội dung"` (VD "Vé TK0001 - ghế B3, mời lên tàu"). JS hiện khung to toàn màn hình xanh/đỏ, âm báo, rung, 2 giây sau tự ẩn |
+
+Soát vé chỉ được xác nhận khi vé thuộc đúng `tripId` đang chọn và trong giờ soát vé.
+POST `/admin/checkin` nhận `ticketCode`, `tripId` (bắt buộc chọn), `source` (mặc định `MANUAL`), không hỗ trợ `override`.
+POST `/admin/checkin/group` nhận `ticketCodes`, `tripId` (bắt buộc chọn); kiểm tra toàn bộ vé đúng chuyến trước khi xác nhận.
+Modal vé/đơn lệch chuyến hoặc ngoài giờ soát vé không hiển thị nút xác nhận lên tàu.
 
 Trang soát vé dùng fragment **`scriptsCheckin`** THAY cho `scripts`:
 `<th:block th:replace="~{fragments/layout :: scriptsCheckin}"></th:block>`.

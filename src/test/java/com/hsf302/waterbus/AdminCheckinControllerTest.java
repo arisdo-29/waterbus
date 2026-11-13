@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -264,11 +266,13 @@ class AdminCheckinControllerTest {
     void postCheckin_validTicket_success() throws Exception {
         mvc.perform(post("/admin/checkin")
                         .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", trip.getId().toString())
                         .param("ticketCode", "TK_MOCK_CHECKIN"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/checkin"))
+                .andExpect(redirectedUrl("/admin/checkin?tripId=" + trip.getId()))
                 .andExpect(flash().attributeExists("successMessage"))
                 .andExpect(flash().attributeExists("checkedInTicket"));
+        assertEquals("USED", ticketRepository.findById(validTicket.getId()).orElseThrow().getStatus());
     }
 
     @Test
@@ -276,9 +280,10 @@ class AdminCheckinControllerTest {
     void postCheckin_group_success() throws Exception {
         mvc.perform(post("/admin/checkin/group")
                         .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", trip.getId().toString())
                         .param("ticketCodes", "TK_MOCK_CHECKIN", "TK_MOCK_PRIORITY"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/checkin"))
+                .andExpect(redirectedUrl("/admin/checkin?tripId=" + trip.getId()))
                 .andExpect(flash().attributeExists("successMessage"));
     }
 
@@ -299,9 +304,120 @@ class AdminCheckinControllerTest {
     void postCheckin_invalidTicket_showsError() throws Exception {
         mvc.perform(post("/admin/checkin")
                         .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", trip.getId().toString())
                         .param("ticketCode", "TK_NOT_EXIST"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/checkin"))
+                .andExpect(redirectedUrl("/admin/checkin?tripId=" + trip.getId()))
                 .andExpect(flash().attributeExists("errorMessage"));
+    }
+
+    @Test
+    void getCheckin_wrongTrip_hidesSingleAndGroupConfirmation() throws Exception {
+        Trip otherTrip = createOtherTrip();
+        for (String code : new String[]{validTicket.getTicketCode(), booking.getBookingCode()}) {
+            mvc.perform(get("/admin/checkin")
+                            .sessionAttr("loginAccount", staffAccount)
+                            .param("tripId", otherTrip.getId().toString())
+                            .param("ticketCode", code))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attribute("isTripMismatch", true))
+                    .andExpect(content().string(not(containsString("data-checkin-confirm"))))
+                    .andExpect(content().string(not(containsString("Override"))));
+        }
+    }
+
+    @Test
+    void getCheckin_correctTrip_showsSingleAndGroupConfirmation() throws Exception {
+        for (String code : new String[]{validTicket.getTicketCode(), booking.getBookingCode()}) {
+            mvc.perform(get("/admin/checkin")
+                            .sessionAttr("loginAccount", staffAccount)
+                            .param("tripId", trip.getId().toString())
+                            .param("ticketCode", code))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attribute("isTripMismatch", false))
+                    .andExpect(content().string(containsString("data-checkin-confirm")));
+        }
+    }
+
+    @Test
+    void postCheckin_wrongTrip_rejectsEvenWithOverride() throws Exception {
+        Trip otherTrip = createOtherTrip();
+        mvc.perform(post("/admin/checkin")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", otherTrip.getId().toString())
+                        .param("ticketCode", validTicket.getTicketCode())
+                        .param("override", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", containsString("không phải chuyến đang soát")))
+                .andExpect(flash().attribute("resultStatus", "error"));
+        assertEquals("VALID", ticketRepository.findById(validTicket.getId()).orElseThrow().getStatus());
+        assertNull(validTicket.getCheckedInAt());
+    }
+
+    @Test
+    void postCheckin_noSelectedTrip_rejectsSingleAndGroupRequests() throws Exception {
+        mvc.perform(post("/admin/checkin")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("ticketCode", validTicket.getTicketCode()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", containsString("chọn chuyến")));
+        mvc.perform(post("/admin/checkin/group")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("ticketCodes", validTicket.getTicketCode(), priorityTicket.getTicketCode()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", containsString("chọn chuyến")));
+        assertEquals("VALID", validTicket.getStatus());
+        assertEquals("VALID", priorityTicket.getStatus());
+    }
+
+    @Test
+    void postCheckin_groupContainingWrongTrip_rejectsBeforeCheckingInAnyTicket() throws Exception {
+        priorityTicket.setTrip(createOtherTrip());
+        ticketRepository.save(priorityTicket);
+        mvc.perform(post("/admin/checkin/group")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", trip.getId().toString())
+                        .param("ticketCodes", validTicket.getTicketCode(), priorityTicket.getTicketCode()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", containsString("không phải chuyến đang soát")));
+        assertEquals("VALID", validTicket.getStatus());
+        assertEquals("VALID", priorityTicket.getStatus());
+        assertNull(validTicket.getCheckedInAt());
+        assertNull(priorityTicket.getCheckedInAt());
+    }
+
+    @Test
+    void postCheckin_outsideWindow_rejectsEvenWithOverride() throws Exception {
+        trip.setDepartureTime(LocalDateTime.now().plusHours(3));
+        trip.setArrivalTime(LocalDateTime.now().plusHours(4));
+        tripRepository.save(trip);
+        for (String code : new String[]{validTicket.getTicketCode(), booking.getBookingCode()}) {
+            mvc.perform(get("/admin/checkin")
+                            .sessionAttr("loginAccount", staffAccount)
+                            .param("tripId", trip.getId().toString())
+                            .param("ticketCode", code))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString("data-checkin-confirm"))));
+        }
+        mvc.perform(post("/admin/checkin")
+                        .sessionAttr("loginAccount", staffAccount)
+                        .param("tripId", trip.getId().toString())
+                        .param("ticketCode", validTicket.getTicketCode())
+                        .param("override", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", containsString("Chưa đến giờ soát vé")));
+        assertEquals("VALID", validTicket.getStatus());
+        assertNull(validTicket.getCheckedInAt());
+    }
+
+    private Trip createOtherTrip() {
+        Trip otherTrip = new Trip();
+        otherTrip.setTripCode("TRIP_CK_OTHER");
+        otherTrip.setRoute(trip.getRoute());
+        otherTrip.setWaterbus(trip.getWaterbus());
+        otherTrip.setDepartureTime(LocalDateTime.now().plusMinutes(20));
+        otherTrip.setArrivalTime(LocalDateTime.now().plusMinutes(80));
+        otherTrip.setStatus("SCHEDULED");
+        return tripRepository.save(otherTrip);
     }
 }

@@ -671,9 +671,18 @@
     function initAdminSidebar() {
         const sidebar = document.querySelector('.wb-admin .wb-admin-sidebar');
         const toggle = document.querySelector('[data-admin-sidebar-toggle]');
-        const backdrop = document.querySelector('.wb-admin [data-admin-sidebar-close]');
-        if (!sidebar || !toggle || !backdrop) {
+        let backdrop = document.querySelector('.wb-admin [data-admin-sidebar-close]');
+        if (!sidebar || !toggle) {
             return;
+        }
+        if (!backdrop) {
+            backdrop = document.createElement('button');
+            backdrop.type = 'button';
+            backdrop.className = 'wb-admin-backdrop';
+            backdrop.setAttribute('data-admin-sidebar-close', '');
+            backdrop.setAttribute('aria-label', 'Đóng menu quản trị');
+            backdrop.hidden = true;
+            document.body.append(backdrop);
         }
         sidebar.id = 'wbAdminSidebar';
         const close = document.createElement('button');
@@ -682,7 +691,7 @@
         close.textContent = 'Đóng menu';
         close.setAttribute('aria-label', 'Đóng menu quản trị');
         sidebar.prepend(close);
-        const mobile = window.matchMedia('(max-width: 991.98px)');
+        const mobile = window.matchMedia('(max-width: 1199.98px)');
         const outside = Array.from(document.querySelectorAll('.wb-admin-content, .wb-navbar, .wb-footer'));
         const previousInert = new Map();
         let opened = false;

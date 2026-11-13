@@ -98,7 +98,7 @@
                                     <strong class="d-block">CẢNH BÁO LỆCH CHUYẾN!</strong>
                                     Vé này thuộc chuyến <strong th:text="${mismatchTripCode}">TRIP</strong>
                                     (Khởi hành: <span th:text="${#temporals.format(mismatchDepartureTime, 'HH:mm dd/MM/yyyy')}"></span>),
-                                    không phải chuyến đang soát hiện tại!
+                                    không đúng chuyến đang soát hoặc ngoài giờ soát vé. Không thể xác nhận lên tàu.
                                 </div>
                             </div>
 
@@ -147,15 +147,14 @@
                                     </button>
                                 </form>
                             </div>
-                            <div class="d-flex gap-2 ms-auto">
+                            <div class="wb-admin-modal-actions">
                                 <button type="button" class="btn btn-wb-outline" data-bs-dismiss="modal">Đóng</button>
-                                <form method="post" th:action="@{/admin/checkin}" class="d-inline" th:if="${previewTicket.isValid()}">
+                                <form method="post" th:action="@{/admin/checkin}" class="d-inline" th:if="${previewTicket.isValid() and selectedTrip != null and !isTripMismatch}">
                                     <input type="hidden" name="ticketCode" th:value="${previewTicket.ticketCode}">
                                     <input type="hidden" name="tripId" th:value="${selectedTripId}">
-                                    <input type="hidden" name="override" th:value="${isTripMismatch == true ? 'true' : 'false'}">
-                                    <button type="submit" class="btn" th:classappend="${isTripMismatch == true ? 'btn-warning' : 'btn-wb-accent'}" data-checkin-confirm>
+                                    <button type="submit" class="btn btn-wb-accent" data-checkin-confirm>
                                         <i class="bi bi-check2-circle me-1"></i>
-                                        <span th:text="${isTripMismatch == true ? 'Vẫn cho lên tàu (Override)' : 'Xác nhận lên tàu'}">Xác nhận lên tàu</span>
+                                        <span>Xác nhận lên tàu</span>
                                     </button>
                                 </form>
                             </div>
@@ -176,6 +175,9 @@
                         <form method="post" th:action="@{/admin/checkin/group}">
                             <input type="hidden" name="tripId" th:value="${selectedTripId}">
                             <div class="modal-body p-4">
+                                <div th:if="${isTripMismatch or selectedTrip == null}" class="alert alert-danger" role="alert">
+                                    Đơn vé không đúng chuyến đang soát hoặc ngoài giờ soát vé. Không thể xác nhận lên tàu.
+                                </div>
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div>
                                         <strong>Người liên hệ:</strong> [[${previewBooking.contactName}]] ([[${previewBooking.contactPhone}]])
@@ -199,8 +201,8 @@
                                         <tbody>
                                             <tr th:each="tk : ${previewBooking.tickets}">
                                                 <td class="text-center">
-                                                    <input th:if="${tk.isValid()}" type="checkbox" name="ticketCodes" th:value="${tk.ticketCode}" checked class="form-check-input">
-                                                    <input th:unless="${tk.isValid()}" type="checkbox" disabled class="form-check-input">
+                                                    <input th:if="${tk.isValid() and selectedTrip != null and !isTripMismatch}" type="checkbox" name="ticketCodes" th:value="${tk.ticketCode}" checked class="form-check-input">
+                                                    <input th:unless="${tk.isValid() and selectedTrip != null and !isTripMismatch}" type="checkbox" disabled class="form-check-input">
                                                 </td>
                                                 <td class="font-monospace fw-bold" th:text="${tk.ticketCode}">TK01</td>
                                                 <td th:text="${tk.passengerName}">Tên</td>
@@ -217,7 +219,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-wb-outline" data-bs-dismiss="modal">Đóng</button>
-                                <button type="submit" class="btn btn-wb-accent" data-checkin-confirm>
+                                <button th:if="${selectedTrip != null and !isTripMismatch}" type="submit" class="btn btn-wb-accent" data-checkin-confirm>
                                     <i class="bi bi-check2-circle me-1"></i> Xác nhận lên tàu cho các vé đã chọn
                                 </button>
                             </div>

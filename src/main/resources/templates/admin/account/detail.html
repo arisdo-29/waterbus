@@ -65,20 +65,6 @@
                             </li>
                         </ul>
 
-                        <div class="border-top pt-3">
-                            <h3 class="h6 fw-bold mb-2"><i class="bi bi-key me-1"></i>Đặt lại mật khẩu</h3>
-                            <form th:action="@{/admin/accounts/{id}/reset-password(id=${account.id})}" method="post"
-                                  data-confirm="Xác nhận đặt lại mật khẩu mới cho tài khoản này?"
-                                  data-confirm-variant="danger"
-                                  data-confirm-title="Đặt lại mật khẩu"
-                                  data-confirm-ok="Đặt lại">
-                                <div class="input-group input-group-sm mb-2">
-                                    <input type="password" name="newPassword" class="form-control" placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)" required minlength="6">
-                                    <button class="btn btn-wb-accent" type="submit">Đặt lại</button>
-                                </div>
-                                <small class="text-muted">Mật khẩu mới sẽ được mã hóa an toàn và áp dụng ngay.</small>
-                            </form>
-                        </div>
                     </div>
                 </div>
 

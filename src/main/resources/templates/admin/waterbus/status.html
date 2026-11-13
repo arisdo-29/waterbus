@@ -19,7 +19,7 @@
         </header>
 
         <div class="alert alert-danger" role="alert" th:if="${errorMessage != null}" th:text="${errorMessage}"></div>
-        <form class="wb-admin-form-card row g-3 mb-4" method="get"
+        <form class="wb-admin-form-card wb-admin-filter" method="get"
               th:action="@{/admin/waterbuses/{id}/status(id=${waterbus.id})}"
               th:if="${targetStatus != 'ACTIVE'}">
             <input type="hidden" name="status" th:value="${targetStatus}">
@@ -34,7 +34,7 @@
                 <input class="form-control" type="datetime-local" id="endsAt" name="endsAt"
                        th:value="${endsAt}" required>
             </div>
-            <div class="col-12 col-md-2 d-flex align-items-end">
+            <div class="wb-admin-filter-actions">
                 <button class="btn btn-wb-accent w-100" type="submit">Xem chuyến</button>
             </div>
         </form>

@@ -28,7 +28,7 @@
             </header>
 
             <section class="card border-0 shadow-sm p-3 mb-4 rounded-3">
-                <form method="get" th:action="@{/admin/accounts}" class="row g-2 align-items-center">
+                <form method="get" th:action="@{/admin/accounts}" class="wb-admin-filter mb-0">
                     <div class="col-12 col-md-5">
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
@@ -50,7 +50,7 @@
                             <option value="LOCKED" th:selected="${currentStatus == 'LOCKED'}">Đã khóa (LOCKED)</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-2 d-flex gap-2">
+                    <div class="wb-admin-filter-actions">
                         <button type="submit" class="btn btn-wb-accent w-100">Lọc</button>
                         <a href="/admin/accounts" th:href="@{/admin/accounts}" class="btn btn-wb-outline" title="Đặt lại"><i class="bi bi-arrow-counterclockwise"></i></a>
                     </div>

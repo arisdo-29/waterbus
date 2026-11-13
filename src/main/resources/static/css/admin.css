@@ -28,7 +28,9 @@
 .wb-admin .wb-admin-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .wb-admin .wb-admin-head h1 { font-size: clamp(1.5rem, 2.4vw, 2rem); margin-bottom: 4px; }
 .wb-admin .wb-admin-head p { color: var(--wb-muted); margin: 0; font-size: 14px; }
-.wb-admin .wb-admin-head .btn { white-space: nowrap; }
+.wb-admin .wb-admin-head > div { min-width: 0; }
+.wb-admin .wb-admin-head .btn { white-space: nowrap; flex-shrink: 0; }
+.wb-admin .wb-admin-head-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .wb-admin .wb-admin-table-wrap { background: #fff; border: 1px solid var(--wb-line); border-radius: 16px; box-shadow: 0 8px 24px rgba(11, 53, 80, .06); overflow: hidden; }
 .wb-admin .wb-admin-table { margin-bottom: 0; vertical-align: middle; }
@@ -95,7 +97,7 @@
 .wb-admin .wb-confirm-dialog .modal-body p { color: var(--wb-muted); margin: 0; }
 .wb-admin .wb-confirm-dialog .modal-footer { justify-content: center; }
 
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
     .wb-admin .wb-admin-layout { grid-template-columns: 1fr; }
     .wb-admin .wb-admin-sidebar { display: none; }
     .wb-admin .wb-admin-sidebar.is-open { display: flex; position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 1060; box-shadow: 0 12px 40px rgba(11, 53, 80, .25); }
@@ -106,12 +108,12 @@
     .wb-admin .wb-admin-side-card { position: static; }
 }
 @media (max-width: 767.98px) {
-    .wb-admin .wb-admin-table thead { display: none; }
-    .wb-admin .wb-admin-table, .wb-admin .wb-admin-table tbody, .wb-admin .wb-admin-table tr, .wb-admin .wb-admin-table td { display: block; width: 100%; }
-    .wb-admin .wb-admin-table tr { padding: 14px 16px; border-bottom: 1px solid var(--wb-line); }
-    .wb-admin .wb-admin-table tbody tr:nth-child(even) td { background: transparent; }
-    .wb-admin .wb-admin-table td { border: 0; padding: 6px 0; }
-    .wb-admin .wb-admin-table td::before { content: attr(data-label); display: block; color: var(--wb-muted); font-size: 13px; font-weight: 600; }
+    .wb-admin .wb-admin-table > thead { display: none; }
+    .wb-admin .wb-admin-table, .wb-admin .wb-admin-table > tbody, .wb-admin .wb-admin-table > tbody > tr, .wb-admin .wb-admin-table > tbody > tr > td { display: block; width: 100%; }
+    .wb-admin .wb-admin-table > tbody > tr { padding: 14px 16px; border-bottom: 1px solid var(--wb-line); }
+    .wb-admin .wb-admin-table > tbody > tr:nth-child(even) > td { background: transparent; }
+    .wb-admin .wb-admin-table > tbody > tr > td { border: 0; padding: 6px 0; }
+    .wb-admin .wb-admin-table > tbody > tr > td::before { content: attr(data-label); display: block; color: var(--wb-muted); font-size: 13px; font-weight: 600; }
     .wb-admin .wb-admin-table-actions { justify-content: flex-start; }
     .wb-admin .wb-route-stop-row { grid-template-columns: 36px 1fr; }
     .wb-admin .wb-route-stop-minutes { grid-column: 2; }
@@ -123,7 +125,7 @@
 .wb-admin .wb-admin-table { width: 100%; }
 .wb-admin .wb-admin-table td { overflow-wrap: break-word; }
 .wb-admin .wb-admin-table-wrap { overflow-x: auto; }
-.wb-admin .wb-admin-table-actions { flex-wrap: wrap; }
+.wb-admin .wb-admin-table-actions { flex-wrap: nowrap; min-width: max-content; }
 .wb-admin .wb-admin-table-actions form { margin: 0; }
 .wb-admin .wb-admin-table-actions .btn { min-height: 44px; }
 .wb-admin .wb-admin-danger { color: var(--wb-danger); border-color: var(--wb-danger); }
@@ -140,7 +142,7 @@
 .wb-admin .wb-admin-backdrop[hidden] { display: none; }
 .wb-admin.wb-admin-sidebar-open { overflow: hidden; }
 .wb-admin [data-promo-percent][hidden] { display: none; }
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
     .wb-admin .wb-admin-sidebar { overflow-y: auto; max-width: calc(100vw - 48px); }
     .wb-admin .wb-admin-sidebar-close { display: inline-flex; align-self: flex-end; margin-bottom: 16px; }
 }
@@ -153,4 +155,59 @@
     position: relative;
     height: 300px;
     min-width: 0;
+}
+
+.wb-admin .wb-admin-content .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; line-height: 1.4; }
+.wb-admin .btn-wb-accent:hover, .wb-admin .btn-wb-accent:focus-visible { transform: none; }
+.wb-admin .wb-admin-content :is(.card, .wb-admin-form-card, .wb-admin-side-card, .row > *) { min-width: 0; }
+.wb-admin .wb-admin-head h1, .wb-admin .wb-admin-head p, .wb-admin .list-group-item, .wb-admin .modal-body { overflow-wrap: anywhere; }
+.wb-admin .wb-admin-table td[data-label="Thao tác"], .wb-admin .wb-admin-table td[data-label="Xác nhận hoàn"] { white-space: nowrap; }
+.wb-admin .table-responsive { max-width: 100%; }
+.wb-admin .table-responsive > .table { min-width: 640px; }
+.wb-admin .wb-admin-filter { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 24px; }
+.wb-admin .wb-admin-filter > :not(input[type="hidden"]) { flex: 1 1 200px; width: auto; padding: 0; margin: 0; }
+.wb-admin .wb-admin-filter > .wb-admin-filter-actions { flex: 0 1 auto; display: flex; align-items: flex-end; gap: 8px; }
+.wb-admin .wb-admin-filter-actions .btn { white-space: nowrap; flex: 1 0 auto; }
+.wb-admin .wb-admin-filter-actions .btn.w-100 { width: auto !important; }
+.wb-admin .wb-admin-filter :is(.form-control, .form-select) { min-width: 0; max-width: 100%; }
+.wb-admin .wb-admin-table-wrap > nav { flex-wrap: wrap; gap: 12px; padding-bottom: 12px; }
+.wb-admin .pagination { flex-wrap: wrap; gap: 4px; }
+.wb-admin .modal-footer { gap: 8px; }
+.wb-admin .modal-footer > *, .wb-admin .modal-footer form { margin: 0; min-width: 0; }
+.wb-admin .modal-footer .btn { max-width: 100%; white-space: normal; }
+.wb-admin .wb-admin-modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+    .wb-admin .wb-admin-layout { grid-template-columns: 220px minmax(0, 1fr); }
+    .wb-admin .wb-admin-content { padding: 24px 20px 56px; }
+    .wb-admin .wb-admin-form-layout { grid-template-columns: minmax(0, 1fr); }
+    .wb-admin .wb-admin-side-card { position: static; }
+    .wb-admin .wb-admin-form-card { padding: 22px; }
+}
+@media (max-width: 767.98px) {
+    .wb-admin .wb-admin-head { align-items: stretch; }
+    .wb-admin .wb-admin-head > div:first-child { flex-basis: 100%; }
+    .wb-admin .wb-admin-head-actions { width: 100%; }
+    .wb-admin .wb-admin-head-actions .btn { flex: 1 1 160px; }
+    .wb-admin .wb-admin-table td { white-space: normal; overflow-wrap: anywhere; text-align: left !important; }
+    .wb-admin .wb-admin-table-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); min-width: 0; width: 100%; gap: 8px; }
+    .wb-admin .wb-admin-table-actions > *, .wb-admin .wb-admin-table-actions .btn { width: 100%; min-width: 0; white-space: normal; }
+    .wb-admin .wb-admin-trip-cancel-form { width: 100%; }
+    .wb-admin .wb-admin-filter > .wb-admin-filter-actions { flex-basis: 100%; }
+    .wb-admin .wb-admin-modal-actions { width: 100%; margin-left: 0 !important; }
+    .wb-admin .wb-admin-modal-actions > * { flex: 1 1 140px; }
+    .wb-admin .wb-admin-modal-actions form .btn { width: 100%; }
+    .wb-admin .modal-body .border-end { border-right: 0 !important; }
+    .wb-admin .modal-body > .d-flex { flex-wrap: wrap; gap: 12px; }
+    .wb-admin .modal-footer > form, .wb-admin .modal-footer > .btn { flex: 1 1 140px; }
+    .wb-admin .modal-footer > form .btn { width: 100%; }
+    .wb-admin .list-group-item.d-flex { flex-wrap: wrap; gap: 8px; }
+}
+@media (max-width: 575.98px) {
+    .wb-admin .wb-admin-head > .btn { width: 100%; white-space: normal; }
+    .wb-admin .wb-admin-filter > :not(input[type="hidden"]) { flex-basis: 100%; }
+    .wb-admin .wb-admin-form-actions .btn { min-width: 0; white-space: normal; }
+    .wb-admin .wb-admin-form-card { padding: 18px; }
+    .wb-admin .wb-admin-content .card.p-4 { padding: 18px !important; }
+    .wb-admin .modal-body.p-4 { padding: 18px !important; }
 }

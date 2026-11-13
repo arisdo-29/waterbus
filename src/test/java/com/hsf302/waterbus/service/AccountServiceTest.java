@@ -373,19 +373,6 @@ class AccountServiceTest {
     }
 
     @Test
-    void testResetPassword_Success() {
-        Account user = new Account();
-        user.setId(2);
-        user.setPasswordHash(passwordEncoder.encode("OldPassword123"));
-        when(accountRepository.findById(2)).thenReturn(Optional.of(user));
-
-        accountService.resetPassword(2, "NewPassword999");
-
-        assertTrue(passwordEncoder.matches("NewPassword999", user.getPasswordHash()));
-        verify(accountRepository, times(1)).save(user);
-    }
-
-    @Test
     void testPhoneValidation_SameAsCheckoutRegex() {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator validator = factory.getValidator();
@@ -429,10 +416,6 @@ class AccountServiceTest {
         );
         assertTrue(ex2.getMessage().contains("Super Admin"));
 
-        IllegalArgumentException ex3 = assertThrows(IllegalArgumentException.class, () ->
-                accountService.resetPassword(AccountService.SUPER_ADMIN_ID, "Password123")
-        );
-        assertTrue(ex3.getMessage().contains("Super Admin"));
     }
 
     @Test

@@ -145,8 +145,8 @@ phải nhập đúng mật khẩu hiện tại. Backend lấy ID từ session `l
 Trang quản trị tài khoản không có form đặt lại mật khẩu; endpoint `POST /admin/accounts/{id}/reset-password` đã bỏ, kể cả với Super Admin.
 
 Menu quản trị (`adminSidebar` trong `layout.html`): ADMIN thấy Chuyến tàu, Doanh thu, Hoàn tiền, Tài khoản, Tàu, Bến, Tuyến,
-Khuyến mãi, Loại vé, Soát vé; STAFF thấy Soát vé (đầu danh sách) và Chuyến tàu. Dropdown tài khoản trên navbar của ADMIN
-có thêm "Doanh thu". Ẩn link chỉ là giao diện; BE của từng trang vẫn phải tự chặn quyền (chỉ ADMIN cho 3 URL mới).
+Khuyến mãi, Loại vé, Soát vé; STAFF chỉ thấy Soát vé. Dropdown tài khoản trên navbar của ADMIN
+có thêm "Doanh thu"; mục "Quản trị" của STAFF dẫn tới Soát vé. `AdminInterceptor` chặn STAFF truy cập `/admin/trips`.
 Mục đang mở được tô sáng theo tiền tố URL (VD `/admin/accounts/5/edit` sáng "Tài khoản").
 
 Thông báo sau khi lưu/xoá: BE dùng `RedirectAttributes.addFlashAttribute("successMessage", "...")`,

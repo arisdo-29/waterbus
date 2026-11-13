@@ -75,18 +75,12 @@ public class AdminInterceptor implements HandlerInterceptor {
             String uri = request.getRequestURI();
             String contextPath = request.getContextPath();
             String path = (contextPath != null && !contextPath.isEmpty()) ? uri.substring(contextPath.length()) : uri;
-            String method = request.getMethod();
-
             if (path.startsWith("/admin/checkin")) {
                 return true;
             }
 
-            if ("GET".equalsIgnoreCase(method) && ("/admin/trips".equals(path) || "/admin/trips/".equals(path))) {
-                return true;
-            }
-
             sendRedirectWithFlashMessage(request, response, "/admin/checkin?error=forbidden",
-                    "Nhân viên bến chỉ có quyền soát vé và xem lịch chuyến tàu.");
+                    "Nhân viên bến chỉ có quyền soát vé.");
             return false;
         }
 

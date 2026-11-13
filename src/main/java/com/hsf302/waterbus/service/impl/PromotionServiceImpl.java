@@ -108,6 +108,22 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     @Override
+    @Transactional
+    public void decreaseUsedCount(String promoCode) {
+        if (promoCode == null || promoCode.trim().isEmpty()) {
+            return;
+        }
+        Promotion promo = promotionRepository.findByCodeIgnoreCase(promoCode.trim()).orElse(null);
+        if (promo != null) {
+            int current = promo.getUsedCount() != null ? promo.getUsedCount() : 0;
+            if (current > 0) {
+                promo.setUsedCount(current - 1);
+                promotionRepository.save(promo);
+            }
+        }
+    }
+
+    @Override
     public List<PromotionDTO> getAllPromotions() {
         return promotionRepository.findAll().stream()
                 .map(PromotionDTO::fromEntity)

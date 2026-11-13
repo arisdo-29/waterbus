@@ -78,12 +78,8 @@ public class WaterbusController {
     @PostMapping("/{id}/status")
     public String changeStatus(@PathVariable int id, @RequestParam String status, RedirectAttributes flash) {
         try {
-            long affected = "ACTIVE".equals(status) ? 0 : waterbusService.countUpcomingScheduledTrips(id);
             waterbusService.changeStatus(id, status);
-            flash.addFlashAttribute("successMessage", affected > 0
-                    ? "Đã cập nhật trạng thái tàu. Có " + affected
-                            + " chuyến sắp tới cần xem xét; vào Quản trị chuyến để huỷ nếu cần."
-                    : "Đã cập nhật trạng thái tàu.");
+            flash.addFlashAttribute("successMessage", "Đã cập nhật trạng thái tàu.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
         }

@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -146,5 +147,46 @@ class PromotionServiceTest {
                 () -> promotionService.increaseUsedCount("PROMO_FULL"),
                 "Mã khuyến mãi đã hết lượt sử dụng."
         );
+    }
+
+    @Test
+    void testDecreaseUsedCount_Success() {
+        Promotion promo = new Promotion();
+        promo.setCode("PROMO10");
+        promo.setUsageLimit(10);
+        promo.setUsedCount(5);
+
+        when(promotionRepository.findByCodeIgnoreCase("PROMO10")).thenReturn(Optional.of(promo));
+
+        promotionService.decreaseUsedCount("PROMO10");
+
+        assertEquals(4, promo.getUsedCount());
+        Mockito.verify(promotionRepository).save(promo);
+    }
+
+    @Test
+    void testDecreaseUsedCount_ZeroCount_DoesNotGoBelowZero() {
+        Promotion promo = new Promotion();
+        promo.setCode("PROMO0");
+        promo.setUsageLimit(10);
+        promo.setUsedCount(0);
+
+        when(promotionRepository.findByCodeIgnoreCase("PROMO0")).thenReturn(Optional.of(promo));
+
+        promotionService.decreaseUsedCount("PROMO0");
+
+        assertEquals(0, promo.getUsedCount());
+        Mockito.verify(promotionRepository, Mockito.never()).save(promo);
+    }
+
+    @Test
+    void testDecreaseUsedCount_BlankOrNotFound_DoesNothing() {
+        promotionService.decreaseUsedCount(null);
+        promotionService.decreaseUsedCount("   ");
+
+        when(promotionRepository.findByCodeIgnoreCase("NONEXISTENT")).thenReturn(Optional.empty());
+        promotionService.decreaseUsedCount("NONEXISTENT");
+
+        Mockito.verify(promotionRepository, Mockito.never()).save(any());
     }
 }

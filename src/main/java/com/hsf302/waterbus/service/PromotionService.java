@@ -22,6 +22,9 @@ public interface PromotionService {
     /** Tăng số lượt đã dùng khi đơn hàng thanh toán thành công. */
     void increaseUsedCount(String promoCode);
 
+    /** HỢP ĐỒNG cho BE2: Giảm số lượt đã dùng khi huỷ chuyến hoàn tiền (không xuống dưới 0). */
+    void decreaseUsedCount(String promoCode);
+
     /** Lấy danh sách DTO cho trang quản trị. */
     List<PromotionDTO> getAllPromotions();
 

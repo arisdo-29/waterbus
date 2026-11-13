@@ -1,7 +1,7 @@
 # Saigon Waterbus - HSF302
 
 Web đặt vé buýt đường sông (tham khảo saigonwaterbus.com): tìm chuyến, chọn ghế, đặt vé,
-thanh toán (MOCK), khuyến mãi.
+thanh toán VNPay Sandbox, khuyến mãi.
 
 **Stack:** Java 21 · Spring Boot 4.1.1 · Spring MVC + Thymeleaf · Spring Data JPA · SQL Server · Maven Wrapper
 

@@ -7,6 +7,7 @@ import com.hsf302.waterbus.entity.Payment;
 import com.hsf302.waterbus.repository.PaymentRepository;
 import com.hsf302.waterbus.service.BookingService;
 import com.hsf302.waterbus.service.PaymentService;
+import com.hsf302.waterbus.service.RefundService;
 import com.hsf302.waterbus.service.VnPayService;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
@@ -40,14 +41,20 @@ public class VnPayServiceImpl implements VnPayService {
     private final BookingService bookingService;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
+    private final RefundService refundService; // module Trí (TI5): tạo khoản chờ hoàn tiền
+
+    // Lý do ghi vào khoản hoàn khi khách đã trả tiền cho đơn không còn hiệu lực (TR1)
+    private static final String INVALID_PAYMENT_REFUND_REASON = "Thanh toán sau khi đơn hết hạn";
 
     // Constructor injection: Spring tự đưa các bean vào
     public VnPayServiceImpl(VnPayConfig config, BookingService bookingService,
-                            PaymentService paymentService, PaymentRepository paymentRepository) {
+                            PaymentService paymentService, PaymentRepository paymentRepository,
+                            RefundService refundService) {
         this.config = config;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
+        this.refundService = refundService;
     }
 
     @Override
@@ -181,6 +188,10 @@ public class VnPayServiceImpl implements VnPayService {
             payment.setPaidAt(LocalDateTime.now());
             paymentRepository.save(payment);
         }
+        // TR1: khách đã bị trừ tiền mà không có vé -> tạo khoản "chờ hoàn tiền" để admin hoàn lại,
+        // doanh thu cũng tự trừ đúng. Gọi SAU khi đã lưu payment (đúng hợp đồng của RefundService).
+        // Khách bấm F5 / VNPay gửi lại kết quả -> hàm tự bỏ qua vì đơn đã có khoản hoàn, không tạo trùng.
+        refundService.createForInvalidPayment(booking.getId(), INVALID_PAYMENT_REFUND_REASON);
         return new VnPayResult(booking.getBookingCode(), false,
                 "VNPay đã trừ tiền nhưng đơn không còn hiệu lực. Vui lòng liên hệ nhân viên kèm mã đơn "
                         + booking.getBookingCode() + ".");

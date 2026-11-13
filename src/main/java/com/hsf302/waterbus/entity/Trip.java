@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
-/** Bảng [trip] - module phụ trách: BE2 - Tàu, Ghế & Chuyến. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "trip")
 public class Trip {

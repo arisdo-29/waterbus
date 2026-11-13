@@ -41,7 +41,6 @@ public class PromotionServiceImpl implements PromotionService {
         Promotion promo = promoOpt.get();
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. Kiểm tra thời hạn hiệu lực
         if (promo.getStartAt() != null && now.isBefore(promo.getStartAt())) {
             return BigDecimal.ZERO;
         }
@@ -49,17 +48,14 @@ public class PromotionServiceImpl implements PromotionService {
             return BigDecimal.ZERO;
         }
 
-        // 2. Kiểm tra giới hạn lượt sử dụng
         if (promo.getUsageLimit() != null && promo.getUsedCount() != null && promo.getUsedCount() >= promo.getUsageLimit()) {
             return BigDecimal.ZERO;
         }
 
-        // 3. Kiểm tra đơn hàng tối thiểu
         if (promo.getMinOrderAmount() != null && subtotal.compareTo(promo.getMinOrderAmount()) < 0) {
             return BigDecimal.ZERO;
         }
 
-        // 4. Tính toán số tiền giảm
         BigDecimal discount = BigDecimal.ZERO;
         if ("PERCENT".equalsIgnoreCase(promo.getDiscountType())) {
             discount = subtotal.multiply(promo.getDiscountValue())
@@ -71,7 +67,6 @@ public class PromotionServiceImpl implements PromotionService {
             discount = promo.getDiscountValue();
         }
 
-        // 5. Ràng buộc: discount không vượt quá subtotal và không âm
         if (discount.compareTo(subtotal) > 0) {
             discount = subtotal;
         }

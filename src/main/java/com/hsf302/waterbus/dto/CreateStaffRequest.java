@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 
-// DTO tạo tài khoản nhân viên (STAFF) bởi Admin
 public class CreateStaffRequest implements Serializable {
 
     @NotBlank(message = "Vui lòng nhập email.")

@@ -1,7 +1,5 @@
 package com.hsf302.waterbus.dto;
 
-// Module: BE4 - Đặt vé & Thanh toán. Kết quả xử lý khi VNPay trả khách về (GET /payment/vnpay-return).
-// bookingCode = null khi không xác định được đơn (chữ ký sai, sai mã đơn) -> Controller đưa khách về trang chủ.
 public class VnPayResult {
     private final String bookingCode;
     private final boolean success;

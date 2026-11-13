@@ -7,10 +7,6 @@ import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Bảng [refund] - module phụ trách: BE4 - Đặt vé & Thanh toán.
- * Khớp với database/changes/2026-11-08_db_hanh-khach-soat-ve-hoan-tien.sql
- */
 @Entity
 @Table(name = "refund")
 public class Refund {
@@ -19,7 +15,6 @@ public class Refund {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    /** 1 booking - 0..1 refund (UQ_refund_booking). */
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "booking_id", nullable = false, unique = true)
@@ -29,7 +24,6 @@ public class Refund {
     @Column(name = "amount", nullable = false, precision = 12, scale = 0)
     private BigDecimal amount;
 
-    /** PENDING, DONE */
     @Size(max = 10)
     @NotNull
     @Column(name = "status", nullable = false, length = 10)

@@ -1,4 +1,3 @@
-// KH5: kiểm tra quy tắc hành khách và khoá mọi phương thức thanh toán.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -41,7 +40,6 @@ const fs = require('node:fs');
             await page.close();
         }
 
-        // Dùng HTML đã render bởi CustomerViewTests để kiểm tra trang xác minh trên điện thoại/desktop.
         const verify = await browser.newPage();
         verify.on('pageerror', error => errors.push(error.message));
         await verify.route('**/*', route => route.abort());

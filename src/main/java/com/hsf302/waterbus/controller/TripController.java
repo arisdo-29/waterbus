@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-// Module: BE2 - Tàu, Ghế & Chuyến. Mọi URL của controller này bắt đầu bằng /trips
-// View đặt trong templates/trip/ (giao diện: Trí)
 @Controller
 @RequestMapping("/trips")
 public class TripController {

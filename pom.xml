@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  FILE CHUNG - chỉ Leader sửa (xem CONTRIBUTING.md mục "File chung").
-  Cần thêm thư viện? Nhắn nhóm + tạo PR riêng "chore(pom): ...".
--->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -10,7 +6,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.1.1</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>com.hsf302</groupId>
     <artifactId>waterbus</artifactId>
@@ -23,7 +19,6 @@
     </properties>
 
     <dependencies>
-        <!-- Giống project mẫu của giảng viên -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -46,14 +41,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Thêm cho Waterbus: chỉ để mã hoá/kiểm tra mật khẩu BCrypt (BE3).
-             KHÔNG phải spring-security đầy đủ nên không tự khoá các trang. -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
-        <!-- Tự nạp lại trang khi sửa HTML/CSS, không phải restart app (chỉ chạy lúc dev) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -61,7 +53,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -82,7 +73,6 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- DB tạm trong RAM cho test + GitHub Actions (không cần SQL Server) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

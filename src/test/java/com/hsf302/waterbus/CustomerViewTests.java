@@ -95,7 +95,6 @@ class CustomerViewTests {
                 .containsPattern("name=\"seatIds\"[^>]*value=\"91\"")
                 .containsPattern("name=\"seatIds\"[^>]*value=\"92\"");
         assertThat(html).contains("href=\"/trips/71/seats?fromStationId=11&amp;toStationId=12\"").doesNotContain("data-action=\"back\"");
-        // Explicitly empty submitted values must not be replaced with account defaults.
         assertThat(render("checkout", model, get("/__test/views/checkout").session(session)
                 .param("contactName", "").param("contactPhone", "").param("contactEmail", "")))
                 .containsPattern("name=\"contactName\"[^>]*value=\"\"")
@@ -395,7 +394,7 @@ class CustomerViewTests {
         model.put("seats", List.of(Map.of("id", 91, "seatCode", "C7"), Map.of("id", 92, "seatCode", "C8")));
         model.put("ticketType", Map.of("id", 8, "code", "STANDARD", "name", "Vé thường", "price", new java.math.BigDecimal("22500"),
                 "requiresVerification", false));
-        model.put("bookingForm", new com.hsf302.waterbus.dto.BookingForm()); // controller thật luôn đưa bookingForm vào checkout
+        model.put("bookingForm", new com.hsf302.waterbus.dto.BookingForm());
         model.put("subtotal", new java.math.BigDecimal("45000"));
         model.put("fromStationId", 11);
         model.put("toStationId", 12);
@@ -406,7 +405,6 @@ class CustomerViewTests {
         return model;
     }
 
-    // Test-only routes exercise the real view resolver while other modules' endpoints are unfinished.
     @Controller
     public static class FixtureController {
         @GetMapping("/__test/views/{page}")

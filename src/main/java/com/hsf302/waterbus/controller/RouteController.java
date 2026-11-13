@@ -10,8 +10,6 @@ import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-// Module: BE1 - Tuyến & Bến. Mọi URL của controller này bắt đầu bằng /routes
-// View đặt trong templates/route/ (giao diện: Khuyên)
 @Controller
 @RequestMapping("/routes")
 public class RouteController {
@@ -25,7 +23,6 @@ public class RouteController {
     @GetMapping
     public String index(Model model) {
         List<RouteDTO> routes = routeService.getActiveRouteViews();
-        // Gom bến theo tuyến đã chuyển vào service (getRouteViewsWithStops)
         Map<Integer, List<StationDTO>> stopsByRoute = routeService.getRouteViewsWithStops();
         model.addAttribute("routes", routes);
         model.addAttribute("stopsByRoute", stopsByRoute);

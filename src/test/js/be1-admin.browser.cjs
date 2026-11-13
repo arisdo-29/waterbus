@@ -1,4 +1,3 @@
-// Run after mvnw test; reuses an existing Playwright installation without adding dependencies.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

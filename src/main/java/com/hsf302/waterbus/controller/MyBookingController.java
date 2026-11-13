@@ -8,8 +8,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-// Module: BE4 - Đặt vé & Thanh toán. Controller riêng vì URL /my-bookings không bắt đầu bằng /booking
-// View: templates/booking/history.html (giao diện: Khuyên)
 @Controller
 @RequestMapping("/my-bookings")
 public class MyBookingController {
@@ -20,18 +18,13 @@ public class MyBookingController {
         this.bookingService = bookingService;
     }
 
-    // GET /my-bookings -> lịch sử đặt vé của tài khoản đang đăng nhập
     @GetMapping
     public String history(HttpSession session, Model model) {
-        // Lấy tài khoản từ session (làm giống AccountController.viewProfile())
         AccountDTO loginAccount = (AccountDTO) session.getAttribute("loginAccount");
         if (loginAccount == null) {
-            // Nhớ trang khách đang muốn vào: AuthController đọc "redirectAfterLogin" trong session
-            // và đưa khách quay lại /my-bookings sau khi đăng nhập (làm giống AccountController.viewProfile)
             session.setAttribute("redirectAfterLogin", "/my-bookings");
-            return "redirect:/auth/login"; // chưa đăng nhập -> sang trang đăng nhập
+            return "redirect:/auth/login";
         }
-        // Tên attribute đúng theo docs/PAGES.md: bookings
         model.addAttribute("bookings", bookingService.getBookingsOfAccount(loginAccount.getId()));
         return "booking/history";
     }

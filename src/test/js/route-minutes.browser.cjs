@@ -1,4 +1,3 @@
-// Hợp đồng KH1/TI4: chạy bằng Playwright sẵn có, không cần sửa template của Trí.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -26,7 +25,6 @@ function row(station, minutes) {
         const valid = () => page.locator('form').evaluate(form => form.checkValidity());
         assert.equal(await valid(), true);
 
-        // Sửa số phút: cả phần tử đầu và quan hệ với bến trước đều được kiểm tra lại.
         await minutes.nth(1).fill('0');
         assert.equal(await valid(), false);
         await minutes.nth(1).fill('20');
@@ -35,7 +33,6 @@ function row(station, minutes) {
         assert.equal(await valid(), false);
         await minutes.nth(0).fill('0');
 
-        // Đảo bến phải giữ cặp bến-phút, không tự sửa giờ để che dữ liệu sai.
         await page.locator('[data-route-row]').nth(2).locator('[data-route-up]').click();
         assert.deepEqual(await page.locator('form select').evaluateAll(items => items.map(item => item.value)), ['A', 'C', 'B']);
         assert.deepEqual(await minutes.evaluateAll(items => items.map(item => item.value)), ['0', '35', '20']);

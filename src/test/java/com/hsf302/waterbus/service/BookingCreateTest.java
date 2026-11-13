@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// BE4 #13: POST /booking/checkout. BE4 #14: tạo đơn (createBooking) và POST /booking. BE4 #24: gắn tài khoản. BE4 #25: GET /my-bookings. BE4 #26: checkout tự điền. Dữ liệu test tạo bằng SQL trong H2, tự rollback sau mỗi test.
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:booking-create-test;MODE=MSSQLServer;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
 @Transactional
 class BookingCreateTest {
@@ -60,7 +59,6 @@ class BookingCreateTest {
     @BeforeEach
     void setUp() {
         jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_ticket_trip_seat_active ON ticket (trip_id, seat_id)");
-        // Tuyến S1 -> S2 -> S3, 1 trạm không thuộc tuyến
         s1 = station("TEST_S1");
         s2 = station("TEST_S2");
         s3 = station("TEST_S3");
@@ -71,7 +69,6 @@ class BookingCreateTest {
         stop(routeId, s2, 2);
         stop(routeId, s3, 3);
 
-        // Tàu 3 ghế, 1 chuyến đang bán + 1 chuyến đã huỷ
         jdbc.update("INSERT INTO waterbus (code, name, capacity, status) VALUES ('TEST_WB1', 'Tau test', 3, 'ACTIVE')");
         int busId = id("waterbus", "code", "TEST_WB1");
         seatA1 = seat(busId, "A1", 1);
@@ -91,13 +88,11 @@ class BookingCreateTest {
 
     @Test
     void createsPendingBookingWithHoldTicketsAndDiscount() {
-        // Gọi đúng như controller: đưa nguyên form + accountId (null = khách vãng lai), nhận lại DTO
         BookingDTO created = bookingService.createBooking(BookingTestHelper.form(tripId, List.of(seatA1, seatA2),
                 ticketTypeId, s1, s3, "test10", " Lan ", " 0901234567 ", " lan@example.com "), null);
 
         assertThat(created.getBookingCode()).matches("BK[0-9]{8}");
         assertThat(created.getStatus()).isEqualTo("PENDING");
-        // BookingForm.toEntity() đã bỏ khoảng trắng 2 đầu của họ tên, SĐT, email
         assertThat(created.getContactName()).isEqualTo("Lan");
         assertThat(created.getContactPhone()).isEqualTo("0901234567");
         assertThat(created.getContactEmail()).isEqualTo("lan@example.com");
@@ -105,7 +100,6 @@ class BookingCreateTest {
         assertThat(created.getDiscountAmount()).isEqualByComparingTo("3000");
         assertThat(created.getTotalAmount()).isEqualByComparingTo("27000");
 
-        // Mã KM và vé không có trong DTO -> lấy entity theo mã đơn để kiểm tra tiếp
         Booking booking = bookingService.getBookingByCode(created.getBookingCode());
         assertThat(booking.getPromotion().getCode()).isEqualTo("TEST10");
         assertThat(booking.getExpiresAt()).isEqualTo(booking.getCreatedAt().plusMinutes(10));
@@ -122,7 +116,6 @@ class BookingCreateTest {
         assertThat(tickets).extracting(Ticket::getTicketCode)
                 .containsExactly("TK" + booking.getBookingCode().substring(2) + "-1",
                         "TK" + booking.getBookingCode().substring(2) + "-2");
-        // 2 ghế vừa đặt không còn trống nữa
         assertThat(tripService.getAvailableSeats(tripId)).extracting(Seat::getId).containsExactly(seatA3);
     }
 
@@ -143,13 +136,8 @@ class BookingCreateTest {
         BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1), ticketTypeId, s1, s2,
                 "", null, "Nguoi khac", "0907654321", "khac@example.com");
 
-        // Simulate two requests that both read the seat as available before either inserts its ticket.
         Seat staleAvailability = seatRepository.findById(seatA1).orElseThrow();
         doReturn(List.of(staleAvailability)).when(tripServiceSpy).getAvailableSeats(tripId);
-        // Trong test, cả request chạy chung transaction của test nên sau lỗi trùng ghế JPA còn giữ vé lỗi;
-        // câu truy vấn kế tiếp sẽ cố ghi vé đó và báo AssertionFailure. Lấy sẵn thông tin chuyến để lúc vẽ lại
-        // checkout không phải hỏi DB. (App thật không bị: createBooking có transaction riêng, lỗi thì Spring
-        // gọi entityManager.clear() trong JpaTransactionManager.doRollback.)
         BookingTripDTO tripInfo = tripService.getBookableTrip(tripId, s1, s2);
         doReturn(tripInfo).when(tripServiceSpy).getBookableTrip(tripId, s1, s2);
 
@@ -174,23 +162,19 @@ class BookingCreateTest {
 
     @Test
     void priorityTicketsNeedLoginAndAtMostTwoPerBooking() {
-        // Loại vé ưu đãi: cần xác minh giấy tờ, miễn phí (đơn 0 đ được PAID ngay, không cần trả tiền)
         jdbc.update("INSERT INTO ticket_type (code, name, price, requires_verification, is_active) "
                 + "VALUES ('TEST_FREE', 'Ve uu dai', 0, 1, 1)");
         int priorityTypeId = id("ticket_type", "code", "TEST_FREE");
         AccountDTO lan = account("lan@example.com");
 
-        // Khách vãng lai (accountId = null) -> phải đăng nhập
         assertThatThrownBy(() -> BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1),
                 priorityTypeId, s1, s2, "", null, "Lan", "0901234567", "lan@example.com"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("Vui lòng đăng nhập để đặt vé ưu đãi.");
-        // Đã đăng nhập nhưng 3 vé ưu đãi trong 1 đơn -> quá 2 vé
         assertThatThrownBy(() -> BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1, seatA2, seatA3),
                 priorityTypeId, s1, s2, "", lan.getId(), "Lan", "0901234567", "lan@example.com"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("tối đa 2 vé ưu đãi");
-        assertThat(count("booking")).isZero(); // 2 lần bị chặn -> chưa giữ ghế nào
+        assertThat(count("booking")).isZero();
 
-        // Đã đăng nhập, 2 vé -> hợp lệ: đơn 0 đ được PAID ngay
         Booking booking = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA1, seatA2),
                 priorityTypeId, s1, s2, "", lan.getId(), "Lan", "0901234567", "lan@example.com");
         assertThat(booking.getStatus()).isEqualTo("PAID");
@@ -198,69 +182,60 @@ class BookingCreateTest {
 
     @Test
     void rejectsInvalidInputWithoutSavingAnything() {
-        assertInvalid(tripId, List.of(seatA1), s3, s1, "", "0901234567", "không đúng với tuyến"); // đi ngược chiều
+        assertInvalid(tripId, List.of(seatA1), s3, s1, "", "0901234567", "không đúng với tuyến");
         assertInvalid(tripId, List.of(seatA1), s1, offRouteStation, "", "0901234567", "không đúng với tuyến");
         assertInvalid(cancelledTripId, List.of(seatA1), s1, s2, "", "0901234567", "không còn nhận đặt vé");
         assertInvalid(tripId, List.of(seatA1), s1, s2, "SAIMA", "0901234567", "Mã khuyến mãi không hợp lệ");
         assertInvalid(tripId, List.of(seatA1), s1, s2, "", "12345", "Số điện thoại");
         assertInvalid(tripId, List.of(), s1, s2, "", "0901234567", "ít nhất 1 ghế");
         assertInvalid(tripId, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), s1, s2, "", "0901234567",
-                "tối đa 10 ghế"); // 11 ghế -> chặn ngay, chưa cần xem ghế có trống không
-        assertInvalid(-1, List.of(seatA1), s1, s2, "", "0901234567", "Ghế vừa có người đặt"); // chuyến không tồn tại
+                "tối đa 10 ghế");
+        assertInvalid(-1, List.of(seatA1), s1, s2, "", "0901234567", "Ghế vừa có người đặt");
         assertThat(count("booking")).isZero();
         assertThat(count("ticket")).isZero();
     }
 
     @Test
     void departedTripStillSellsToLaterStationsButCompletedTripDoesNot() {
-        // Tuyến S1 -> S2 -> S3 mất 20 phút mỗi chặng. Tàu đã RỜI S1 cách đây 5 phút (job TI1 đổi sang DEPARTED)
         int routeId = id("route", "code", "TEST_R1");
         jdbc.update("UPDATE route_station SET minutes_from_start = 20 WHERE route_id = ? AND station_id = ?", routeId, s2);
         jdbc.update("UPDATE route_station SET minutes_from_start = 40 WHERE route_id = ? AND station_id = ?", routeId, s3);
         int busId = id("waterbus", "code", "TEST_WB1");
         int departedTripId = trip("TEST_TRIP_DEP", routeId, busId, LocalDateTime.now().minusMinutes(5), "DEPARTED");
 
-        // Lên ở S2: tàu tới sau 15 phút, chưa tới mốc ngừng bán 10 phút -> vẫn đặt được
         Booking booking = BookingTestHelper.createBooking(bookingService, departedTripId, List.of(seatA1),
                 ticketTypeId, s2, s3, "", null, "Lan", "0901234567", "lan@example.com");
         assertThat(booking.getStatus()).isEqualTo("PENDING");
-        // Lên ở S1: tàu đã rời bến này -> ngừng bán
         assertInvalid(departedTripId, List.of(seatA2), s1, s3, "", "0901234567", "ngừng bán vé online");
 
-        // Chuyến đã kết thúc (COMPLETED) -> không bán nữa
         int completedTripId = trip("TEST_TRIP_DONE", routeId, busId, LocalDateTime.now().plusHours(3), "COMPLETED");
         assertInvalid(completedTripId, List.of(seatA1), s2, s3, "", "0901234567", "không còn nhận đặt vé");
     }
 
     @Test
     void stopsOnlineSalesByTimeShipReachesBoardingStation() throws Exception {
-        // Tuyến S1 -> S2 -> S3 mất 20 phút mỗi chặng. Tàu rời S1 sau 5 phút nữa -> tới S2 sau 25 phút
         int routeId = id("route", "code", "TEST_R1");
         jdbc.update("UPDATE route_station SET minutes_from_start = 20 WHERE route_id = ? AND station_id = ?", routeId, s2);
         jdbc.update("UPDATE route_station SET minutes_from_start = 40 WHERE route_id = ? AND station_id = ?", routeId, s3);
         int busId = id("waterbus", "code", "TEST_WB1");
         int soonTripId = trip("TEST_TRIP_SOON", routeId, busId, LocalDateTime.now().plusMinutes(5), "SCHEDULED");
 
-        // Lên ở S1: tàu tới sau 5 phút, chưa tới mốc 10 phút -> ngừng bán, không lưu gì
         assertInvalid(soonTripId, List.of(seatA1), s1, s3, "", "0901234567", "ngừng bán vé online");
         assertThat(count("booking")).isZero();
 
-        // Lên ở S2: tàu tới sau 25 phút -> vẫn bán (trước đây tính theo giờ rời S1 nên bị chặn nhầm)
         Booking booking = BookingTestHelper.createBooking(bookingService, soonTripId, List.of(seatA1), ticketTypeId, s2, s3,
                 "", null, "Lan", "0901234567", "lan@example.com");
         assertThat(booking.getStatus()).isEqualTo("PENDING");
 
-        // Trang checkout dùng cùng luật: S1 -> về trang tìm chuyến; S2 -> vào được, giờ hiện là giờ tàu tới S2
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         mvc.perform(checkout(soonTripId, s1, s3)).andExpect(redirectedUrl("/trips"));
         MvcResult result = mvc.perform(checkout(soonTripId, s2, s3))
                 .andExpect(view().name("booking/checkout"))
                 .andReturn();
         BookingTripDTO trip = (BookingTripDTO) result.getModelAndView().getModel().get("trip");
-        assertThat(trip.getDepartureTime()).isAfter(LocalDateTime.now().plusMinutes(20)); // khoảng 25 phút nữa
+        assertThat(trip.getDepartureTime()).isAfter(LocalDateTime.now().plusMinutes(20));
     }
 
-    // POST /booking/checkout với ghế A2 (A1 đã được đặt ở trên)
     private MockHttpServletRequestBuilder checkout(int trip, int from, int to) {
         return post("/booking/checkout")
                 .param("tripId", String.valueOf(trip))
@@ -285,7 +260,6 @@ class BookingCreateTest {
                 .andReturn().getResponse().getRedirectedUrl();
         assertThat(location).matches("/payment/BK[0-9]{8}");
         assertThat(count("ticket")).isEqualTo(2);
-        // #24: chưa đăng nhập -> khách vãng lai, account_id để NULL
         assertThat(jdbc.queryForObject("SELECT account_id FROM booking", Integer.class)).isNull();
     }
 
@@ -298,7 +272,7 @@ class BookingCreateTest {
 
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         mvc.perform(post("/booking").param("acceptPolicy", "true")
-                        .sessionAttr("loginAccount", loginAccount) // giả lập đã đăng nhập
+                        .sessionAttr("loginAccount", loginAccount)
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
@@ -307,7 +281,6 @@ class BookingCreateTest {
                         .param("contactName", "Lan").param("contactPhone", "0901234567")
                         .param("contactEmail", "lan@example.com").param("promoCode", ""))
                 .andExpect(status().is3xxRedirection());
-        // #24: đơn được gắn đúng tài khoản đang đăng nhập
         assertThat(jdbc.queryForObject("SELECT account_id FROM booking", Integer.class)).isEqualTo(accountId);
     }
 
@@ -330,7 +303,6 @@ class BookingCreateTest {
                 .andExpect(model().attributeExists("trip", "seats", "ticketType", "subtotal",
                         "fromStation", "toStation", "fromStationId", "toStationId", "errorMessage"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        // Ghế A1 đã bị đặt nên chỉ còn A2; dữ liệu khách nhập vẫn còn trên form
         assertThat(html).contains("Ghế vừa có người đặt", "Tuyen test", "TEST_S1", "A2", "15.000 đ",
                 "value=\"Lan Anh\"", "value=\"lananh@example.com\"", "value=\"TEST10\"");
         assertThat(count("booking")).isEqualTo(1);
@@ -350,14 +322,12 @@ class BookingCreateTest {
                 .andExpect(model().attributeExists("trip", "seats", "ticketType", "subtotal",
                         "fromStation", "toStation", "fromStationId", "toStationId"))
                 .andReturn();
-        // subtotal = 15.000 x 2 ghế
         assertThat((BigDecimal) result.getModelAndView().getModel().get("subtotal")).isEqualByComparingTo("30000");
         String html = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
-        // Form trên trang checkout gửi tiếp sang POST /booking, mang theo đủ chuyến + ghế đã chọn
         assertThat(html).contains("action=\"/booking\"", "Tuyen test", "TEST_S1", "TEST_S3", "30.000 đ",
                 "name=\"tripId\" value=\"" + tripId + "\"",
                 "name=\"seatIds\" value=\"" + seatA1 + "\"", "name=\"seatIds\" value=\"" + seatA2 + "\"");
-        assertThat(count("booking")).isZero(); // checkout chỉ để xem lại, chưa tạo đơn
+        assertThat(count("booking")).isZero();
     }
 
     @Test
@@ -376,7 +346,7 @@ class BookingCreateTest {
                 .andExpect(redirectedUrl(seatPage))
                 .andExpect(flash().attribute("errorMessage", "Ghế bạn chọn vừa có người đặt. Vui lòng chọn ghế khác."));
 
-        mvc.perform(post("/booking/checkout") // không tick ghế nào
+        mvc.perform(post("/booking/checkout")
                         .param("tripId", String.valueOf(tripId))
                         .param("ticketTypeId", String.valueOf(ticketTypeId))
                         .param("fromStationId", String.valueOf(s1))
@@ -390,7 +360,6 @@ class BookingCreateTest {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
         String message = "Vui lòng chọn bến đi và bến đến trước khi đặt vé.";
 
-        // Không gửi 2 bến (form bị sửa tay) -> trước đây Spring trả lỗi 400
         mvc.perform(post("/booking/checkout")
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1))
@@ -398,7 +367,6 @@ class BookingCreateTest {
                 .andExpect(redirectedUrl("/trips"))
                 .andExpect(flash().attribute("errorMessage", message));
 
-        // Có 2 ô bến nhưng rỗng: khách mở trang chọn ghế bằng link không kèm bến (/trips/{id}/seats)
         mvc.perform(post("/booking/checkout")
                         .param("tripId", String.valueOf(tripId))
                         .param("seatIds", String.valueOf(seatA1))
@@ -413,7 +381,6 @@ class BookingCreateTest {
     @Test
     void myBookingsRequiresLoginAndShowsOnlyOwnBookingsNewestFirst() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        // Chưa đăng nhập -> sang trang đăng nhập
         mvc.perform(get("/my-bookings")).andExpect(redirectedUrl("/auth/login"));
 
         AccountDTO lan = account("lan@example.com");
@@ -424,9 +391,8 @@ class BookingCreateTest {
                 "", lan.getId(), "Lan", "0901234567", "lan@example.com");
         Booking ofMinh = BookingTestHelper.createBooking(bookingService, tripId, List.of(seatA3), ticketTypeId, s1, s2,
                 "", minh.getId(), "Minh", "0907654321", "minh@example.com");
-        older.setCreatedAt(LocalDateTime.now().minusHours(1)); // để chắc chắn thứ tự thời gian
+        older.setCreatedAt(LocalDateTime.now().minusHours(1));
 
-        // Lan chỉ thấy 2 đơn của mình, đơn mới nhất lên đầu
         MvcResult result = mvc.perform(get("/my-bookings").sessionAttr("loginAccount", lan))
                 .andExpect(status().isOk())
                 .andExpect(view().name("booking/history"))
@@ -438,7 +404,6 @@ class BookingCreateTest {
         assertThat(result.getResponse().getContentAsString(StandardCharsets.UTF_8))
                 .contains(newer.getBookingCode(), older.getBookingCode()).doesNotContain(ofMinh.getBookingCode());
 
-        // Tài khoản chưa có đơn -> danh sách rỗng
         AccountDTO empty = account("empty@example.com");
         mvc.perform(get("/my-bookings").sessionAttr("loginAccount", empty))
                 .andExpect(status().isOk())
@@ -447,18 +412,15 @@ class BookingCreateTest {
 
     @Test
     void myBookingsReturnsToSamePageAfterLogin() throws Exception {
-        // Tài khoản có mật khẩu thật (mã hoá BCrypt) để đăng nhập được qua POST /auth/login
         jdbc.update("INSERT INTO account (email, password_hash, full_name, phone, role, status, created_at) "
                         + "VALUES ('an@example.com', ?, 'An', '0900000001', 'CUSTOMER', 'ACTIVE', ?)",
                 new BCryptPasswordEncoder().encode("Matkhau@123"), LocalDateTime.now());
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        MockHttpSession session = new MockHttpSession(); // dùng chung 1 session như 1 trình duyệt thật
+        MockHttpSession session = new MockHttpSession();
 
-        // 1. Chưa đăng nhập mà vào "Vé của tôi" -> sang trang đăng nhập, session nhớ trang muốn vào
         mvc.perform(get("/my-bookings").session(session)).andExpect(redirectedUrl("/auth/login"));
         assertThat(session.getAttribute("redirectAfterLogin")).isEqualTo("/my-bookings");
 
-        // 2. Đăng nhập xong -> quay lại đúng "Vé của tôi" (trước đây về trang chủ)
         mvc.perform(post("/auth/login").session(session)
                         .param("email", "an@example.com").param("password", "Matkhau@123"))
                 .andExpect(redirectedUrl("/my-bookings"));
@@ -466,24 +428,20 @@ class BookingCreateTest {
 
     @Test
     void checkoutFillsContactFromLoggedInAccount() throws Exception {
-        // #26: template booking/checkout đọc session "loginAccount" để điền sẵn tên/SĐT/email
         AccountDTO lan = new AccountDTO(1, "lan@example.com", "Nguyen Thi Lan", "0901234567", "CUSTOMER", "ACTIVE");
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
 
-        // Đã đăng nhập -> 3 ô liên hệ có sẵn thông tin tài khoản
         String html = mvc.perform(checkoutRequest().sessionAttr("loginAccount", lan))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(html).contains("value=\"Nguyen Thi Lan\"", "value=\"0901234567\"", "value=\"lan@example.com\"");
 
-        // Chưa đăng nhập -> 3 ô để trống cho khách vãng lai tự nhập
         String guestHtml = mvc.perform(checkoutRequest())
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(guestHtml).doesNotContain("Nguyen Thi Lan", "lan@example.com");
     }
 
-    // Form gửi từ trang chọn ghế sang POST /booking/checkout (ghế A1, chặng S1 -> S3)
     private MockHttpServletRequestBuilder checkoutRequest() {
         return post("/booking/checkout")
                 .param("tripId", String.valueOf(tripId))
@@ -493,7 +451,6 @@ class BookingCreateTest {
                 .param("toStationId", String.valueOf(s3));
     }
 
-    // Tạo 1 tài khoản trong DB test, trả về AccountDTO giống cái Tân lưu vào session khi đăng nhập
     private AccountDTO account(String email) {
         jdbc.update("INSERT INTO account (email, password_hash, full_name, phone, role, status, created_at) "
                 + "VALUES (?, 'x', 'Test', '0900000000', 'CUSTOMER', 'ACTIVE', ?)", email, LocalDateTime.now());

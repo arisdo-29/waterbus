@@ -5,8 +5,6 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-// Module: BE4 - Đặt vé & Thanh toán. Thông tin chuyến của 1 đơn đưa ra view (attribute "trip").
-// Đặt tên BookingTripDTO (không phải TripDTO) để không trùng file với module Chuyến của Trí.
 public class BookingTripDTO implements Serializable {
     private final Integer id;
     private final String tripCode;

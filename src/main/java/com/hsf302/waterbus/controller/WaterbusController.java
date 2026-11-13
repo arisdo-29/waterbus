@@ -22,8 +22,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-// Module: BE2 - Tàu, Ghế & Chuyến. Mọi URL của controller này bắt đầu bằng /admin/waterbuses
-// View đặt trong templates/admin/waterbus/ (giao diện: Trí)
 @Controller
 @RequestMapping("/admin/waterbuses")
 public class WaterbusController {

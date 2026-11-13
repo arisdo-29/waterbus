@@ -55,7 +55,6 @@ class StationRouteAdminTests {
         stops.deleteAll();
         routes.deleteAll();
         stations.deleteAll();
-        // Entity-generated H2 schema lacks the SQL script's unique/check constraints. Add them in this test only.
         entityManager.createNativeQuery("CREATE UNIQUE INDEX IF NOT EXISTS test_station_code ON station(code)").executeUpdate();
         entityManager.createNativeQuery("CREATE UNIQUE INDEX IF NOT EXISTS test_route_code ON route(code)").executeUpdate();
         entityManager.createNativeQuery("CREATE UNIQUE INDEX IF NOT EXISTS test_route_order ON route_station(route_id, stop_order)").executeUpdate();
@@ -170,7 +169,6 @@ class StationRouteAdminTests {
                 .andExpect(status().isOk()).andReturn());
         assertThat(html).contains("Tuyến mới tiếng Việt", "selected=\"selected\"");
         export("admin-route-edit", html);
-        // Bỏ bến đầu: số phút mới vẫn phải tính từ bến đầu mới.
         form.setStationIds(List.of(third, second));
         form.setMinutesFromStart(List.of(0, 25));
         routeService.saveRoute(form);

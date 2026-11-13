@@ -139,11 +139,9 @@ class AuthAndAdminViewTests {
     void testLogin_RedirectQueryParam() throws Exception {
         MockHttpSession session = new MockHttpSession();
 
-        // 1. User visits /auth/login?redirect=/my-bookings
         mvc.perform(get("/auth/login").param("redirect", "/my-bookings").session(session))
                 .andExpect(status().isOk());
 
-        // 2. User submits credentials
         mvc.perform(post("/auth/login")
                         .session(session)
                         .param("email", "customer@gmail.com")

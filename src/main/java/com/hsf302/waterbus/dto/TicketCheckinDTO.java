@@ -33,7 +33,6 @@ public class TicketCheckinDTO implements Serializable {
     private final Boolean requiresVerification;
     private final boolean outsideWindow;
 
-    // Full constructor
     public TicketCheckinDTO(String ticketCode, String bookingCode, String passengerName, String passengerPhone,
                             String tripCode, Integer tripId, String routeName, String fromStationName, String toStationName,
                             LocalDateTime departureTime, String seatCode, String waterbusName,
@@ -73,7 +72,6 @@ public class TicketCheckinDTO implements Serializable {
                 checkedInAt, birthYear, passengerAge, requiresVerification, false);
     }
 
-    // Backward-compatible constructor
     public TicketCheckinDTO(String ticketCode, String bookingCode, String passengerName, String passengerPhone,
                             String tripCode, String routeName, String fromStationName, String toStationName,
                             LocalDateTime departureTime, String seatCode, String waterbusName,

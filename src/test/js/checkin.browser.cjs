@@ -1,7 +1,3 @@
-// Kiểm tra JS màn soát vé (initCheckin trong app.js) bằng trang mẫu tự sinh theo hợp đồng data-attribute
-// ở docs/PAGES.md "Soát vé – hợp đồng JS". Không cần chạy Spring Boot.
-// Chạy: node src/test/js/checkin.browser.cjs
-// PLAYWRIGHT_MODULE trỏ tới playwright-core nếu cài ngoài repo; CHROMIUM_PATH trỏ tới chrome.exe nếu cần.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -73,7 +69,6 @@ const server = http.createServer((request, response) => {
     });
 });
 
-// Video giả cho camera: ảnh QR (vẽ bằng qrcode.min.js) ghi thành file .y4m.
 async function makeQrVideo(browser, text) {
     const tab = await browser.newPage();
     await tab.setContent('<div id="q"></div>');
@@ -132,7 +127,6 @@ async function countBeeps(page) {
         tab.on('dialog', dialog => { errors.push('native dialog ' + dialog.message()); dialog.dismiss(); });
         const focusedIs = selector => tab.evaluate(s => document.activeElement === document.querySelector(s), selector);
 
-        // 1. Tải trang: ô nhập tự focus; gõ như máy quét (có khoảng trắng, chữ thường) + Enter.
         await tab.goto(base + '/admin/checkin');
         assert(await focusedIs('[data-checkin-input]'), 'input focused on load');
         await tab.keyboard.type(' tk 0001 ', { delay: 5 });
@@ -140,12 +134,10 @@ async function countBeeps(page) {
         await Promise.all([tab.waitForURL(/ticketCode=TK0001/), tab.keyboard.press('Enter')]);
         assert.deepEqual(requests, ['GET TK0001']);
 
-        // 2. Modal xem trước tự mở, nút xác nhận được focus.
         await tab.locator('[data-checkin-preview]').waitFor({ state: 'visible' });
         await tab.waitForFunction(() => document.activeElement && document.activeElement.hasAttribute('data-checkin-confirm'));
         await tab.screenshot({ path: path.join(output, 'preview-360.png') });
 
-        // 3. Đóng xem trước bằng Esc -> ô nhập trống, focus; cùng mã trong 3 giây không gửi lại.
         await tab.waitForTimeout(300);
         await tab.keyboard.press('Escape');
         await tab.locator('[data-checkin-preview]').waitFor({ state: 'hidden' });
@@ -159,7 +151,6 @@ async function countBeeps(page) {
         await Promise.all([tab.waitForURL(/ticketCode=TK0001/), tab.keyboard.press('Enter')]);
         assert.deepEqual(requests, ['GET TK0001', 'GET TK0001'], 'same code after 3s is sent');
 
-        // 4. Bấm Enter trên nút xác nhận -> kết quả xanh toàn màn hình, âm báo, 2 giây sau tự ẩn.
         await tab.waitForFunction(() => document.activeElement && document.activeElement.hasAttribute('data-checkin-confirm'));
         await Promise.all([tab.waitForURL(base + '/admin/checkin'), tab.keyboard.press('Enter')]);
         const flash = tab.locator('[data-checkin-flash]');
@@ -173,7 +164,6 @@ async function countBeeps(page) {
         await flash.waitFor({ state: 'detached', timeout: 3000 });
         assert(await focusedIs('[data-checkin-input]'));
 
-        // 5. Kết quả lỗi: đỏ, 1 tiếng trầm; gõ mã mới thì ẩn ngay.
         await tab.evaluate(() => {
             const form = document.createElement('form');
             form.method = 'post';
@@ -191,13 +181,11 @@ async function countBeeps(page) {
         await tab.locator('[data-checkin-flash]').waitFor({ state: 'detached', timeout: 1000 });
         assert(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no overflow at 360px');
 
-        // 6. Không phải localhost/HTTPS: báo lỗi tiếng Việt, không mở camera.
         await tab.goto('http://wb-insecure.test:' + port + '/admin/checkin');
         await tab.click('[data-qr-start]');
         assert.match(await tab.locator('[data-qr-message]').innerText(), /HTTPS hoặc http:\/\/localhost/);
         assert(await tab.locator('[data-qr-reader]').isHidden());
 
-        // 7. Mở camera (ảnh giả không có QR) rồi bấm Tắt camera.
         await tab.goto(base + '/admin/checkin');
         await tab.click('[data-qr-start]');
         await tab.locator('[data-qr-reader] video').waitFor({ state: 'visible', timeout: 10000 });
@@ -206,7 +194,6 @@ async function countBeeps(page) {
         assert(await tab.locator('[data-qr-start]').isVisible());
         assert(await focusedIs('[data-checkin-input]'));
 
-        // 7b. Từ chối quyền camera: báo lỗi tiếng Việt.
         await tab.goto(base + '/admin/checkin');
         await tab.evaluate(() => {
             navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
@@ -217,7 +204,6 @@ async function countBeeps(page) {
         assert(await tab.locator('[data-qr-start]').isVisible());
         assert.deepEqual(errors, []);
 
-        // 8. Camera thật (giả lập bằng video QR): mở camera sau, đọc mã, tắt camera, tự gửi form.
         const video = await makeQrVideo(browser, 'tk0000123');
         cameraBrowser = await launch(['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream',
             '--use-file-for-fake-video-capture=' + video]);

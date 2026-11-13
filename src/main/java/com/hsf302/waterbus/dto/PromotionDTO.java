@@ -24,7 +24,7 @@ public class PromotionDTO implements Serializable {
     private String name;
 
     @NotBlank(message = "Loại giảm giá không được để trống")
-    private String discountType = "PERCENT"; // PERCENT | FIXED
+    private String discountType = "PERCENT";
 
     @NotNull(message = "Giá trị giảm không được để trống")
     @DecimalMin(value = "0.01", message = "Giá trị giảm phải lớn hơn 0")

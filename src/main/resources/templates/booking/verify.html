@@ -12,7 +12,6 @@
         </section>
         <section class="container wb-section-top">
             <div class="wb-card p-4">
-                <!--/* TR2 chỉ truyền mã đơn và lỗi; không đưa liên hệ, vé hoặc QR vào trang chưa xác minh. */-->
                 <form method="post" th:action="@{/booking/{code}/verify(code=${bookingCode})}">
                     <p>Mã đơn: <strong th:text="${bookingCode}"></strong></p>
                     <div class="mb-3">

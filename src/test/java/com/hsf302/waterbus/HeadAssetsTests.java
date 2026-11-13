@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Fragment head: font chạy local (không gọi Google Fonts), admin.css chỉ nạp ở /admin/**. */
 @SpringBootTest
 class HeadAssetsTests {
     @Autowired WebApplicationContext context;

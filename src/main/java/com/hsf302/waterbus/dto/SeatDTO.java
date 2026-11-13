@@ -3,7 +3,6 @@ package com.hsf302.waterbus.dto;
 import com.hsf302.waterbus.entity.Seat;
 import java.io.Serializable;
 
-// Module: BE2 - Tàu, Ghế & Chuyến. 1 ghế trên sơ đồ chọn ghế (attribute "seats" của trip/seats).
 public class SeatDTO implements Serializable {
     private final Integer id;
     private final String seatCode;

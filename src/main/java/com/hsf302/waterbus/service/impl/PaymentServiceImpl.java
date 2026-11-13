@@ -15,16 +15,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Module: BE4 - Đặt vé & Thanh toán.
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final TicketRepository ticketRepository;
-    private final PromotionService promotionService; // module Tân: tăng lượt dùng mã KM
+    private final PromotionService promotionService;
 
-    // Constructor injection: Spring tự đưa các repository/service vào
     public PaymentServiceImpl(PaymentRepository paymentRepository, BookingRepository bookingRepository,
                               TicketRepository ticketRepository, PromotionService promotionService) {
         this.paymentRepository = paymentRepository;
@@ -34,23 +32,18 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional(readOnly = true) // chỉ đọc; vẫn cần transaction để đọc được chuyến (quan hệ LAZY) của vé
+    @Transactional(readOnly = true)
     public String getCannotPayReason(int bookingId) {
         Booking booking = bookingRepository.findById(bookingId).orElse(null);
         if (booking == null) {
             return "Không tìm thấy đơn đặt vé.";
         }
-        // Chỉ thanh toán đơn đang chờ (PENDING) và còn trong 10 phút giữ chỗ
         if (!"PENDING".equals(booking.getStatus())) {
             return "Đơn này không còn chờ thanh toán.";
         }
         if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
             return "Đơn đã hết thời gian giữ chỗ. Vui lòng đặt vé lại.";
         }
-        // Chuyến phải còn SCHEDULED (admin có thể đã huỷ chuyến trong lúc khách chưa trả tiền).
-        // Mọi vé của 1 đơn đều cùng 1 chuyến, nên chỉ cần xem chuyến của vé đầu tiên.
-        // TR5: DEPARTED (tàu đã rời bến đầu) vẫn thanh toán được: đơn chỉ được tạo khi tàu tới bến đi của khách
-        // còn hơn 10 phút, và giữ chỗ cũng chỉ 10 phút -> hết hạn trả tiền trước khi tàu tới bến của khách.
         List<Ticket> tickets = ticketRepository.findByBookingIdOrderByIdAsc(bookingId);
         String tripStatus = null;
         if (!tickets.isEmpty()) {
@@ -59,20 +52,16 @@ public class PaymentServiceImpl implements PaymentService {
         if (!"SCHEDULED".equals(tripStatus) && !"DEPARTED".equals(tripStatus)) {
             return "Chuyến tàu đã bị huỷ hoặc không còn nhận thanh toán.";
         }
-        // Mã KM chỉ được tính lượt lúc trả tiền, nên trong lúc đơn này chờ, khách khác có thể đã dùng lượt cuối.
-        // Phải chặn ở đây: nếu để confirmPaid tăng used_count vượt usage_limit thì SQL Server từ chối
-        // (ràng buộc CK_promo_usage) và khách thấy trang lỗi 500 thay vì một lời báo dễ hiểu.
         Promotion promotion = booking.getPromotion();
         if (isPromotionUsedUp(promotion)) {
             return "Mã khuyến mãi " + promotion.getCode() + " đã hết lượt sử dụng. Vui lòng đặt vé lại không dùng mã này.";
         }
-        return null; // không có lý do nào để chặn -> thanh toán được
+        return null;
     }
 
-    // Mã KM đã dùng hết số lượt cho phép chưa. usage_limit = NULL nghĩa là mã không giới hạn lượt.
     private boolean isPromotionUsedUp(Promotion promotion) {
         if (promotion == null || promotion.getUsageLimit() == null) {
-            return false; // đơn không dùng mã, hoặc mã không giới hạn lượt
+            return false;
         }
         int usedCount = 0;
         if (promotion.getUsedCount() != null) {
@@ -82,16 +71,15 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional // ghi 4 bảng (payment, booking, ticket, promotion): lỗi giữa chừng thì huỷ hết
+    @Transactional
     public Payment confirmPaid(int bookingId, String method, String transactionRef) {
         String reason = getCannotPayReason(bookingId);
         if (reason != null) {
             throw new IllegalArgumentException(reason);
         }
-        Booking booking = bookingRepository.findById(bookingId).orElseThrow(); // đã kiểm tra ở trên nên chắc chắn có
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow();
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. Payment SUCCESS. DB chỉ cho mỗi đơn 1 payment -> đã có thì cập nhật, chưa có thì tạo mới
         Payment payment = paymentRepository.findByBookingId(bookingId).orElse(null);
         if (payment == null) {
             payment = new Payment();
@@ -105,12 +93,10 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPaidAt(now);
         paymentRepository.save(payment);
 
-        // 2. Đơn -> PAID, ghi thời điểm thanh toán
         booking.setStatus("PAID");
         booking.setPaidAt(now);
         bookingRepository.save(booking);
 
-        // 3. Vé đang giữ chỗ (HOLD) -> vé dùng được (VALID)
         for (Ticket ticket : ticketRepository.findByBookingIdOrderByIdAsc(bookingId)) {
             if ("HOLD".equals(ticket.getStatus())) {
                 ticket.setStatus("VALID");
@@ -118,8 +104,6 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
 
-        // 4. Đơn có dùng mã khuyến mãi -> tăng used_count lên 1
-        // (getCannotPayReason ở đầu hàm đã chặn mã hết lượt, nên tăng ở đây không vượt usage_limit)
         if (booking.getPromotion() != null) {
             promotionService.increaseUsedCount(booking.getPromotion().getCode());
         }
@@ -129,21 +113,16 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public void confirmCashPayment(int bookingId, String loginRole) {
-        // Kiểm tra quyền ở service: chỉ nhân viên tại bến mới thu tiền mặt
-        // (khách không được tự bấm "đã trả tiền mặt" để lấy vé)
         if (!"STAFF".equalsIgnoreCase(loginRole)) {
             throw new IllegalArgumentException("Chỉ nhân viên tại bến mới được xác nhận thu tiền mặt.");
         }
-        // Dùng chung luồng xác nhận với VNPay: đơn phải PENDING, còn hạn, chuyến còn bán, mã KM còn lượt.
-        // Tiền mặt không có mã giao dịch của cổng thanh toán -> transactionRef = null
         confirmPaid(bookingId, "CASH", null);
     }
 
     @Override
     public PaymentInfoDTO getPaymentOfBooking(int bookingId) {
-        // Có payment -> đổi sang DTO nhỏ (chỉ method + transactionRef). Không có -> null (đơn chưa trả / đơn 0 đ)
         return paymentRepository.findByBookingId(bookingId)
-                .map(PaymentInfoDTO::fromEntity) // đổi Entity -> DTO do chính DTO lo
+                .map(PaymentInfoDTO::fromEntity)
                 .orElse(null);
     }
 }

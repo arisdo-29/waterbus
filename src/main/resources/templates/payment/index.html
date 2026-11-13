@@ -93,7 +93,6 @@
               <p class="wb-payment-expired" data-payment-expired>Đơn đã hết thời gian giữ chỗ, vui lòng đặt lại.</p>
               <button class="btn btn-wb-accent w-100" type="submit" data-payment-submit data-confirm="Xác nhận thanh toán đơn này?" th:data-confirm="${'Thanh toán ' + #numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ qua VNPay?'}" data-confirm-title="Xác nhận thanh toán" data-confirm-ok="Thanh toán" th:disabled="${booking?.status != 'PENDING' or booking?.expiresAt == null}">Thanh toán <span th:text="${#numbers.formatDecimal(booking?.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">28.500 đ</span> <i class="bi bi-lock-fill ms-2" aria-hidden="true"></i></button><a class="wb-return-home" href="/templates/index.html" th:href="@{/}">Về trang chủ</a>
             </form>
-            <!--/* KH5/TR6: backend vẫn phải kiểm tra STAFF và hiệu lực đơn trước khi ghi thanh toán. */-->
             <form class="mt-3" th:if="${session.loginAccount?.role == 'STAFF' and booking?.status == 'PENDING'}"
                   method="post" th:action="@{/payment/{code}/cash(code=${booking.bookingCode})}" data-payment-form>
               <p class="small text-muted">Chỉ xác nhận sau khi đã nhận đủ tiền mặt từ khách.</p>

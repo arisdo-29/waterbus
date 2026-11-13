@@ -28,7 +28,6 @@ public class RouteForm {
     private List<@NotNull(message = "Vui lòng nhập số phút của bến.")
             @Min(value = 0, message = "Số phút không được âm.") Integer> minutesFromStart = new ArrayList<>();
 
-    // Hai danh sách lấy từ cùng thứ tự bến để số phút không bị ghép nhầm.
     public static RouteForm fromEntity(Route r, List<RouteStation> stops) {
         RouteForm form = new RouteForm();
         form.setId(r.getId());
@@ -41,7 +40,6 @@ public class RouteForm {
         return form;
     }
 
-    // Chép phần thông tin tuyến từ form sang entity (không chép id; danh sách bến do service xử lý)
     public void applyTo(Route r) {
         r.setCode(code);
         r.setName(name);

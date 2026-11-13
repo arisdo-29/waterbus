@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Objects;
 
-// VÍ DỤ MẪU (BE1) - viết theo đúng kiểu ArtifactDTO trong project của giảng viên.
 public class StationDTO implements Serializable {
     private final Integer id;
     @NotNull
@@ -28,7 +27,6 @@ public class StationDTO implements Serializable {
         this.isActive = isActive;
     }
 
-    // Chuyển Entity -> DTO đặt ngay trong DTO; ServiceImpl chỉ gọi StationDTO::fromEntity
     public static StationDTO fromEntity(Station s) {
         return new StationDTO(s.getId(), s.getCode(), s.getName(), s.getAddress(), s.getIsActive());
     }

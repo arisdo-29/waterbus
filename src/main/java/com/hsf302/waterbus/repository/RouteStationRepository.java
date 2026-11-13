@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import java.util.List;
 
-// Module: BE1 - Tuyến & Bến
 public interface RouteStationRepository extends JpaRepository<RouteStation, Integer> {
     boolean existsByStationIdAndRouteIsActiveTrue(int stationId);
 

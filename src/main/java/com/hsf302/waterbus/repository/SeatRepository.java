@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-// Module: BE2 - Tàu, Ghế & Chuyến
 public interface SeatRepository extends JpaRepository<Seat, Integer> {
     List<Seat> findByWaterbusIdOrderBySeatRowAscSeatColAsc(int waterbusId);
 

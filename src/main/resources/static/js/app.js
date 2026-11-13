@@ -155,7 +155,6 @@
             paymentForms.forEach(function (form) { form.classList.add('is-expired'); });
             expiredMessages.forEach(function (message) { message.classList.add('is-visible'); });
         }
-        // Cả VNPay và tiền mặt đều phải bị chặn khi thời gian giữ chỗ không còn hợp lệ.
         paymentForms.forEach(function (form) {
             form.addEventListener('submit', function (event) {
                 if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
@@ -296,10 +295,6 @@
         update();
     }
 
-    /*
-     * Checkout vé ưu đãi: kiểm tra năm sinh từng hành khách (backend vẫn kiểm tra lại).
-     * [data-passenger-section][data-ticket-code][data-travel-year] > input[data-birth-year] + [data-birth-year-error]
-     */
     function initPassengerForm() {
         const minAgeByCode = { SENIOR_70: 70 };
         document.querySelectorAll('[data-passenger-section]').forEach(function (section) {
@@ -372,7 +367,6 @@
     }
 })();
 
-/* Admin and handoff pages opt into these features through data attributes. */
 (function () {
     function initAdminNavigation() {
         const path = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -382,7 +376,6 @@
             revenue: 'revenue', refunds: 'refund', accounts: 'account', checkin: 'checkin'
         };
         const links = Array.from(document.querySelectorAll('[data-admin-nav]'));
-        // Đường dẫn con (VD /admin/accounts/5/edit) vẫn sáng mục cha; nhiều mục khớp thì lấy mục dài nhất.
         const matches = function (target) {
             const section = target.split('/').filter(Boolean).pop();
             return path === target || path.startsWith(target + '/') ||
@@ -405,13 +398,6 @@
         });
     }
 
-    /*
-     * Pop-up xác nhận dùng chung (modal "confirmModal" trong layout.html).
-     * data-confirm="Nội dung"           đặt trên <form>, nút submit (ưu tiên nút) hoặc <a>
-     * data-confirm-title="Tiêu đề"      mặc định "Xác nhận thao tác"
-     * data-confirm-variant="danger"     nút Đồng ý màu đỏ
-     * data-confirm-ok="Chữ trên nút"    mặc định "Đồng ý"
-     */
     function initConfirmations() {
         const modalElement = document.querySelector('[data-confirm-modal]');
         const titleElement = modalElement && modalElement.querySelector('[data-confirm-modal-title]');
@@ -459,7 +445,6 @@
             if (!button) {
                 return;
             }
-            // Khoá sau khi trình duyệt đã lấy dữ liệu form, để nút bấm vẫn gửi name/value của nó.
             window.setTimeout(function () {
                 button.disabled = true;
                 if (button.tagName === 'BUTTON' && !button.querySelector('[data-confirm-spinner]')) {
@@ -539,7 +524,6 @@
             });
         });
 
-        // Quay lại trang bằng nút Back (bfcache): mở khoá form đã gửi trước đó.
         window.addEventListener('pageshow', function (event) {
             if (!event.persisted) {
                 return;
@@ -819,12 +803,6 @@
         });
     }
 
-    /*
-     * Màn soát vé (STAFF) - hợp đồng data-attribute ở docs/PAGES.md "Soát vé – hợp đồng JS".
-     * [data-checkin-form] > [data-checkin-input]; [data-qr-start] + [data-qr-reader];
-     * [data-checkin-preview] (modal xem trước, nút [data-checkin-confirm]);
-     * [data-checkin-result][data-result="success|error"][data-message].
-     */
     function initCheckin() {
         const form = document.querySelector('[data-checkin-form]');
         const input = document.querySelector('[data-checkin-input]');
@@ -856,12 +834,10 @@
             try {
                 window.sessionStorage.setItem(dedupKey, JSON.stringify({ code: code, at: Date.now() }));
             } catch (e) {
-                // Trình duyệt chặn storage: bỏ qua, vẫn chặn trùng trong trang bằng biến.
             }
         }
         let lastInPage = null;
 
-        // Ô nhập: viết hoa, bỏ khoảng trắng; máy quét USB/Bluetooth gõ như bàn phím rồi Enter -> form tự gửi.
         input.setAttribute('autocomplete', 'off');
         input.setAttribute('autocapitalize', 'characters');
         input.setAttribute('spellcheck', 'false');
@@ -891,7 +867,6 @@
             writeLast(code);
         });
 
-        // Âm báo bằng Web Audio API: thành công 2 tiếng cao, lỗi 1 tiếng trầm dài.
         function beep(success) {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -921,11 +896,9 @@
                     play();
                 }
             } catch (e) {
-                // Không phát được âm thanh thì chỉ hiển thị.
             }
         }
 
-        // Kết quả soát vé: khung to giữa màn hình, tự ẩn sau 2 giây.
         const resultElement = document.querySelector('[data-checkin-result]');
         if (resultElement) {
             const success = resultElement.dataset.result === 'success';
@@ -964,14 +937,12 @@
                 window.clearTimeout(timer);
                 hide();
             });
-            // Lượt kế tiếp bắt đầu (gõ/quét mã mới) thì ẩn ngay.
             input.addEventListener('input', function () {
                 window.clearTimeout(timer);
                 hide();
             }, { once: true });
         }
 
-        // Modal xem trước do server render: tự mở, nút xác nhận tự focus (bấm 1 lần hoặc Enter).
         if (previewElement && window.bootstrap && window.bootstrap.Modal) {
             const confirmButton = previewElement.querySelector('[data-checkin-confirm]') ||
                 previewElement.querySelector('button[type="submit"]');
@@ -987,7 +958,6 @@
             window.bootstrap.Modal.getOrCreateInstance(previewElement).show();
         }
 
-        // Quét QR bằng camera sau của điện thoại (thư viện html5-qrcode, nạp qua fragment scriptsCheckin).
         const qrStart = document.querySelector('[data-qr-start]');
         const qrReader = document.querySelector('[data-qr-reader]');
         if (qrStart && qrReader) {
@@ -1032,7 +1002,6 @@
                             scanner.clear();
                         });
                     } catch (e) {
-                        // Camera chưa kịp chạy: không có gì để dừng.
                     }
                 }
                 return stopping.catch(function () {}).then(done);
@@ -1090,7 +1059,6 @@
                         });
                     },
                     function () {
-                        // Khung hình chưa có QR: bỏ qua.
                     }).catch(function (error) {
                     stopCamera();
                     setMessage(cameraError(error), true);

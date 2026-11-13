@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Nationalized;
 
-/** Bảng [booking] - module phụ trách: BE4 - Đặt vé & Thanh toán. Khớp với database/WaterbusDB_SQLServer.sql */
 @Entity
 @Table(name = "booking")
 public class Booking {

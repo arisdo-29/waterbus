@@ -1113,7 +1113,7 @@
             const message = 'Bạn sắp hủy ' + selected.length + ' chuyến, gồm ' + confirmedTickets
                 + ' vé xác nhận/đã dùng và ' + heldTickets + ' vé giữ chỗ.'
                 + (tripSummary.length ? '\n' + tripSummary.join('\n') : '')
-                + '\nCác vé sẽ bị hủy. Khoản tiền cần hoàn sẽ được tạo ở trạng thái chờ; bạn phải chuyển tiền ngoài hệ thống và xác nhận sau.';
+                + '\nCác vé sẽ bị hủy. Khoản tiền cần hoàn sẽ được tạo ở trạng thái chờ. Bạn phải chuyển tiền ngoài hệ thống và xác nhận sau.';
             submitButton.setAttribute('data-confirm', message);
         }
 

@@ -41,7 +41,7 @@
         </form>
 
         <div class="alert alert-warning" role="alert" th:if="${filterApplied}">
-            Chỉ hiển thị chuyến đang lên lịch và chưa khởi hành. Kiểm tra kỹ danh sách hành khách và số vé đã xác nhận; khi hủy, các vé sẽ bị hủy và khoản hoàn sẽ được tạo ở trạng thái chờ.
+            Chỉ hiển thị chuyến đang lên lịch và chưa khởi hành. Kiểm tra kỹ danh sách hành khách và số vé đã xác nhận. Khi hủy, các vé sẽ bị hủy và khoản hoàn sẽ được tạo ở trạng thái chờ.
         </div>
 
         <section th:if="${filterApplied and #lists.isEmpty(cancellationPreviews)}" class="wb-admin-table-wrap wb-admin-empty">

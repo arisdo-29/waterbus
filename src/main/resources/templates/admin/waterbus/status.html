@@ -42,8 +42,8 @@
         <section th:if="${previewReady}">
             <div class="alert alert-warning" role="alert" th:if="${targetStatus != 'ACTIVE'}">
                 Các chuyến giao với thời gian ngưng tàu sẽ bị hủy ngay sau khi xác nhận.
-                Đơn đã thanh toán được đưa vào mục <a th:href="@{/admin/refunds(status='PENDING')}">Chờ hoàn tiền</a>;
-                việc chuyển tiền thực tế vẫn cần được xử lý tại đó.
+                Đơn đã thanh toán được đưa vào mục <a th:href="@{/admin/refunds(status='PENDING')}">Chờ hoàn tiền</a>.
+                Việc chuyển tiền thực tế vẫn cần được xử lý tại đó.
             </div>
             <div class="alert alert-info" role="alert" th:if="${targetStatus == 'ACTIVE'}">
                 Tàu sẽ hoạt động lại. Các chuyến đã hủy trước đó không tự khôi phục.
